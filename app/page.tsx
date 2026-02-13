@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { ArrowDown, ArrowUp, DollarSign } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { format, parseISO } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Text } from 'recharts';
+import { format, parseISO, set } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTheme } from 'next-themes';
 
@@ -38,6 +38,9 @@ export default function DashboardPage() {
   const [monthlyTrends, setMonthlyTrends] = useState<MonthlyData[]>([]);
   const [loading, setLoading] = useState(true);
   const { theme } = useTheme();
+
+  const textColor = theme === 'dark' ? '#f8fafc' : '#020617'; // Use tailwind slate-50 and slate-950 for text
+  const tooltipBg = theme === 'dark' ? 'hsl(240 10% 3.9%)' : '#ffffff'; // Use card background
 
   useEffect(() => {
     async function fetchData() {
@@ -79,6 +82,10 @@ export default function DashboardPage() {
 
         // Aggregate for monthly trends
         const monthlyDataMap = new Map<string, { Ingresos: number; Gastos: number }>();
+        const monthNameMap: { [key: string]: number } = {
+            'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
+            'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11
+        };
 
         transactions.forEach(t => {
           const monthKey = format(parseISO(t.date), 'MMM yyyy', { locale: es });
@@ -93,9 +100,14 @@ export default function DashboardPage() {
           }
         });
         
-        // Sort months chronologically if needed (optional, but good practice)
         const sortedMonthlyData = Array.from(monthlyDataMap, ([month, data]) => ({ month, ...data }))
-            .sort((a, b) => new Date(a.month.replace(' ', ' 1, ')).getTime() - new Date(b.month.replace(' ', ' 1, ')).getTime());
+          .sort((a, b) => {
+            const [monthA, yearA] = a.month.split(' ');
+            const [monthB, yearB] = b.month.split(' ');
+            const dateA = new Date(parseInt(yearA), monthNameMap[monthA.toLowerCase().replace('.','')], 1);
+            const dateB = new Date(parseInt(yearB), monthNameMap[monthB.toLowerCase().replace('.','')], 1);
+            return dateA.getTime() - dateB.getTime();
+          });
 
 
         setMonthlyTrends(sortedMonthlyData);
@@ -118,12 +130,31 @@ export default function DashboardPage() {
       currency: 'USD',
     }).format(amount);
   };
+  
+  const renderCustomizedLabel = (props: any) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.7; // Position label inside
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-  const getPieChartLabel = ({ name, percent }: { name: string; percent: number }) => {
-    return `${name} ${(percent * 100).toFixed(0)}%`;
+    if (percent < 0.05) return null; // Don't render label if slice is too small
+
+    return (
+      <Text
+        x={x}
+        y={y}
+        fill={textColor}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight="bold"
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </Text>
+    );
   };
 
-  const currentTheme = theme === 'dark' ? '#ffffff' : '#000000'; // Tooltip text color based on theme
 
   if (loading) {
     return <div>Cargando...</div>;
@@ -173,11 +204,16 @@ export default function DashboardPage() {
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyTrends}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" stroke={currentTheme} />
-              <YAxis tickFormatter={(value) => formatCurrency(value)} stroke={currentTheme} />
-              <Tooltip formatter={(value: number) => formatCurrency(value)} />
-              <Legend />
+              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2}/>
+              <XAxis dataKey="month" stroke={textColor} />
+              <YAxis tickFormatter={(value) => formatCurrency(value)} stroke={textColor} />
+              <Tooltip
+                formatter={(value: number, name: string) => [formatCurrency(value), name]}
+                contentStyle={{ backgroundColor: tooltipBg, borderColor: 'hsl(var(--border))' }}
+                labelStyle={{ color: textColor }}
+                cursor={{ fill: 'hsl(var(--accent))', opacity: 0.5 }}
+              />
+              <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
               <Line type="monotone" dataKey="Ingresos" stroke="#22c55e" activeDot={{ r: 8 }} />
               <Line type="monotone" dataKey="Gastos" stroke="#ef4444" activeDot={{ r: 8 }} />
             </LineChart>
@@ -193,38 +229,42 @@ export default function DashboardPage() {
             <CardDescription>Desglose de ingresos por categoría</CardDescription>
           </CardHeader>
           <CardContent>
-            {incomeCategories.length > 0 && (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={incomeCategories}
-                    dataKey="total"
-                    nameKey="category"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    label={getPieChartLabel}
-                    labelLine={false}
-                  >
-                    {incomeCategories.map((entry, index) => (
-                      <Cell key={`cell-income-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [formatCurrency(value), name]} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
             {incomeCategories.length > 0 ? (
-              <ul className="space-y-2 mt-4">
-                {incomeCategories.map((item) => (
-                  <li key={item.category} className="flex justify-between">
-                    <span>{item.category}</span>
-                    <span className="font-medium text-green-600">{formatCurrency(item.total)}</span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={incomeCategories}
+                      dataKey="total"
+                      nameKey="category"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#8884d8"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                    >
+                      {incomeCategories.map((entry, index) => (
+                        <Cell key={`cell-income-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [formatCurrency(value), name]} 
+                      contentStyle={{ backgroundColor: tooltipBg, borderColor: 'hsl(var(--border))' }}
+                      itemStyle={{ color: textColor }}
+                    />
+                    <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <ul className="space-y-2 mt-4">
+                  {incomeCategories.map((item) => (
+                    <li key={item.category} className="flex justify-between">
+                      <span>{item.category}</span>
+                      <span className="font-medium text-green-600">{formatCurrency(item.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">No hay ingresos categorizados.</p>
             )}
@@ -237,38 +277,42 @@ export default function DashboardPage() {
             <CardDescription>Desglose de gastos por categoría</CardDescription>
           </CardHeader>
           <CardContent>
-            {expenseCategories.length > 0 && (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={expenseCategories}
-                    dataKey="total"
-                    nameKey="category"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#82ca9d"
-                    label={getPieChartLabel}
-                    labelLine={false}
-                  >
-                    {expenseCategories.map((entry, index) => (
-                      <Cell key={`cell-expense-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [formatCurrency(value), name]} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
             {expenseCategories.length > 0 ? (
-              <ul className="space-y-2 mt-4">
-                {expenseCategories.map((item) => (
-                  <li key={item.category} className="flex justify-between">
-                    <span>{item.category}</span>
-                    <span className="font-medium text-red-600">{formatCurrency(item.total)}</span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={expenseCategories}
+                      dataKey="total"
+                      nameKey="category"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#82ca9d"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                    >
+                      {expenseCategories.map((entry, index) => (
+                        <Cell key={`cell-expense-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [formatCurrency(value), name]} 
+                      contentStyle={{ backgroundColor: tooltipBg, borderColor: 'hsl(var(--border))' }}
+                      itemStyle={{ color: textColor }}
+                    />
+                     <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <ul className="space-y-2 mt-4">
+                  {expenseCategories.map((item) => (
+                    <li key={item.category} className="flex justify-between">
+                      <span>{item.category}</span>
+                      <span className="font-medium text-red-600">{formatCurrency(item.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">No hay gastos categorizados.</p>
             )}

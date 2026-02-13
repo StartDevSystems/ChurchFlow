@@ -269,17 +269,20 @@ Basado en las peticiones del usuario, estas son las próximas grandes mejoras a 
 3.  **Gestión Avanzada de Transacciones:**
     *   Implementar transacciones recurrentes.
     *   Mejorar la validación de formularios y la retroalimentación de errores.
-4.  **Presupuesto:**
+4.  **Gestión de Categorías Dinámicas (Nueva Idea):**
+    *   **Objetivo:** Permitir al administrador crear, editar y eliminar categorías para los ingresos y gastos.
+    *   **Mejora:** En el formulario de transacciones, reemplazar el campo de texto de "Categoría" por un menú desplegable (`<select>`) que se popule con las categorías existentes. Esto mejora la consistencia de los datos y la experiencia de usuario.
+5.  **Presupuesto:**
     *   Capacidad de establecer presupuestos para categorías de gastos.
     *   Seguimiento del presupuesto frente al gasto real.
-5.  **Otras Mejoras de UI/UX:**
+6.  **Otras Mejoras de UI/UX:**
     *   Búsqueda global para listas de miembros/transacciones.
     *   Mejorar las visualizaciones de la página "Cuotas".
     *   Añadir el logo de la aplicación.
-6.  **Preparativos para Despliegue:**
+7.  **Preparativos para Despliegue:**
     *   Documentar los pasos de despliegue.
     *   Asegurar que las variables de entorno estén configuradas para producción.
-7.  **Otras Ideas (Futuras):** Python (si surge un caso de uso claro), efectos de scroll, Three.js (para landing page opcional).
+8.  **Otras Ideas (Futuras):** Python (si surge un caso de uso claro), efectos de scroll, Three.js (para landing page opcional).
 
 ### Problemas Actuales / En Curso
 -   **Bug:** Error "Failed to create member" al intentar crear un nuevo miembro.

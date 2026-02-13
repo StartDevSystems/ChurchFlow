@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, ArrowRightLeft, FileText, DollarSign, LogOut } from 'lucide-react'; // Import LogOut icon
+import { Home, Users, ArrowRightLeft, FileText, DollarSign, LogOut, BarChart3 } from 'lucide-react'; // Import LogOut icon
 import { cn } from '@/lib/utils';
 import { signOut, useSession } from 'next-auth/react'; // Import signOut and useSession
 import { Button } from './ui/Button'; // Assuming Button component exists
@@ -12,6 +12,7 @@ const navItems = [
   { href: '/members', label: 'Miembros', icon: Users },
   { href: '/transactions', label: 'Transacciones', icon: ArrowRightLeft },
   { href: '/reports', label: 'Reportes', icon: FileText },
+  { href: '/stats', label: 'Estadísticas', icon: BarChart3 },
   { href: '/dues', label: 'Cuotas', icon: DollarSign },
 ];
 
