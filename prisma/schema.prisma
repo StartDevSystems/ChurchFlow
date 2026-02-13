@@ -1,0 +1,41 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  role     String @default("USER") // ADMIN, USER, etc.
+}
+
+model Member {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  role      String   @default("Joven") // "Joven" or "Directiva"
+  createdAt DateTime @default(now())
+  transactions Transaction[]
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  type      TransactionType
+  category  String
+  amount    Float
+  date      DateTime
+  description String
+  memberId  String?
+  member    Member? @relation(fields: [memberId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum TransactionType {
+  income
+  expense
+}
