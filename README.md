@@ -77,7 +77,7 @@ README.md
   - `generateReport.ts` → genera PDF automáticamente
   - `backupDb.ts` → copia automática de dev.db
   - `updateBalance.ts` → recalcula balances automáticamente
-- Se pueden activar desde CLI o desde botones en el dashboard
+- Se pueden activar desde CLI o desde botones en el dashboard (híbrido)
 - Híbrido: puedes usar manualmente o dejar que corran automáticamente
 
 
@@ -250,6 +250,18 @@ Se ha implementado un sistema para el seguimiento visual de las cuotas de los j�
     -   Se añadió un botón "Seleccionar Todos los Jóvenes" para agilizar el proceso.
     -   La lógica de envío crea una transacción individual de "cuota" para cada joven seleccionado.
 
+### Mejoras Recientes
+Se han implementado mejoras significativas en la visualización de datos y la flexibilidad del sistema:
+-   **Solución de Autenticación:** Se corrigió el error `JWEDecryptionFailed` al configurar `NEXTAUTH_SECRET` y `NEXTAUTH_URL`, asegurando un inicio de sesión estable.
+-   **Adaptación de Colores en Gráficos:** Los gráficos del Dashboard (`/`) ahora ajustan automáticamente sus colores (ejes, leyendas, tooltips y etiquetas) para ser legibles en modos claro y oscuro.
+-   **Página de "Estadísticas" Mejorada:**
+    *   Se añadió una nueva página `/stats` accesible desde la barra lateral.
+    *   Esta página ahora funciona como un **perfil financiero completo por miembro**, mostrando el total de ingresos, total de gastos y el balance neto.
+    *   Incluye un desglose mensual interactivo con un gráfico de barras agrupadas (ingresos vs. gastos) para cada miembro.
+    *   El sistema ahora procesa **todas las transacciones de ingresos y gastos** vinculadas a un miembro para estas estadísticas.
+-   **Página de "Cuotas" Inclusiva:** La página `/dues` ahora muestra a **todos los miembros** (Jóvenes y Directiva), no solo a los jóvenes, para el seguimiento de la categoría "Cuota".
+-   **Reutilización de Código:** La función `formatCurrency` se movió a `lib/utils.ts` para una mejor organización.
+
 ### Próximas Funcionalidades (Plan de Desarrollo)
 Basado en las peticiones del usuario, estas son las próximas grandes mejoras a implementar:
 
@@ -272,18 +284,37 @@ Basado en las peticiones del usuario, estas son las próximas grandes mejoras a 
 4.  **Gestión de Categorías Dinámicas (Nueva Idea):**
     *   **Objetivo:** Permitir al administrador crear, editar y eliminar categorías para los ingresos y gastos.
     *   **Mejora:** En el formulario de transacciones, reemplazar el campo de texto de "Categoría" por un menú desplegable (`<select>`) que se popule con las categorías existentes. Esto mejora la consistencia de los datos y la experiencia de usuario.
-5.  **Presupuesto:**
+5.  **Eventos Financieros:**
+    *   **Objetivo:** Permitir el seguimiento financiero de eventos específicos (ej. Campamentos, Conferencias).
+    *   **Descripción:** Crear un módulo de "Eventos" y la capacidad de asociar ingresos y gastos a cada evento. Generar reportes específicos por evento para analizar su rentabilidad.
+6.  **Notificaciones Automatizadas:**
+    *   **Objetivo:** Implementar un sistema de notificaciones proactivo.
+    *   **Descripción:** Configurar envíos automáticos (ej. por correo electrónico, futura integración con WhatsApp) de recordatorios de cuotas pendientes o alertas sobre el presupuesto.
+7.  **Roles y Permisos Avanzados:**
+    *   **Objetivo:** Definir y aplicar niveles de acceso detallados basados en roles de usuario.
+    *   **Descripción:** Expandir el modelo de `User` para incluir roles como "Tesorero", "Líder", "Miembro", cada uno con diferentes capacidades (ej. Tesorero puede editar todo, Líder solo ver reportes, Miembro solo ver su perfil).
+8.  **Presupuesto:**
     *   Capacidad de establecer presupuestos para categorías de gastos.
     *   Seguimiento del presupuesto frente al gasto real.
-6.  **Otras Mejoras de UI/UX:**
+9.  **Otras Mejoras de UI/UX:**
     *   Búsqueda global para listas de miembros/transacciones.
     *   Mejorar las visualizaciones de la página "Cuotas".
     *   Añadir el logo de la aplicación.
-7.  **Preparativos para Despliegue:**
+10. **Preparativos para Despliegue:**
     *   Documentar los pasos de despliegue.
     *   Asegurar que las variables de entorno estén configuradas para producción.
-8.  **Otras Ideas (Futuras):** Python (si surge un caso de uso claro), efectos de scroll, Three.js (para landing page opcional).
+11. **Otras Ideas (Futuras):** Python (si surge un caso de uso claro), efectos de scroll, Three.js (para landing page opcional).
 
 ### Problemas Actuales / En Curso
 -   **Bug:** Error "Failed to create member" al intentar crear un nuevo miembro.
     *   **Estado:** Se ha modificado la API de creación de miembros (`/api/members/route.ts`) para que registre un error detallado en la consola del servidor. Se está esperando que el usuario proporcione este log para diagnosticar y corregir el problema.
+
+### Cómo Trabaja el Asistente CLI
+
+Como tu asistente de desarrollo de software, sigo un proceso estructurado para garantizar que las tareas se completen de manera efectiva y segura:
+
+1.  **Entender la Solicitud:** Analizo tus instrucciones y el contexto del proyecto (código, `README.md`, etc.) para comprender a fondo el objetivo.
+2.  **Planificar la Solución:** Desarrollo un plan detallado paso a paso. Para tareas complejas, creo una lista de subtareas (`TODOs`) que comparto contigo para transparencia. **Siempre discuto los cambios importantes o nuevas funcionalidades contigo antes de implementarlas.**
+3.  **Ejecutar la Implementación:** Escribo o modifico el código utilizando las herramientas disponibles, adhiriéndome a las mejores prácticas de codificación y al estilo existente de tu proyecto.
+4.  **Verificar el Trabajo:** Reviso los cambios en busca de errores (sintaxis, lógica) y confirmo que cumplan con los requisitos. Si es posible, sugiero o realizo pruebas.
+5.  **Reportar y Confirmar:** Te informo sobre el trabajo realizado, te pido que verifiques los cambios y espero tus comentarios o la siguiente instrucción. Tú mantienes el control total sobre el proceso.
