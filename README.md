@@ -262,6 +262,25 @@ Se han implementado mejoras significativas en la visualización de datos y la fl
 -   **Página de "Cuotas" Inclusiva:** La página `/dues` ahora muestra a **todos los miembros** (Jóvenes y Directiva), no solo a los jóvenes, para el seguimiento de la categoría "Cuota".
 -   **Reutilización de Código:** La función `formatCurrency` se movió a `lib/utils.ts` para una mejor organización.
 
+### Historial de Versiones (Changelog)
+
+#### `v1.1.0` - Gestión de Categorías y Mejoras de UI
+*Fecha: 13 de Febrero, 2026*
+
+- **Gestión de Categorías Dinámicas:**
+    - Se ha creado un nuevo módulo en `/admin/categories` que permite al administrador crear, editar y eliminar categorías de ingresos y gastos.
+    - El formulario de "Nueva Transacción" ahora utiliza un menú desplegable para seleccionar la categoría.
+- **Página de "Estadísticas" Mejorada:**
+    - La página de estadísticas ahora funciona como un perfil financiero 360° por miembro, mostrando `Total de Aportes`, `Total de Gastos` y un `Balance Neto`.
+    - El gráfico de detalle ahora muestra barras agrupadas de ingresos vs. gastos para un análisis mensual completo.
+- **Página de "Cuotas" Inclusiva:**
+    - La página `/dues` ahora muestra a todos los miembros (Jóvenes y Directiva).
+- **Adaptación de Colores en Gráficos:**
+    - Todos los gráficos del Dashboard ahora se adaptan correctamente a los modos claro y oscuro.
+- **Corrección de Bugs:**
+    - Solucionado el error `Objects are not valid as a React child` que ocurría en el Dashboard.
+    - Solucionado el error de autenticación `JWEDecryptionFailed` al configurar un `NEXTAUTH_SECRET` estable.
+
 ### Próximas Funcionalidades (Plan de Desarrollo)
 Basado en las peticiones del usuario, estas son las próximas grandes mejoras a implementar:
 
