@@ -284,26 +284,29 @@ Basado en las peticiones del usuario, estas son las próximas grandes mejoras a 
 4.  **Gestión de Categorías Dinámicas (Nueva Idea):**
     *   **Objetivo:** Permitir al administrador crear, editar y eliminar categorías para los ingresos y gastos.
     *   **Mejora:** En el formulario de transacciones, reemplazar el campo de texto de "Categoría" por un menú desplegable (`<select>`) que se popule con las categorías existentes. Esto mejora la consistencia de los datos y la experiencia de usuario.
-5.  **Eventos Financieros:**
-    *   **Objetivo:** Permitir el seguimiento financiero de eventos específicos (ej. Campamentos, Conferencias).
-    *   **Descripción:** Crear un módulo de "Eventos" y la capacidad de asociar ingresos y gastos a cada evento. Generar reportes específicos por evento para analizar su rentabilidad.
-6.  **Notificaciones Automatizadas:**
+5.  **Eventos Financieros (Módulo de Fondos/Proyectos):**
+    *   **Objetivo:** Permitir el seguimiento financiero de actividades y fondos designados.
+    *   **Descripción:** Crear un módulo de "Eventos" o "Proyectos" (ej. Campamentos, Recaudaciones) y la capacidad de asociar transacciones (ingresos, gastos) a cada uno. Generar reportes específicos por evento para analizar su rentabilidad y el balance de fondos.
+6.  **Nuevo Tipo de Transacción "Gasto Cubierto por Tercero":**
+    *   **Objetivo:** Registrar gastos del ministerio que son pagados directamente por un miembro, sin afectar el balance principal de la iglesia.
+    *   **Descripción:** Añadir un nuevo tipo de transacción que permita registrar el monto, la categoría y el miembro que cubrió el gasto. Este tipo de transacción no alteraría el balance total del ministerio, pero sí se reflejaría como un aporte del miembro en sus estadísticas y como un gasto cubierto en los reportes del evento/fondo asociado.
+7.  **Notificaciones Automatizadas:**
     *   **Objetivo:** Implementar un sistema de notificaciones proactivo.
     *   **Descripción:** Configurar envíos automáticos (ej. por correo electrónico, futura integración con WhatsApp) de recordatorios de cuotas pendientes o alertas sobre el presupuesto.
-7.  **Roles y Permisos Avanzados:**
+8.  **Roles y Permisos Avanzados:**
     *   **Objetivo:** Definir y aplicar niveles de acceso detallados basados en roles de usuario.
     *   **Descripción:** Expandir el modelo de `User` para incluir roles como "Tesorero", "Líder", "Miembro", cada uno con diferentes capacidades (ej. Tesorero puede editar todo, Líder solo ver reportes, Miembro solo ver su perfil).
-8.  **Presupuesto:**
+9.  **Presupuesto:**
     *   Capacidad de establecer presupuestos para categorías de gastos.
     *   Seguimiento del presupuesto frente al gasto real.
-9.  **Otras Mejoras de UI/UX:**
+10. **Otras Mejoras de UI/UX:**
     *   Búsqueda global para listas de miembros/transacciones.
     *   Mejorar las visualizaciones de la página "Cuotas".
     *   Añadir el logo de la aplicación.
-10. **Preparativos para Despliegue:**
+11. **Preparativos para Despliegue:**
     *   Documentar los pasos de despliegue.
     *   Asegurar que las variables de entorno estén configuradas para producción.
-11. **Otras Ideas (Futuras):** Python (si surge un caso de uso claro), efectos de scroll, Three.js (para landing page opcional).
+12. **Otras Ideas (Futuras):** Python (si surge un caso de uso claro), efectos de scroll, Three.js (para landing page opcional).
 
 ### Problemas Actuales / En Curso
 -   **Bug:** Error "Failed to create member" al intentar crear un nuevo miembro.

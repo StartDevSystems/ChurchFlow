@@ -23,16 +23,26 @@ model Member {
   transactions Transaction[]
 }
 
+model Category {
+  id            String        @id @default(uuid())
+  name          String
+  type          TransactionType // 'income' or 'expense'
+  transactions  Transaction[]
+}
+
 model Transaction {
-  id        String   @id @default(uuid())
-  type      TransactionType
-  category  String
-  amount    Float
-  date      DateTime
+  id          String   @id @default(uuid())
+  type        TransactionType
+  amount      Float
+  date        DateTime
   description String
-  memberId  String?
-  member    Member? @relation(fields: [memberId], references: [id])
-  createdAt DateTime @default(now())
+  
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  memberId    String?
+  member      Member?  @relation(fields: [memberId], references: [id])
+  createdAt   DateTime @default(now())
 }
 
 enum TransactionType {

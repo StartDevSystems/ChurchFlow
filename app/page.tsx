@@ -8,10 +8,15 @@ import { format, parseISO, set } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTheme } from 'next-themes';
 
+// Correctly typed Transaction to match API response
 interface Transaction {
   id: string;
   type: 'income' | 'expense';
-  category: string;
+  category: {
+      id: string;
+      name: string;
+      type: string;
+  };
   amount: number;
   date: string;
   description: string;
@@ -39,8 +44,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const { theme } = useTheme();
 
-  const textColor = theme === 'dark' ? '#f8fafc' : '#020617'; // Use tailwind slate-50 and slate-950 for text
-  const tooltipBg = theme === 'dark' ? 'hsl(240 10% 3.9%)' : '#ffffff'; // Use card background
+  const textColor = theme === 'dark' ? '#f8fafc' : '#020617';
+  const tooltipBg = theme === 'dark' ? 'hsl(240 10% 3.9%)' : '#ffffff';
 
   useEffect(() => {
     async function fetchData() {
@@ -49,6 +54,7 @@ export default function DashboardPage() {
         if (!response.ok) {
           throw new Error('Failed to fetch transactions');
         }
+        // The data now comes with category as an object
         const transactions: Transaction[] = await response.json();
 
         const totalIncome = transactions
@@ -65,15 +71,16 @@ export default function DashboardPage() {
           balance: totalIncome - totalExpense,
         });
 
-        // Aggregate by categories
+        // FIX: Use category.name as the key for the Map
         const incomeMap = new Map<string, number>();
         const expenseMap = new Map<string, number>();
 
         transactions.forEach(t => {
+          if (!t.category) return; // Safeguard for transactions without category
           if (t.type === 'income') {
-            incomeMap.set(t.category, (incomeMap.get(t.category) || 0) + t.amount);
+            incomeMap.set(t.category.name, (incomeMap.get(t.category.name) || 0) + t.amount);
           } else {
-            expenseMap.set(t.category, (expenseMap.get(t.category) || 0) + t.amount);
+            expenseMap.set(t.category.name, (expenseMap.get(t.category.name) || 0) + t.amount);
           }
         });
 
@@ -123,7 +130,7 @@ export default function DashboardPage() {
 
     fetchData();
   }, []);
-
+  
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -134,22 +141,14 @@ export default function DashboardPage() {
   const renderCustomizedLabel = (props: any) => {
     const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
     const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.7; // Position label inside
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.7;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-    if (percent < 0.05) return null; // Don't render label if slice is too small
+    if (percent < 0.05) return null;
 
     return (
-      <Text
-        x={x}
-        y={y}
-        fill={textColor}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={12}
-        fontWeight="bold"
-      >
+      <Text x={x} y={y} fill={textColor} textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight="bold">
         {`${(percent * 100).toFixed(0)}%`}
       </Text>
     );

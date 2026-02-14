@@ -21,6 +21,7 @@ export async function GET(request: Request) {
       },
       include: {
         member: true,
+        category: true,
       },
     });
     return NextResponse.json(transactions);
@@ -36,10 +37,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { type, category, amount, date, description, memberId } = await request.json();
+    const { type, categoryId, amount, date, description, memberId } = await request.json();
     
     // Basic validation
-    if (!type || !category || !amount || !date || !description) {
+    if (!type || !categoryId || !amount || !date || !description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     const newTransaction = await prisma.transaction.create({
       data: {
         type,
-        category,
+        categoryId,
         amount: parseFloat(amount),
         date: new Date(date),
         description,

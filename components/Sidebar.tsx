@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, ArrowRightLeft, FileText, DollarSign, LogOut, BarChart3 } from 'lucide-react'; // Import LogOut icon
+import { Home, Users, ArrowRightLeft, FileText, DollarSign, LogOut, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { signOut, useSession } from 'next-auth/react'; // Import signOut and useSession
-import { Button } from './ui/Button'; // Assuming Button component exists
+import { signOut, useSession } from 'next-auth/react';
+import { Button } from './ui/Button';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
@@ -16,9 +16,13 @@ const navItems = [
   { href: '/dues', label: 'Cuotas', icon: DollarSign },
 ];
 
+const adminNavItems = [
+  { href: '/admin/categories', label: 'Categorías', icon: Settings },
+]
+
 export function Sidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession(); // Use session to check if user is logged in
+  const { data: session } = useSession();
 
   return (
     <aside className="w-64 bg-gray-900 text-gray-200 h-screen p-4 flex flex-col">
@@ -26,7 +30,7 @@ export function Sidebar() {
         <h1 className="text-2xl font-bold text-white">Finanzas Jóvenes</h1>
         <p className="text-sm text-gray-400">Iglesia Central</p>
       </div>
-      <nav className="flex flex-col space-y-2">
+      <nav className="flex-grow flex flex-col space-y-2">
         {navItems.map((item) => (
           <Link
             key={item.label}
@@ -42,9 +46,32 @@ export function Sidebar() {
             {item.label}
           </Link>
         ))}
+        
+        {/* Admin Section */}
+        <div className="pt-4 mt-4 border-t border-gray-700">
+            <h2 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin</h2>
+            <div className="mt-2 space-y-2">
+                 {adminNavItems.map((item) => (
+                    <Link
+                        key={item.label}
+                        href={item.href}
+                        className={cn(
+                        "flex items-center p-3 rounded-lg transition-colors",
+                        pathname.startsWith(item.href)
+                            ? "bg-gray-700 text-white"
+                            : "hover:bg-gray-800 hover:text-white"
+                        )}
+                    >
+                        <item.icon className="mr-3 h-5 w-5" />
+                        {item.label}
+                    </Link>
+                ))}
+            </div>
+        </div>
       </nav>
-      {session && ( // Show logout button only if session exists
-        <div className="mt-auto">
+
+      {session && (
+        <div className="flex-shrink-0">
           <Button
             variant="ghost"
             className="w-full justify-start text-red-400 hover:text-red-500 hover:bg-gray-800"

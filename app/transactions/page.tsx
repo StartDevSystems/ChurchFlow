@@ -28,10 +28,15 @@ import { format } from 'date-fns';
 
 type TransactionType = 'income' | 'expense';
 
+// Updated Transaction interface to include the category object
 interface Transaction {
   id: string;
   type: TransactionType;
-  category: string;
+  category: {
+    id: string;
+    name: string;
+    type: TransactionType;
+  };
   amount: number;
   date: string;
   description: string;
@@ -65,6 +70,7 @@ export default function TransactionsPage() {
 
   const handleDeleteTransaction = async (id: string) => {
     try {
+      // NOTE: The DELETE API endpoint might need to be created at /api/transactions/[id]/route.ts
       const response = await fetch(`/api/transactions/${id}`, {
         method: 'DELETE',
       });
@@ -113,6 +119,7 @@ export default function TransactionsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Descripción</TableHead>
+                  <TableHead>Categoría</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Monto</TableHead>
                   <TableHead>Fecha</TableHead>
@@ -124,11 +131,12 @@ export default function TransactionsPage() {
                   transactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell className="font-medium">{transaction.description}</TableCell>
+                      <TableCell>{transaction.category.name}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           transaction.type === 'income' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                         }`}>
                           {transaction.type === 'income' ? 'Ingreso' : 'Gasto'}
                         </span>
@@ -172,7 +180,7 @@ export default function TransactionsPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={6} className="text-center">
                       No se encontraron transacciones.
                     </TableCell>
                   </TableRow>
