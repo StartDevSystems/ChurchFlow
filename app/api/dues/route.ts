@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const youngMembers = await prisma.member.findMany({
       where: {
-        role: 'Joven',
+        // No role filter, fetch all members
       },
       include: {
         transactions: {
