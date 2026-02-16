@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
-import { TransactionType } from '@prisma/client';
+import { TransactionType, Prisma } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -12,10 +12,26 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
+  const eventId = searchParams.get('eventId'); // Get eventId from query params
 
   try {
+    const whereClause: Prisma.TransactionWhereInput = {};
+
+    if (eventId) {
+      // If eventId is provided, fetch transactions for that specific event
+      whereClause.eventId = eventId;
+    } else {
+      // Otherwise, fetch transactions for the General Fund (not linked to any event)
+      whereClause.eventId = null;
+    }
+
+    // If the user is filtering by type (income/expense), add it to the clause
+    if (type) {
+      whereClause.type = type as TransactionType;
+    }
+
     const transactions = await prisma.transaction.findMany({
-      where: type ? { type: type as TransactionType } : {},
+      where: whereClause,
       orderBy: {
         date: 'desc',
       },
@@ -37,7 +53,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { type, categoryId, amount, date, description, memberId } = await request.json();
+    const { type, categoryId, amount, date, description, memberId, eventId } = await request.json();
     
     // Basic validation
     if (!type || !categoryId || !amount || !date || !description) {
@@ -56,6 +72,7 @@ export async function POST(request: Request) {
         date: new Date(date),
         description,
         memberId,
+        eventId, // Save the eventId
       },
     });
     return NextResponse.json(newTransaction, { status: 201 });

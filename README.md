@@ -251,6 +251,18 @@ Se ha implementado un sistema para el seguimiento visual de las cuotas de los j�
     -   La lógica de envío crea una transacción individual de "cuota" para cada joven seleccionado.
 
 ### Mejoras Recientes
+
+#### Módulo de Eventos Mejorado (Fondos Separados)
+Se ha implementado una reestructuración del módulo de eventos para permitir la separación de fondos entre el "Fondo General" y las finanzas de cada evento individual.
+
+-   **Separación de Fondos:** El Dashboard Principal ahora solo refleja las transacciones que no pertenecen a ningún evento (el Fondo General).
+-   **Asociación de Transacciones:** El formulario "Nueva Transacción" ahora incluye un menú desplegable para asociar opcionalmente la transacción a un evento.
+-   **Página de Detalles y Edición Unificada:** La página `/events/[id]` ha sido rediseñada para funcionar como un panel de control completo para cada evento. En una sola vista, ahora se puede:
+    -   Ver un resumen financiero exclusivo del evento (sus propios ingresos, gastos y balance neto).
+    -   Ver una tabla con todas las transacciones asociadas.
+    -   Editar los detalles del evento (nombre, descripción, fechas) en un formulario integrado.
+-   **Navegación Mejorada:** La lista principal de eventos en `/events` ahora permite hacer clic directamente en el nombre de un evento para acceder a su nuevo panel de detalles.
+
 Se han implementado mejoras significativas en la visualización de datos y la flexibilidad del sistema:
 -   **Solución de Autenticación:** Se corrigió el error `JWEDecryptionFailed` al configurar `NEXTAUTH_SECRET` y `NEXTAUTH_URL`, asegurando un inicio de sesión estable.
 -   **Adaptación de Colores en Gráficos:** Los gráficos del Dashboard (`/`) ahora ajustan automáticamente sus colores (ejes, leyendas, tooltips y etiquetas) para ser legibles en modos claro y oscuro.
@@ -263,6 +275,16 @@ Se han implementado mejoras significativas en la visualización de datos y la fl
 -   **Reutilización de Código:** La función `formatCurrency` se movió a `lib/utils.ts` para una mejor organización.
 
 ### Historial de Versiones (Changelog)
+
+#### `v1.2.0` - Personalización Visual y Corrección de Bugs
+*Fecha: 14 de Febrero, 2026*
+
+- **Personalización Visual:**
+    - Se ha añadido el logo de la sociedad de jóvenes.
+    - El logo se muestra en la barra lateral (`Sidebar`) para reforzar la identidad visual de la aplicación.
+    - Se ha configurado el logo como el icono de la pestaña del navegador (favicon).
+- **Corrección de Bugs:**
+    - Solucionado un error crítico (`PrismaClientValidationError`) en la página de "Cuotas" que impedía cargar los datos. El problema estaba en un filtro de base de datos incorrecto y ha sido resuelto.
 
 #### `v1.1.0` - Gestión de Categorías y Mejoras de UI
 *Fecha: 13 de Febrero, 2026*
@@ -328,8 +350,12 @@ Basado en las peticiones del usuario, estas son las próximas grandes mejoras a 
 12. **Otras Ideas (Futuras):** Python (si surge un caso de uso claro), efectos de scroll, Three.js (para landing page opcional).
 
 ### Problemas Actuales / En Curso
--   **Bug:** Error "Failed to create member" al intentar crear un nuevo miembro.
-    *   **Estado:** Se ha modificado la API de creación de miembros (`/api/members/route.ts`) para que registre un error detallado en la consola del servidor. Se está esperando que el usuario proporcione este log para diagnosticar y corregir el problema.
+-   **Problema resuelto:** Error "Failed to create member" al intentar crear un nuevo miembro.
+    *   **Estado:** Resuelto, aparentemente durante las actualizaciones recientes del proyecto.
+-   **Error crítico:** `ReferenceError: eventsRes is not defined` en `app/page.tsx`.
+    *   **Estado:** Este error impide que la aplicación se cargue correctamente. Se está investigando una posible causa de caché o un problema en el entorno de desarrollo que provoca una discrepancia entre el código y el error reportado.
+-   **Problema original reportado:** Error de carga en la página de transacciones (`/transactions`) después de crear un evento.
+    *   **Estado:** La investigación de este problema está en pausa hasta que se resuelva el error de `ReferenceError` que bloquea la carga de la aplicación. Se sospecha que este error podría ser causado por datos inconsistentes en la base de datos o un fallo en la inclusión de relaciones de Prisma.
 
 ### Cómo Trabaja el Asistente CLI
 
