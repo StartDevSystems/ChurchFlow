@@ -132,6 +132,31 @@ model Event {
 - **`startDate` / `endDate`**: Fechas de inicio y fin del evento.
 - **`transactions`**: Relación uno a muchos. Un evento puede tener múltiples transacciones asociadas.
 
+### `Transfer` (v2)
+Representa una transferencia de dinero entre diferentes fondos (Caja General o Eventos).
+
+```prisma
+model Transfer {
+  id          String   @id @default(uuid())
+  amount      Float
+  description String
+  date        DateTime
+
+  // null = Caja General, si tiene valor = fondo de ese evento
+  fromEventId String?
+  toEventId   String?
+
+  createdAt   DateTime @default(now())
+}
+```
+- **`id`**: Identificador único.
+- **`amount`**: Monto transferido.
+- **`description`**: Motivo de la transferencia.
+- **`date`**: Fecha de la transferencia.
+- **`fromEventId`**: ID del evento origen. Si es `null`, el dinero sale de la **Caja General**.
+- **`toEventId`**: ID del evento destino. Si es `null`, el dinero entra a la **Caja General**.
+- **`createdAt`**: Fecha de registro.
+
 ## 4.4. Enums
 
 ### `TransactionType`

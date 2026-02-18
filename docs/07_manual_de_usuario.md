@@ -69,7 +69,22 @@ Accede a este módulo desde el menú lateral.
 ### Editar o Eliminar una Transacción
 - Al igual que con los miembros, cada transacción en la lista tiene botones para **Editar** y **Eliminar**.
 
-## 7.6. Módulos de Administración
+## 7.6. Transferencias entre Fondos (v2)
+
+Esta funcionalidad permite mover dinero internamente entre la **Caja General** y los fondos de los **Eventos**, sin necesidad de registrar un gasto y un ingreso por separado.
+
+### Realizar una Transferencia
+1.  En el **Dashboard Principal**, haz clic en el botón **"↔ Nueva Transferencia"**.
+2.  Se abrirá un modal (ventana emergente).
+3.  **Origen:** Selecciona de dónde sale el dinero (Caja General o un Evento específico).
+4.  **Destino:** Selecciona a dónde va el dinero.
+5.  **Monto:** Ingresa la cantidad a transferir.
+6.  **Fecha y Descripción:** Completa los datos del movimiento.
+7.  Haz clic en **"Registrar Transferencia"**.
+
+Podrás ver el historial de estas transferencias en la sección inferior del Dashboard.
+
+## 7.7. Módulos de Administración
 
 ### Gestionar Categorías (`Admin > Categorías`)
 - Esta sección te permite mantener organizadas las categorías de tus transacciones.
@@ -81,7 +96,7 @@ Accede a este módulo desde el menú lateral.
 - **Crear un Evento:** Ve a la sección "Eventos" y haz clic en "Crear Evento". Define un nombre, descripción y fechas.
 - **Asociar Transacciones:** Al crear una nueva transacción, ahora tendrás un campo opcional para asociarla a un evento existente. Esto te permitirá luego filtrar y ver las finanzas de un evento en particular.
 
-## 7.7. Generación de Reportes
+## 7.8. Generación de Reportes
 
 1.  Ve a la sección **"Reportes"** en el menú lateral.
 2.  Selecciona una **fecha de inicio** y una **fecha de fin** utilizando los calendarios.
@@ -89,7 +104,7 @@ Accede a este módulo desde el menú lateral.
 4.  La pantalla mostrará un resumen de los totales y una tabla con todas las transacciones en ese período.
 5.  Puedes descargar este reporte como un archivo **PDF** haciendo clic en el botón **"Descargar PDF"**.
 
-## 7.8. Seguimiento de Cuotas
+## 7.9. Seguimiento de Cuotas
 
 - Ve a la sección **"Cuotas"** en el menú.
 - Esta página te muestra una lista de todos los miembros y una **barra de progreso** que indica cuánto han aportado a la categoría "Cuota" en relación a una meta predefinida. Es una forma visual y rápida de saber quién está al día con sus aportes.

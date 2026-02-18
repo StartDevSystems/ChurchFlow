@@ -223,7 +223,29 @@ Estos endpoints son gestionados automáticamente por **NextAuth.js**.
 
 ---
 
-## 5.8. Endpoints de Lógica de Negocio
+## 5.8. Transferencias (`/api/transfers`) (v2)
+
+### `GET /api/transfers`
+- **Descripción:** Obtiene una lista de todas las transferencias registradas.
+- **Respuesta `200 OK`**: Devuelve un array de objetos de transferencia.
+
+### `POST /api/transfers`
+- **Descripción:** Registra una nueva transferencia entre fondos.
+- **Request Body:**
+  ```json
+  {
+    "amount": 1000.00,
+    "description": "Traspaso de ganancia de evento a caja general",
+    "date": "2026-02-18T00:00:00.000Z",
+    "fromEventId": "uuid-evento-origen", // null para Caja General
+    "toEventId": null // null para Caja General
+  }
+  ```
+- **Respuesta `201 Created`**: Devuelve el objeto de la transferencia creada.
+
+---
+
+## 5.9. Endpoints de Lógica de Negocio
 
 ### `GET /api/dues`
 - **Descripción:** Endpoint especializado para la página de "Cuotas". Devuelve una lista de todos los miembros junto con el total que han contribuido en transacciones cuya categoría es "Cuota".

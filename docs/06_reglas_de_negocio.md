@@ -20,10 +20,16 @@ Estas reglas se aplican a nivel de la base de datos y la API para prevenir la cr
 
 - **Protección contra Eliminación (Eventos):** Un `Event` no puede ser eliminado si tiene transacciones asociadas. Esto asegura que el registro financiero de un evento permanezca intacto.
 
+- **Protección contra Eliminación (Eventos con Transferencias) (v2):** Un `Event` no puede ser eliminado si tiene transferencias asociadas (ya sea como origen o destino).
+
 ## 6.3. Reglas de Lógica Financiera
 
 - **Balance por Eventos:** El sistema permite la separación financiera por proyectos. Las transacciones asociadas a un `Event` no afectan el balance del "Fondo General". Cada evento mantiene su propia contabilidad interna de ingresos y gastos.
 - **Fondo General:** Se define como todas aquellas transacciones que no tienen un `eventId` asociado (`eventId == null`). El Dashboard principal refleja exclusivamente los movimientos del Fondo General para evitar mezclar presupuestos ordinarios con actividades especiales.
+
+- **Transferencias entre Fondos (v2):** El sistema permite mover montos entre el Fondo General y los Fondos por Evento (o entre dos eventos distintos).
+    - Una transferencia **disminuye** virtualmente el balance disponible en el origen y lo **aumenta** en el destino.
+    - Las transferencias no son transacciones de "ingreso" o "gasto" per se, sino movimientos internos que deben ser considerados al calcular el balance final de un fondo específico.
 
 - **Definición de "Cuota":** Para el módulo de seguimiento de cuotas, una contribución se cuenta si y solo si es una transacción de tipo `income` y pertenece a la categoría cuyo nombre es exactamente `"Cuota"`. Cualquier otra variación en el nombre no será considerada.
 

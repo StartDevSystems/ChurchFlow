@@ -1,4 +1,4 @@
-# 1. Visión General del Sistema
+# 1. Visión General del Sistema (v2.0)
 
 ## 1.1. Propósito Principal
 
@@ -25,6 +25,7 @@ El sistema se compone de varios módulos interconectados que cubren las áreas e
 - **Gestión de Categorías:** Ofrece un panel de administración para crear, editar y eliminar dinámicamente las categorías de ingresos y gastos, asegurando la consistencia de los datos.
 - **Seguimiento de Cuotas:** Un módulo visual que permite monitorear el progreso de los aportes de los miembros para metas financieras específicas (ej. "Cuota Anual").
 - **Gestión de Eventos:** Permite crear eventos (ej. campamentos, actividades especiales) a los cuales se pueden asociar transacciones para llevar un control financiero por proyecto.
+- **Transferencias entre Fondos (v2):** Permite mover dinero entre la Caja General y los fondos específicos de los eventos (o entre eventos), manteniendo la trazabilidad de los movimientos internos.
 - **Reportes Financieros:** Herramienta para generar documentos PDF detallados que resumen la actividad financiera en un período determinado.
 - **Autenticación y Seguridad:** Protege el acceso a la aplicación mediante un sistema de registro y login, con roles y permisos para distintos niveles de usuario.
 - **Scripts de Automatización:** Tareas programadas que pueden ejecutarse para realizar copias de seguridad de la base de datos, generar reportes periódicos y recalcular balances.

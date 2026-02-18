@@ -24,7 +24,9 @@ Es el corazón de la aplicación y la base del App Router de Next.js.
 
 - **`layout.tsx`**: Define el layout principal que envuelve a toda la aplicación. Es donde se declara la estructura `<html>` y `<body>`, se importan los proveedores de temas (`ThemeProvider`) y se renderiza el `Sidebar`.
 - **`page.tsx`**: Es el componente de la página principal, correspondiente a la ruta raíz (`/`). En este caso, es el Dashboard.
-- **`app/api/`**: Contiene todas las **API Routes** del backend. Cada subcarpeta define un endpoint. Por ejemplo, `app/api/transactions/route.ts` maneja las peticiones a `/api/transactions`.
+- **`app/api/`**: Contiene todas las **API Routes** del backend. Cada subcarpeta define un endpoint. Por ejemplo:
+    - `app/api/transactions/route.ts` maneja las peticiones a `/api/transactions`.
+    - `app/api/transfers/route.ts` maneja las transferencias entre fondos (v2).
 - **`app/(rutas)/`**: Cada subcarpeta dentro de `app` (que no sea `api`) define una ruta en la interfaz de usuario. Por ejemplo:
     - `app/members/page.tsx` corresponde a la URL `/members`.
     - `app/members/new/page.tsx` corresponde a la URL `/members/new`.
@@ -47,7 +49,7 @@ Carpeta para librerías de ayuda, utilidades y configuraciones reutilizables en 
 ### `prisma/`
 Directorio dedicado a la configuración y gestión de la base de datos con Prisma.
 
-- **`schema.prisma`**: El archivo más importante de Prisma. Define el proveedor de la base de datos, el generador del cliente, y lo más importante, los **modelos de datos** (`User`, `Member`, `Transaction`, etc.) que se mapean a las tablas de la base de datos.
+- **`schema.prisma`**: El archivo más importante de Prisma. Define el proveedor de la base de datos, el generador del cliente, y lo más importante, los **modelos de datos** (`User`, `Member`, `Transaction`, `Event`, `Transfer`, etc.) que se mapean a las tablas de la base de datos.
 - **`dev.db`**: El archivo de la base de datos **SQLite**. Contiene todos los datos reales de la aplicación en el entorno de desarrollo.
 - **`migrations/`**: Carpeta donde Prisma guarda el historial de migraciones de la base de datos. Cada subcarpeta representa una migración y contiene un archivo `.sql` con las instrucciones para replicar los cambios en el esquema.
 

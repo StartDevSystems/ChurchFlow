@@ -11,44 +11,44 @@ model User {
   id       String @id @default(uuid())
   email    String @unique
   password String
-  role     String @default("USER") // ADMIN, USER, etc.
+  role     String @default("USER")
 }
 
 model Member {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String
-  role      String   @default("Joven") // "Joven" or "Directiva"
-  createdAt DateTime @default(now())
+  id           String        @id @default(uuid())
+  name         String
+  phone        String
+  role         String        @default("Joven")
+  createdAt    DateTime      @default(now())
   transactions Transaction[]
 }
 
 model Category {
-  id            String        @id @default(uuid())
-  name          String
-  type          TransactionType // 'income' or 'expense'
-  transactions  Transaction[]
+  id           String          @id @default(uuid())
+  name         String
+  type         TransactionType
+  transactions Transaction[]
 
   @@unique([name, type])
 }
 
 model Transaction {
-  id          String   @id @default(uuid())
+  id          String          @id @default(uuid())
   type        TransactionType
   amount      Float
   date        DateTime
   description String
-  
+
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id])
 
   memberId    String?
   member      Member?  @relation(fields: [memberId], references: [id])
-  createdAt   DateTime @default(now())
 
-  // Fields for Event
   eventId     String?
   event       Event?   @relation(fields: [eventId], references: [id])
+
+  createdAt   DateTime @default(now())
 }
 
 enum TransactionType {
@@ -57,20 +57,25 @@ enum TransactionType {
 }
 
 model Event {
-
-  id          String    @id @default(uuid())
-
-  name        String
-
-  description String?
-
-  startDate   DateTime
-
-  endDate     DateTime?
-
-  createdAt   DateTime  @default(now())
-
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime?
+  createdAt    DateTime      @default(now())
   transactions Transaction[]
-
 }
 
+// NUEVO: Modelo para transferencias entre fondos
+model Transfer {
+  id          String   @id @default(uuid())
+  amount      Float
+  description String
+  date        DateTime
+
+  // null = Caja General, si tiene valor = fondo de ese evento
+  fromEventId String?
+  toEventId   String?
+
+  createdAt   DateTime @default(now())
+}

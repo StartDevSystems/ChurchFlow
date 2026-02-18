@@ -37,6 +37,7 @@ export async function GET(request: Request) {
       include: {
         member: true,
         category: true,
+        event: true, // ← línea agregada
       },
     });
     return NextResponse.json(transactions);
@@ -55,7 +56,6 @@ export async function POST(request: Request) {
   try {
     const { type, categoryId, amount, date, description, memberId, eventId } = await request.json();
     
-    // Basic validation
     if (!type || !categoryId || !amount || !date || !description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
         date: new Date(date),
         description,
         memberId,
-        eventId, // Save the eventId
+        eventId,
       },
     });
     return NextResponse.json(newTransaction, { status: 201 });
