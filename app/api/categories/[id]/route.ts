@@ -18,6 +18,32 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
+    // First, find the current category to get its type
+    const currentCategory = await prisma.category.findUnique({
+      where: { id },
+      select: { type: true }, // Only need the type for the check
+    });
+
+    if (!currentCategory) {
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+
+    // Check if another category with the same name and type already exists
+    const existingCategoryWithSameNameAndType = await prisma.category.findFirst({
+      where: {
+        name,
+        type: currentCategory.type,
+        id: { not: id }, // Exclude the current category itself
+      },
+    });
+
+    if (existingCategoryWithSameNameAndType) {
+      return NextResponse.json(
+        { error: 'A category with this name already exists for this type.' },
+        { status: 409 } // 409 Conflict
+      );
+    }
+
     const updatedCategory = await prisma.category.update({
       where: { id },
       data: { name },

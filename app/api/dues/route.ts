@@ -19,7 +19,9 @@ export async function GET() {
         transactions: {
           where: {
             type: TransactionType.income,
-            category: 'Cuota', // Assuming 'Cuota' is the category for dues
+            category: {
+              name: 'Cuota',
+            },
           },
         },
       },

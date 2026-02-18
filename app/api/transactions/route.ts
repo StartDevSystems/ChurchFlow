@@ -12,20 +12,19 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
-  const eventId = searchParams.get('eventId'); // Get eventId from query params
+  const eventId = searchParams.get('eventId');
 
   try {
     const whereClause: Prisma.TransactionWhereInput = {};
 
     if (eventId) {
-      // If eventId is provided, fetch transactions for that specific event
-      whereClause.eventId = eventId;
-    } else {
-      // Otherwise, fetch transactions for the General Fund (not linked to any event)
-      whereClause.eventId = null;
+      if (eventId === 'none' || eventId === 'null') {
+        whereClause.eventId = null;
+      } else {
+        whereClause.eventId = eventId;
+      }
     }
 
-    // If the user is filtering by type (income/expense), add it to the clause
     if (type) {
       whereClause.type = type as TransactionType;
     }
@@ -42,6 +41,7 @@ export async function GET(request: Request) {
     });
     return NextResponse.json(transactions);
   } catch (error) {
+    console.error('Error fetching transactions:', error);
     return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 });
   }
 }

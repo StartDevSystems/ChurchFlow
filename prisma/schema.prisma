@@ -28,6 +28,8 @@ model Category {
   name          String
   type          TransactionType // 'income' or 'expense'
   transactions  Transaction[]
+
+  @@unique([name, type])
 }
 
 model Transaction {
@@ -43,9 +45,32 @@ model Transaction {
   memberId    String?
   member      Member?  @relation(fields: [memberId], references: [id])
   createdAt   DateTime @default(now())
+
+  // Fields for Event
+  eventId     String?
+  event       Event?   @relation(fields: [eventId], references: [id])
 }
 
 enum TransactionType {
   income
   expense
 }
+
+model Event {
+
+  id          String    @id @default(uuid())
+
+  name        String
+
+  description String?
+
+  startDate   DateTime
+
+  endDate     DateTime?
+
+  createdAt   DateTime  @default(now())
+
+  transactions Transaction[]
+
+}
+

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/AlertDialog";
 import { Edit, PlusCircle, Trash2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast'; // Import useToast
 
 interface Category {
   id: string;
@@ -29,6 +30,7 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast(); // Initialize useToast
 
   // State for the new category form
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -38,7 +40,7 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/categories');
@@ -47,18 +49,30 @@ export default function CategoriesPage() {
       setCategories(data);
     } catch (err: any) {
       setError(err.message);
+      toast({
+        title: "Error al cargar categorías",
+        description: err.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }, [setLoading, setCategories, toast, setError]); // Dependencies for useCallback
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [fetchCategories]); // Now fetchCategories is a stable dependency
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategoryName) return;
+    if (!newCategoryName) {
+      toast({
+        title: "Error al añadir categoría",
+        description: "El nombre de la categoría no puede estar vacío.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const response = await fetch('/api/categories', {
@@ -70,15 +84,30 @@ export default function CategoriesPage() {
         const err = await response.json();
         throw new Error(err.error || 'Failed to create category');
       }
+      toast({
+        title: "Categoría añadida",
+        description: `'${newCategoryName}' de ${newCategoryType === 'income' ? 'ingreso' : 'gasto'} creada con éxito.`,
+      });
       setNewCategoryName('');
       await fetchCategories(); // Refresh list
     } catch (err: any) {
-      alert(err.message);
+      toast({
+        title: "Error al añadir categoría",
+        description: err.message,
+        variant: "destructive",
+      });
     }
   };
   
   const handleEditCategory = async () => {
-    if (!editingCategory || !editingCategory.name) return;
+    if (!editingCategory || !editingCategory.name) {
+      toast({
+        title: "Error al editar categoría",
+        description: "El nombre de la categoría no puede estar vacío.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const response = await fetch(`/api/categories/${editingCategory.id}`, {
@@ -86,12 +115,23 @@ export default function CategoriesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: editingCategory.name }),
       });
-      if (!response.ok) throw new Error('Failed to update category');
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to update category');
+      }
+      toast({
+        title: "Categoría editada",
+        description: `'${editingCategory.name}' actualizada con éxito.`,
+      });
       setIsEditOpen(false);
       setEditingCategory(null);
       await fetchCategories();
     } catch (err: any) {
-      alert(err.message);
+      toast({
+        title: "Error al editar categoría",
+        description: err.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -104,11 +144,20 @@ export default function CategoriesPage() {
         const err = await response.json();
         throw new Error(err.error || 'Failed to delete category');
       }
+      toast({
+        title: "Categoría eliminada",
+        description: "La categoría ha sido eliminada con éxito.",
+      });
       await fetchCategories();
     } catch (err: any) {
-      alert(err.message);
+      toast({
+        title: "Error al eliminar categoría",
+        description: err.message,
+        variant: "destructive",
+      });
     }
   };
+  
   
   const openEditDialog = (category: Category) => {
     setEditingCategory({ ...category });
@@ -172,7 +221,7 @@ export default function CategoriesPage() {
                       <AlertDialog>
                           <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                           <AlertDialogContent>
-                              <AlertDialogHeader><AlertDialogTitle>¿Estás seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. Se borrará la categoría "{cat.name}".</AlertDialogDescription></AlertDialogHeader>
+                              <AlertDialogHeader><AlertDialogTitle>¿Estás seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. Se borrará la categoría &quot;{cat.name}&quot;.</AlertDialogDescription></AlertDialogHeader>
                               <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteCategory(cat.id)}>Borrar</AlertDialogAction></AlertDialogFooter>
                           </AlertDialogContent>
                       </AlertDialog>
@@ -197,7 +246,7 @@ export default function CategoriesPage() {
                       <AlertDialog>
                           <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                           <AlertDialogContent>
-                              <AlertDialogHeader><AlertDialogTitle>¿Estás seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. Se borrará la categoría "{cat.name}".</AlertDialogDescription></AlertDialogHeader>
+                              <AlertDialogHeader><AlertDialogTitle>¿Estás seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. Se borrará la categoría &quot;{cat.name}&quot;.</AlertDialogDescription></AlertDialogHeader>
                               <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteCategory(cat.id)}>Borrar</AlertDialogAction></AlertDialogFooter>
                           </AlertDialogContent>
                       </AlertDialog>

@@ -34,16 +34,17 @@ export async function PUT(request: Request, { params }: { params: Params }) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const { type, category, amount, date, description, memberId } = await request.json();
+    const { type, categoryId, amount, date, description, memberId, eventId } = await request.json();
     const updatedTransaction = await prisma.transaction.update({
       where: { id: params.id },
       data: {
-        type: type as TransactionType, // Cast type to TransactionType
-        category,
+        type: type as TransactionType,
+        categoryId,
         amount: parseFloat(amount),
         date: new Date(date),
         description,
         memberId: memberId || null,
+        eventId: eventId || null,
       },
     });
     return NextResponse.json(updatedTransaction);

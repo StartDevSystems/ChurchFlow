@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Home, Users, ArrowRightLeft, FileText, DollarSign, LogOut, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,6 +15,7 @@ const navItems = [
   { href: '/reports', label: 'Reportes', icon: FileText },
   { href: '/stats', label: 'Estadísticas', icon: BarChart3 },
   { href: '/dues', label: 'Cuotas', icon: DollarSign },
+  { href: '/events', label: 'Eventos', icon: Settings },
 ];
 
 const adminNavItems = [
@@ -26,7 +28,14 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 bg-gray-900 text-gray-200 h-screen p-4 flex flex-col">
-      <div className="mb-8">
+      <div className="mb-8 text-center">
+        <Image
+          src="/logo de los jovenes.jpeg"
+          alt="Logo"
+          width={80}
+          height={80}
+          className="mx-auto rounded-full mb-4"
+        />
         <h1 className="text-2xl font-bold text-white">Finanzas Jóvenes</h1>
         <p className="text-sm text-gray-400">Iglesia Central</p>
       </div>

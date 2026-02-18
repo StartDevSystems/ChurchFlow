@@ -9,6 +9,8 @@ import { SessionProvider, useSession } from 'next-auth/react'; // Import Session
 import { usePathname, useRouter } from 'next/navigation'; // Import usePathname and useRouter
 import { useEffect } from 'react';
 
+import { Toaster } from '@/components/ui/toaster';
+
 const inter = Inter({ subsets: ['latin'] });
 
 
@@ -62,6 +64,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/logo de los jovenes.jpeg" />
+      </head>
       <body className={inter.className}>
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -75,6 +80,7 @@ export default function RootLayout({
             </AuthWrapper>
           </ThemeProvider>
         </SessionProvider>
+        <Toaster />
       </body>
     </html>
   );

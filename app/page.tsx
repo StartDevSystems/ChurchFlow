@@ -50,10 +50,12 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       try {
+        console.log('--- In fetchData: Starting to fetch data ---');
         const response = await fetch('/api/transactions');
         if (!response.ok) {
           throw new Error('Failed to fetch transactions');
         }
+        console.log('--- In fetchData: Transactions fetched successfully ---');
         // The data now comes with category as an object
         const transactions: Transaction[] = await response.json();
 
@@ -122,7 +124,7 @@ export default function DashboardPage() {
 
         setRecentTransactions(transactions.slice(0, 5));
       } catch (error) {
-        console.error(error);
+        console.error('--- In fetchData: An error occurred ---', error);
       } finally {
         setLoading(false);
       }
