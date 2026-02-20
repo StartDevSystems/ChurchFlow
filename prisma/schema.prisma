@@ -80,3 +80,4 @@ model Transfer {
 
   createdAt   DateTime @default(now())
 }
+// Forcing directUrl update
