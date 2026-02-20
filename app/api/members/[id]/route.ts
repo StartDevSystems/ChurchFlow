@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '../../../../lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PrismaClientKnownRequestError } from '@prisma/client'; // Import PrismaClientKnownRequestError
+import { Prisma } from '@prisma/client';
 
 interface Params {
   id: string;
@@ -61,7 +61,7 @@ export async function DELETE(request: Request, { params }: { params: Params }) {
     return new NextResponse(null, { status: 204 }); // No Content
   } catch (error) {
     // Handle cases where member has associated transactions
-    if (error instanceof PrismaClientKnownRequestError && error.code === 'P2003') {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
       return NextResponse.json(
         { error: 'Cannot delete member because they have associated transactions.' },
         { status: 409 } // Conflict
