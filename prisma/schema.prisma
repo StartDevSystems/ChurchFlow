@@ -1,11 +1,11 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model User {
@@ -39,22 +39,13 @@ model Transaction {
   amount      Float
   date        DateTime
   description String
-
   categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id])
-
   memberId    String?
-  member      Member?  @relation(fields: [memberId], references: [id])
-
   eventId     String?
-  event       Event?   @relation(fields: [eventId], references: [id])
-
-  createdAt   DateTime @default(now())
-}
-
-enum TransactionType {
-  income
-  expense
+  createdAt   DateTime        @default(now())
+  category    Category        @relation(fields: [categoryId], references: [id])
+  event       Event?          @relation(fields: [eventId], references: [id])
+  member      Member?         @relation(fields: [memberId], references: [id])
 }
 
 model Event {
@@ -67,17 +58,17 @@ model Event {
   transactions Transaction[]
 }
 
-// NUEVO: Modelo para transferencias entre fondos
 model Transfer {
   id          String   @id @default(uuid())
   amount      Float
   description String
   date        DateTime
-
-  // null = Caja General, si tiene valor = fondo de ese evento
   fromEventId String?
   toEventId   String?
-
   createdAt   DateTime @default(now())
 }
-// Forcing directUrl update
+
+enum TransactionType {
+  income
+  expense
+}
