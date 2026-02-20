@@ -89,3 +89,5 @@ En la sección de estadísticas, ahora puedes ver exactamente cuánto ha aportad
 ### Corrección de Errores y Estabilidad
 - Se corrigió el error de sintaxis en la API de transacciones que impedía mostrar los movimientos de los eventos.
 - Se mejoró el selector de categorías en la edición de transacciones para asegurar la integridad de los datos.
+
+ 
