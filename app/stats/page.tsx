@@ -120,7 +120,7 @@ export default function StatsPage() {
                             <XAxis dataKey="month" stroke={textColor} fontSize={12} />
                             <YAxis stroke={textColor} fontSize={12} tickFormatter={(value) => formatCurrency(value)} />
                             <Tooltip
-                              formatter={(value: any, name: string) => [formatCurrency(Number(value || 0)), name === 'income' ? 'Ingresos' : 'Gastos']}
+                              formatter={(value: any, name: any) => [formatCurrency(Number(value || 0)), name === 'income' ? 'Ingresos' : 'Gastos']}
                               contentStyle={{ backgroundColor: tooltipBg, borderColor: 'hsl(var(--border))' }}
                               labelStyle={{ color: textColor }}
                               cursor={{ fill: 'hsl(var(--accent))', opacity: 0.5 }}

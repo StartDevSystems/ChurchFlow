@@ -235,7 +235,7 @@ export default function DashboardPage() {
   };
 
   // ── Tooltip formatter (fix TypeScript) ────────────────────────────────────
-  const tooltipFormatter = (value: number | string | undefined): [string, string] => [fmt(Number(value || 0)), ''];
+  const tooltipFormatter = (value: any, name: any): [any, any] => [fmt(Number(value || 0)), name];
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading) {

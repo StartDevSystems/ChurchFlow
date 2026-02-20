@@ -53,7 +53,7 @@ export default function EditTransactionPage() {
   const availableCategories = useMemo(() => {
     if (!formData) return [];
     return categories.filter(c => c.type === formData.type);
-  }, [formData?.type, categories]);
+  }, [formData, categories]);
 
   useEffect(() => {
     if (!id) return;
