@@ -42,6 +42,7 @@ type Action =
     }
   | {
       type: typeof actionTypes.DISMISS_TOAST
+      toastId?: string
     }
   | {
       type: typeof actionTypes.REMOVE_TOAST
@@ -69,7 +70,7 @@ const reducer = (state: State, action: Action): State => {
       }
 
     case actionTypes.DISMISS_TOAST:
-      const { toastId } = action as { toastId?: string }
+      const { toastId } = action
       if (toastId) {
         return {
           ...state,
