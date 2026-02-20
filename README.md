@@ -56,6 +56,27 @@ La interfaz está desarrollada siguiendo principios de **diseño moderno y limpi
 
 ---
 
+## 🌐 Despliegue y Base de Datos (Febrero 2026)
+
+Este proyecto ha sido migrado de **SQLite** a **PostgreSQL (Supabase)** para permitir su despliegue en la web.
+
+### 🚀 Estado del Despliegue
+- **Hosting:** Vercel (`https://sociedad-jovenes.vercel.app`)
+- **Base de Datos:** Supabase (ID: `kydllcrcsmovpvgrsdko`)
+- **Estado Actual:** La aplicación está en vivo, pero presenta errores de conexión (500/401) en el login.
+
+### 🔑 Configuración Requerida en Vercel
+Para solucionar los errores de conexión, deben configurarse estas variables en el panel de Vercel:
+
+1. **DATABASE_URL**: URL del Pooler (Puerto 6543) con `?pgbouncer=true`.
+2. **DIRECT_URL**: URL Directa (Puerto 5432).
+3. **NEXTAUTH_URL**: `https://sociedad-jovenes.vercel.app`
+4. **NEXTAUTH_SECRET**: Clave secreta para sesiones.
+
+*Nota: Si aparece el error 'Tenant or user not found', verificar la región del host (ej. `aws-0-us-east-1`).*
+
+---
+
 ## 🛠️ Instalación y Ejecución
 
 1. **Instalar Dependencias:**
