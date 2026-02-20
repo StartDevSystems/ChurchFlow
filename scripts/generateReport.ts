@@ -60,7 +60,7 @@ async function generateReport() {
     body: transactions.map(t => [
       format(new Date(t.date), 'dd/MM/yyyy'),
       t.description,
-      t.category,
+      (t as any).category?.name || 'S/C',
       t.type === 'income' ? 'Ingreso' : 'Gasto',
       `$${t.amount.toFixed(2)}`
     ]),
