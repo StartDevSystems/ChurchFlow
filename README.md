@@ -63,17 +63,15 @@ Este proyecto ha sido migrado de **SQLite** a **PostgreSQL (Supabase)** para per
 ### 🚀 Estado del Despliegue
 - **Hosting:** Vercel (`https://sociedad-jovenes.vercel.app`)
 - **Base de Datos:** Supabase (ID: `kydllcrcsmovpvgrsdko`)
-- **Estado Actual:** La aplicación está en vivo, pero presenta errores de conexión (500/401) en el login.
+- **Estado Actual:** ✅ **OPERATIVO**. Conexión establecida con éxito mediante Pooler de Supabase.
 
 ### 🔑 Configuración Requerida en Vercel
-Para solucionar los errores de conexión, deben configurarse estas variables en el panel de Vercel:
+Para mantener la estabilidad, las variables en Vercel deben ser:
 
-1. **DATABASE_URL**: URL del Pooler (Puerto 6543) con `?pgbouncer=true`.
-2. **DIRECT_URL**: URL Directa (Puerto 5432).
+1. **DATABASE_URL**: URL del Pooler (Puerto 6543) con host `aws-1-us-east-1.pooler.supabase.com` y `?pgbouncer=true`.
+2. **DIRECT_URL**: URL del Pooler (Puerto 5432) para migraciones.
 3. **NEXTAUTH_URL**: `https://sociedad-jovenes.vercel.app`
 4. **NEXTAUTH_SECRET**: Clave secreta para sesiones.
-
-*Nota: Si aparece el error 'Tenant or user not found', verificar la región del host (ej. `aws-0-us-east-1`).*
 
 ---
 

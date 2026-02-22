@@ -70,11 +70,13 @@ export default function RootLayout({
       <body className={inter.className}>
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <AuthWrapper> {/* Wrap the main content with AuthWrapper */}
-              <div className="flex bg-gray-100 dark:bg-gray-900">
+            <AuthWrapper>
+              <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
                 <Sidebar />
-                <main className="flex-1 p-8 h-screen overflow-y-auto">
-                  {children}
+                <main className="flex-1 p-4 md:p-8 h-screen overflow-y-auto mt-14 lg:mt-0">
+                  <div className="max-w-7xl mx-auto">
+                    {children}
+                  </div>
                 </main>
               </div>
             </AuthWrapper>

@@ -21,12 +21,13 @@ El enfoque principal es el de una **Aplicación de Página Única (SPA - Single 
 
 - **Entorno de Ejecución:** **Node.js**. Next.js se ejecuta sobre Node.js.
 - **API:** La lógica de backend se implementa a través de **API Routes de Next.js**, que son funciones serverless (lambdas) desplegadas automáticamente. Estas rutas se encuentran en `/app/api/`. Cada endpoint maneja una lógica de negocio específica (ej. obtener transacciones, crear un miembro).
-- **Autenticación:** La seguridad de los endpoints y la gestión de sesiones de usuario se manejan con **NextAuth.js**. Se integra con un `PrismaAdapter` para persistir los datos de sesión y usuarios en la base de datos.
+- **Autenticación:** La seguridad de los endpoints y la gestión de sesiones de usuario se manejan con **NextAuth.js**. Se utiliza la estrategia de **Credentials** con tokens **JWT**. Se ha eliminado el uso de `PrismaAdapter` para optimizar la compatibilidad con el esquema actual y evitar dependencias innecesarias de tablas de sistema.
 
 ### 2.2.3. Capa de Persistencia (Base de Datos)
 
-- **Base de Datos:** **SQLite**. Se utiliza como motor de base de datos principal a través de un archivo local (`/prisma/dev.db`). Esta elección es ideal para un despliegue sencillo y auto-contenido, sin necesidad de un servidor de base de datos externo.
-- **ORM (Object-Relational Mapping):** **Prisma**. Actúa como la capa de abstracción entre la lógica de la aplicación y la base de datos SQLite. Prisma permite realizar consultas a la base de datos de manera segura y tipada, utilizando un esquema declarativo (`/prisma/schema.prisma`) para definir los modelos de datos.
+- **Base de Datos:** **PostgreSQL (Supabase)**. Se utiliza como motor de base de datos principal alojado en la nube. Esta elección permite escalabilidad, alta disponibilidad y acceso remoto seguro.
+- **Conexión:** Se utiliza **Prisma Connection Pooling** a través del puerto **6543** para optimizar el uso de conexiones en entornos serverless (Vercel).
+- **ORM (Object-Relational Mapping):** **Prisma**. Actúa como la capa de abstracción entre la lógica de la aplicación y la base de datos PostgreSQL. Prisma permite realizar consultas a la base de datos de manera segura y tipada, utilizando un esquema declarativo (`/prisma/schema.prisma`) para definir los modelos de datos.
 - **Cliente de Base de Datos:** El **Prisma Client**, generado a partir del esquema, se utiliza en toda la aplicación (principalmente en las API Routes) para interactuar con la base de datos.
 
 ### 2.2.4. Scripts y Automatizaciones
