@@ -13,30 +13,44 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log("Auth: Faltan credenciales");
           return null
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        })
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email }
+          })
 
-        if (!user || !user.password) {
-          return null
-        }
+          if (!user) {
+            console.log("Auth: Usuario no encontrado:", credentials.email);
+            return null
+          }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
+          if (!user.password) {
+            console.log("Auth: El usuario no tiene contraseña definida");
+            return null
+          }
 
-        if (!isPasswordValid) {
-          return null
-        }
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          )
 
-        return {
-          id: user.id,
-          email: user.email,
-          role: user.role,
+          if (!isPasswordValid) {
+            console.log("Auth: Contraseña incorrecta para:", credentials.email);
+            return null
+          }
+
+          console.log("Auth: Login exitoso para:", credentials.email);
+          return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+          }
+        } catch (error) {
+          console.error("Auth: Error en el proceso de autorización:", error);
+          throw new Error("Error en el servidor durante la autenticación");
         }
       }
     })

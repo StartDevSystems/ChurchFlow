@@ -15,18 +15,21 @@ export async function POST(request: Request) {
     });
 
     if (existingUser) {
+      console.log("Registro: El usuario ya existe:", email);
       return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10); // Hash password with salt rounds
+    console.log("Registro: Creando nuevo usuario...");
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        role: "USER", // Default role for new registrations
+        role: "USER",
       },
     });
+    console.log("Registro: Usuario creado con éxito:", email);
 
     // Don't return the hashed password in the response
     const { password: _, ...userWithoutPassword } = newUser;
