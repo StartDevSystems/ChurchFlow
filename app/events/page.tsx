@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { PlusCircle, Edit, Trash2, Calendar, Receipt, TrendingUp, TrendingDown, Wallet, Search } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Calendar, Receipt, Search } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -12,8 +12,6 @@ import {
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/AlertDialog';
 import { useToast } from '@/components/ui/use-toast';
-
-// ─── Tipos ────────────────────────────────────────────────────────────────────
 
 interface Event {
   id: string;
@@ -38,8 +36,6 @@ interface EventWithStats extends Event {
   txCount: number;
 }
 
-// ─── Paleta de colores por índice ─────────────────────────────────────────────
-
 const BANNERS = [
   { from: '#e85d26', to: '#f5a623', emoji: '🎪' },
   { from: '#1a8a5e', to: '#42c988', emoji: '🌿' },
@@ -51,23 +47,18 @@ const BANNERS = [
 
 type FilterType = 'todos' | 'activos' | 'finalizados';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function getStatus(event: Event): { label: string; filter: FilterType } {
   const now = new Date();
   const start = new Date(event.startDate);
   const end = event.endDate ? new Date(event.endDate) : null;
-
   if (end && end < now) return { label: 'Finalizado', filter: 'finalizados' };
   if (start > now) return { label: 'Próximo', filter: 'activos' };
   return { label: 'Activo', filter: 'activos' };
 }
 
-function formatCurrency(amount: number) {
+function fmt(amount: number) {
   return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 }).format(amount);
 }
-
-// ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function EventsPage() {
   const [events, setEvents] = useState<EventWithStats[]>([]);
@@ -76,7 +67,6 @@ export default function EventsPage() {
   const [search, setSearch] = useState('');
   const { toast } = useToast();
 
-  // Carga eventos + transacciones y calcula totales por evento
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -119,38 +109,29 @@ export default function EventsPage() {
     }
   };
 
-  // ── Estadísticas globales ──────────────────────────────────────────────────
   const totalBalance = events.reduce((s, e) => s + e.balance, 0);
   const activos = events.filter((e) => getStatus(e).filter === 'activos').length;
   const finalizados = events.filter((e) => getStatus(e).filter === 'finalizados').length;
 
-  // Próximo evento
   const proximos = events
     .filter((e) => new Date(e.startDate) > new Date())
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
   const proximoEvento = proximos[0];
 
-  // ── Filtrado ───────────────────────────────────────────────────────────────
   const filtered = events.filter((ev) => {
     const matchFilter = filter === 'todos' || getStatus(ev).filter === filter;
     const matchSearch = ev.name.toLowerCase().includes(search.toLowerCase());
     return matchFilter && matchSearch;
   });
 
-  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#f7f4ef] dark:bg-gray-950 p-6 md:p-10">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <p className="text-xs font-medium tracking-widest text-[#8c7f72] dark:text-gray-500 uppercase mb-1">
-            Módulo
-          </p>
-          <h1
-            className="text-3xl md:text-4xl font-extrabold tracking-tight text-[#1a1714] dark:text-white"
-            style={{ fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.04em' }}
-          >
+          <p className="text-xs font-medium tracking-widest text-[#8c7f72] dark:text-gray-500 uppercase mb-1">Módulo</p>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[#1a1714] dark:text-white" style={{ letterSpacing: '-0.04em' }}>
             Eventos 🎪
           </h1>
         </div>
@@ -162,33 +143,29 @@ export default function EventsPage() {
         </Link>
       </div>
 
-      {/* ── Stats ── */}
+      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {/* Total eventos */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 p-5 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#e85d26]" />
           <p className="text-[10px] font-semibold tracking-widest text-[#8c7f72] uppercase mb-2">Total Eventos</p>
-          <p className="text-4xl font-black text-[#e85d26]" style={{ letterSpacing: '-0.04em' }}>
-            {loading ? '—' : events.length}
-          </p>
+          <p className="text-4xl font-black text-[#e85d26]" style={{ letterSpacing: '-0.04em' }}>{loading ? '—' : events.length}</p>
           <p className="text-xs text-[#8c7f72] mt-1">{activos} activos · {finalizados} finalizados</p>
         </div>
 
-        {/* Balance general */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 p-5 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#2d8a5e]" />
           <p className="text-[10px] font-semibold tracking-widest text-[#8c7f72] uppercase mb-2">Balance General</p>
-          <p className={`text-4xl font-black ${totalBalance >= 0 ? 'text-[#2d8a5e]' : 'text-red-500'}`} style={{ letterSpacing: '-0.04em' }}>
-            {loading ? '—' : formatCurrency(totalBalance)}
+          {/* FIX: text-3xl en vez de text-4xl para que no se desborde con números grandes */}
+          <p className={`text-3xl font-black break-all ${totalBalance >= 0 ? 'text-[#2d8a5e]' : 'text-red-500'}`} style={{ letterSpacing: '-0.03em' }}>
+            {loading ? '—' : fmt(totalBalance)}
           </p>
           <p className="text-xs text-[#8c7f72] mt-1">Suma de todos los eventos</p>
         </div>
 
-        {/* Próximo evento */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 p-5 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#1a4d8f]" />
           <p className="text-[10px] font-semibold tracking-widest text-[#8c7f72] uppercase mb-2">Próximo Evento</p>
-          <p className="text-xl font-black text-[#1a4d8f] leading-tight mt-1" style={{ letterSpacing: '-0.02em' }}>
+          <p className="text-lg font-black text-[#1a4d8f] leading-tight mt-1" style={{ letterSpacing: '-0.02em' }}>
             {loading ? '—' : proximoEvento ? proximoEvento.name : 'Sin eventos próximos'}
           </p>
           {proximoEvento && (
@@ -199,7 +176,7 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* ── Filtros ── */}
+      {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         {(['todos', 'activos', 'finalizados'] as FilterType[]).map((f) => (
           <button
@@ -214,7 +191,6 @@ export default function EventsPage() {
             {f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
         ))}
-
         <div className="ml-auto flex items-center gap-2 bg-white dark:bg-gray-900 border border-[#e8e2d9] dark:border-gray-700 rounded-lg px-3 py-1.5">
           <Search className="h-3.5 w-3.5 text-[#8c7f72]" />
           <input
@@ -227,9 +203,8 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* ── Grid de cards ── */}
+      {/* Grid */}
       {loading ? (
-        // Skeleton
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[1, 2, 3].map((i) => (
             <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 overflow-hidden animate-pulse">
@@ -278,8 +253,6 @@ export default function EventsPage() {
   );
 }
 
-// ─── EventCard ────────────────────────────────────────────────────────────────
-
 interface EventCardProps {
   event: EventWithStats;
   banner: { from: string; to: string; emoji: string };
@@ -296,18 +269,10 @@ function EventCard({ event, banner, statusLabel, onDelete }: EventCardProps) {
         className="h-28 relative flex items-end justify-between px-5 pb-4"
         style={{ background: `linear-gradient(135deg, ${banner.from}, ${banner.to})` }}
       >
-        {/* Glow */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.6) 0%, transparent 50%)',
-          }}
-        />
-        {/* Emoji icon */}
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.6) 0%, transparent 50%)' }} />
         <div className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl backdrop-blur-sm">
           {banner.emoji}
         </div>
-        {/* Badge */}
         <span className="relative z-10 text-[10px] font-semibold tracking-wider uppercase text-white/90 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
           {statusLabel === 'Finalizado' ? '✓' : statusLabel === 'Próximo' ? '✦' : '●'} {statusLabel}
         </span>
@@ -331,27 +296,20 @@ function EventCard({ event, banner, statusLabel, onDelete }: EventCardProps) {
           </span>
         </div>
 
-        {/* Financials */}
-        <div className="grid grid-cols-3 gap-2 bg-[#f7f4ef] dark:bg-gray-800 rounded-xl p-3 mb-4">
-          <div className="text-center">
-            <p className="text-[9px] font-semibold tracking-wider uppercase text-[#8c7f72] mb-1">Ingresos</p>
-            <p className="text-sm font-extrabold text-[#2d8a5e]" style={{ letterSpacing: '-0.02em' }}>
-              {formatCurrency(event.totalIncome)}
-            </p>
+        {/* FIX: Cambié grid-cols-3 por una lista vertical para que los números grandes no se corten */}
+        <div className="bg-[#f7f4ef] dark:bg-gray-800 rounded-xl p-3 mb-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold tracking-wider uppercase text-[#8c7f72]">Ingresos</p>
+            <p className="text-sm font-extrabold text-[#2d8a5e]">{fmt(event.totalIncome)}</p>
           </div>
-          <div className="text-center border-x border-[#e8e2d9] dark:border-gray-700">
-            <p className="text-[9px] font-semibold tracking-wider uppercase text-[#8c7f72] mb-1">Gastos</p>
-            <p className="text-sm font-extrabold text-[#e85d26]" style={{ letterSpacing: '-0.02em' }}>
-              {formatCurrency(event.totalExpense)}
-            </p>
+          <div className="flex items-center justify-between border-t border-[#e8e2d9] dark:border-gray-700 pt-2">
+            <p className="text-[10px] font-semibold tracking-wider uppercase text-[#8c7f72]">Gastos</p>
+            <p className="text-sm font-extrabold text-[#e85d26]">{fmt(event.totalExpense)}</p>
           </div>
-          <div className="text-center">
-            <p className="text-[9px] font-semibold tracking-wider uppercase text-[#8c7f72] mb-1">Balance</p>
-            <p
-              className={`text-sm font-extrabold ${event.balance >= 0 ? 'text-[#1a1714] dark:text-white' : 'text-red-500'}`}
-              style={{ letterSpacing: '-0.02em' }}
-            >
-              {event.balance >= 0 ? '+' : ''}{formatCurrency(event.balance)}
+          <div className="flex items-center justify-between border-t border-[#e8e2d9] dark:border-gray-700 pt-2">
+            <p className="text-[10px] font-semibold tracking-wider uppercase text-[#8c7f72]">Balance</p>
+            <p className={`text-sm font-extrabold ${event.balance >= 0 ? 'text-[#1a1714] dark:text-white' : 'text-red-500'}`}>
+              {event.balance >= 0 ? '+' : ''}{fmt(event.balance)}
             </p>
           </div>
         </div>
@@ -362,14 +320,12 @@ function EventCard({ event, banner, statusLabel, onDelete }: EventCardProps) {
             <Receipt className="h-3.5 w-3.5" />
             {event.txCount} transaccion{event.txCount !== 1 ? 'es' : ''}
           </div>
-
           <div className="flex gap-1.5">
             <Link href={`/events/edit/${event.id}`}>
               <button className="w-8 h-8 rounded-lg border border-[#e8e2d9] dark:border-gray-700 flex items-center justify-center text-[#8c7f72] hover:border-[#e85d26] hover:text-[#e85d26] transition-colors">
                 <Edit className="h-3.5 w-3.5" />
               </button>
             </Link>
-
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button className="w-8 h-8 rounded-lg border border-[#e8e2d9] dark:border-gray-700 flex items-center justify-center text-[#8c7f72] hover:border-red-400 hover:text-red-500 transition-colors">
