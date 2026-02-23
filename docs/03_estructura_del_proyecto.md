@@ -33,11 +33,11 @@ Es el corazón de la aplicación y la base del App Router de Next.js.
     - `app/members/edit/[id]/page.tsx` es una ruta dinámica que corresponde a URLs como `/members/edit/123`.
 
 ### `components/`
-Contiene todos los componentes de React reutilizables.
+Contiene todos los componentes de React reutilizables, ahora optimizados con un diseño moderno y responsivo.
 
-- **`Sidebar.tsx`**: El componente de la barra de navegación lateral, presente en toda la aplicación.
-- **`ThemeProvider.tsx`**: Componente que envuelve la aplicación para gestionar el tema (claro/oscuro) usando `next-themes`.
-- **`components/ui/`**: Esta subcarpeta contiene los componentes de UI base o "atómicos", inspirados en la filosofía de `shadcn/ui`. Son componentes genéricos como `Button.tsx`, `Card.tsx`, `Input.tsx`, `Table.tsx`, etc., que se utilizan para construir interfaces más complejas.
+- **`Sidebar.tsx`**: El componente de la barra de navegación lateral. Ha sido actualizado para ser **totalmente responsivo**, ocultándose en dispositivos móviles mediante un menú tipo "hamburguesa" y ofreciendo una experiencia fluida en cualquier pantalla.
+- **`ThemeProvider.tsx`**: Gestiona el tema (claro/oscuro) asegurando que los nuevos diseños se vean impecables en ambos modos.
+- **`components/ui/`**: Componentes de UI base (Button, Card, Input, Table). Se han refinado visualmente para ofrecer una estética profesional ("bien bacana") y soporte para desplazamiento lateral en tablas para dispositivos móviles.
 
 ### `lib/`
 Carpeta para librerías de ayuda, utilidades y configuraciones reutilizables en el lado del servidor.

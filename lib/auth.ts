@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
-import bcrypt from "bcryptjs"; // Use bcryptjs
+import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -12,69 +12,59 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          console.log("Auth: Faltan credenciales");
-          return null
-        }
+        if (!credentials?.email || !credentials?.password) return null;
 
         try {
           const user = await prisma.user.findUnique({
             where: { email: credentials.email }
           })
 
-          if (!user) {
-            console.log("Auth: Usuario no encontrado:", credentials.email);
-            return null
-          }
+          if (!user || !user.password) return null;
 
-          if (!user.password) {
-            console.log("Auth: El usuario no tiene contraseña definida");
-            return null
-          }
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          if (!isPasswordValid) return null;
 
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          )
-
-          if (!isPasswordValid) {
-            console.log("Auth: Contraseña incorrecta para:", credentials.email);
-            return null
-          }
-
-          console.log("Auth: Login exitoso para:", credentials.email);
           return {
             id: user.id,
             email: user.email,
             role: user.role,
-          }
+            firstName: user.firstName,
+            lastName: user.lastName,
+            // ❌ NO incluimos la imagen aquí para evitar ERR_RESPONSE_HEADERS_TOO_BIG
+            permissions: user.permissions || {},
+          } as any;
         } catch (error) {
-          console.error("Auth: Error en el proceso de autorización:", error);
-          throw new Error("Error en el servidor durante la autenticación");
+          return null;
         }
       }
     })
   ],
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.role = user.role
+        token.id = user.id;
+        token.role = (user as any).role;
+        token.firstName = (user as any).firstName;
+        token.lastName = (user as any).lastName;
+        token.permissions = (user as any).permissions;
       }
-      return token
+      if (trigger === "update" && session) {
+        return { ...token, ...session.user };
+      }
+      return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role as string
+        (session.user as any).id = token.id;
+        (session.user as any).role = token.role;
+        (session.user as any).firstName = token.firstName;
+        (session.user as any).lastName = token.lastName;
+        (session.user as any).permissions = token.permissions;
       }
-      return session
+      return session;
     }
   },
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
+  pages: { signIn: "/login", error: "/login" },
   secret: process.env.NEXTAUTH_SECRET,
 };

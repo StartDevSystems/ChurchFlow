@@ -9,9 +9,13 @@ import { Label } from '@/components/ui/Label';
 import Link from 'next/link';
 
 export default function RegisterPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -21,7 +25,7 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    if (password !== confirmPassword) {
+    if (form.password !== form.confirmPassword) {
       setError('Las contraseñas no coinciden.');
       setLoading(false);
       return;
@@ -30,76 +34,60 @@ export default function RegisterPage() {
     try {
       const response = await fetch('/api/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
       });
 
       if (response.ok) {
-        // Redirect to login page after successful registration
         router.push('/login');
       } else {
         const data = await response.json();
-        setError(data.error || 'Fallo al registrar usuario.');
+        setError(data.error || 'Fallo al registrar.');
       }
     } catch (err) {
-      console.error('An error occurred:', err);
-      setError('Ocurrió un error al intentar registrarte.');
+      setError('Ocurrió un error.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Registrarse</CardTitle>
-          <CardDescription>Crea una nueva cuenta de gestión financiera.</CardDescription>
+    <div className="flex items-center justify-center min-h-screen bg-[#f7f4ef] dark:bg-gray-950 p-4">
+      <Card className="w-full max-w-md rounded-[2.5rem] shadow-2xl border-[#e8e2d9] dark:border-gray-800 overflow-hidden">
+        <CardHeader className="text-center pt-10 pb-6 bg-[#f7f4ef] dark:bg-gray-900/50">
+          <CardTitle className="text-3xl font-black uppercase tracking-tighter italic">Únete al <span className="text-[#e85d26]">Equipo</span></CardTitle>
+          <CardDescription className="font-bold text-[10px] uppercase tracking-widest">Crea tu cuenta de gestión</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="m@example.com"
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase ml-1">Nombre</Label>
+                <Input value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} className="rounded-xl" required />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase ml-1">Apellido</Label>
+                <Input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} className="rounded-xl" required />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase ml-1">Email</Label>
+              <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="rounded-xl" placeholder="m@iglesia.com" required />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirmar Contraseña</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase ml-1">Contraseña</Label>
+              <Input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="rounded-xl" required />
             </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Registrando...' : 'Registrarse'}
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase ml-1">Confirmar</Label>
+              <Input type="password" value={form.confirmPassword} onChange={e => setForm({...form, confirmPassword: e.target.value})} className="rounded-xl" required />
+            </div>
+            {error && <p className="text-red-500 text-[10px] font-bold uppercase text-center">{error}</p>}
+            <Button type="submit" className="w-full bg-[#1a1714] dark:bg-white text-white dark:text-black font-black py-6 rounded-2xl mt-4 shadow-xl active:scale-95 transition-all" disabled={loading}>
+              {loading ? 'REGISTRANDO...' : 'CREAR MI CUENTA'}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              ¿Ya tienes una cuenta?{' '}
-              <Link href="/login" className="text-primary hover:underline">
-                Iniciar Sesión
-              </Link>
+            <p className="text-center text-[10px] font-bold text-[#8c7f72] uppercase mt-4">
+              ¿Ya tienes cuenta? <Link href="/login" className="text-[#e85d26] hover:underline ml-1">Inicia Sesión</Link>
             </p>
           </form>
         </CardContent>

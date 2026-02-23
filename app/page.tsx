@@ -409,12 +409,12 @@ export default function DashboardPage() {
           </h1>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={() => setShowTransfer(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#e8e2d9] dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-semibold text-[#1a1714] dark:text-white hover:border-[#e85d26] hover:text-[#e85d26] transition-all">
+          <button onClick={() => setShowTransfer(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#e8e2d9] dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-semibold text-[#1a1714] dark:text-white hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] transition-all">
             <ArrowLeftRight className="h-4 w-4" />
             Nueva Transferencia
           </button>
           <Link href="/transactions/new">
-            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#e85d26] text-white text-sm font-semibold hover:bg-[#cf4e1f] transition-all shadow-lg shadow-orange-200 dark:shadow-none">
+            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-orange-200 dark:shadow-none">
               <PlusCircle className="h-4 w-4" />
               Registrar Movimiento
             </button>
@@ -425,15 +425,15 @@ export default function DashboardPage() {
       {/* Fondos */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 p-6 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#e85d26] to-[#f5a623]" />
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[var(--brand-primary)] to-[#f5a623]" />
           <div className="flex items-start justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
-              <Landmark className="h-5 w-5 text-[#e85d26]" />
+              <Landmark className="h-5 w-5 text-[var(--brand-primary)]" />
             </div>
-            <span className="text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900/20 text-[#e85d26]">Caja General</span>
+            <span className="text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900/20 text-[var(--brand-primary)]">Caja General</span>
           </div>
           <p className="text-[11px] font-semibold tracking-wider text-[#8c7f72] uppercase mb-1">Fondo disponible</p>
-          <p className="text-3xl font-black text-[#e85d26] break-all" style={{ letterSpacing: '-0.03em' }}>{fmt(cajaBalance)}</p>
+          <p className="text-3xl font-black text-[var(--brand-primary)] break-all" style={{ letterSpacing: '-0.03em' }}>{fmt(cajaBalance)}</p>
           <p className="text-xs text-[#8c7f72] mt-2">Solo transacciones sin evento asociado</p>
           <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-[#e8e2d9] dark:border-gray-800">
             <div className="text-center">
@@ -479,7 +479,7 @@ export default function DashboardPage() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-extrabold text-[#1a1714] dark:text-white text-base" style={{ letterSpacing: '-0.02em' }}>Fondos por Evento</h2>
-            <Link href="/events" className="text-xs text-[#e85d26] font-semibold hover:underline">Ver todos →</Link>
+            <Link href="/events" className="text-xs text-[var(--brand-primary)] font-semibold hover:underline">Ver todos →</Link>
           </div>
           {eventsWithStats.length === 0 ? (
             <p className="text-sm text-[#8c7f72] py-6 text-center">No hay eventos registrados.</p>
@@ -507,7 +507,7 @@ export default function DashboardPage() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-extrabold text-[#1a1714] dark:text-white text-base" style={{ letterSpacing: '-0.02em' }}>Ultimos Movimientos</h2>
-            <Link href="/transactions" className="text-xs text-[#e85d26] font-semibold hover:underline">Ver todos →</Link>
+            <Link href="/transactions" className="text-xs text-[var(--brand-primary)] font-semibold hover:underline">Ver todos →</Link>
           </div>
           {recentTransactions.length === 0 ? (
             <p className="text-sm text-[#8c7f72] py-6 text-center">No hay transacciones aún.</p>
@@ -541,7 +541,7 @@ export default function DashboardPage() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-1">
             <h2 className="font-extrabold text-[#1a1714] dark:text-white text-base" style={{ letterSpacing: '-0.02em' }}>Transferencias entre Fondos</h2>
-            <button onClick={() => setShowTransfer(true)} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#e8e2d9] dark:border-gray-700 hover:border-[#e85d26] hover:text-[#e85d26] transition-all">+ Nueva</button>
+            <button onClick={() => setShowTransfer(true)} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#e8e2d9] dark:border-gray-700 hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] transition-all">+ Nueva</button>
           </div>
           <p className="text-xs text-[#8c7f72] mb-5">Cuando el dinero de un evento pasa a caja o viceversa</p>
           {transfers.length === 0 ? (
@@ -688,7 +688,7 @@ export default function DashboardPage() {
                   <div>
                     <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#8c7f72] mb-1.5">Origen</label>
                     <select
-                      className="w-full px-3 py-2.5 bg-[#f7f4ef] border border-[#e8e2d9] rounded-xl text-sm text-[#1a1714] outline-none focus:border-[#e85d26] transition-colors"
+                      className="w-full px-3 py-2.5 bg-[#f7f4ef] border border-[#e8e2d9] rounded-xl text-sm text-[#1a1714] outline-none focus:border-[var(--brand-primary)] transition-colors"
                       value={tfForm.fromEventId}
                       onChange={(e) => setTfForm(f => ({ ...f, fromEventId: e.target.value }))}
                     >
@@ -699,7 +699,7 @@ export default function DashboardPage() {
                   <div>
                     <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#8c7f72] mb-1.5">Destino</label>
                     <select
-                      className="w-full px-3 py-2.5 bg-[#f7f4ef] border border-[#e8e2d9] rounded-xl text-sm text-[#1a1714] outline-none focus:border-[#e85d26] transition-colors"
+                      className="w-full px-3 py-2.5 bg-[#f7f4ef] border border-[#e8e2d9] rounded-xl text-sm text-[#1a1714] outline-none focus:border-[var(--brand-primary)] transition-colors"
                       value={tfForm.toEventId}
                       onChange={(e) => setTfForm(f => ({ ...f, toEventId: e.target.value }))}
                     >
@@ -714,7 +714,7 @@ export default function DashboardPage() {
                     <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#8c7f72] mb-1.5">Monto (RD$)</label>
                     <input
                       type="number" placeholder="0"
-                      className="w-full px-3 py-2.5 bg-[#f7f4ef] border border-[#e8e2d9] rounded-xl text-sm text-[#1a1714] outline-none focus:border-[#e85d26] transition-colors"
+                      className="w-full px-3 py-2.5 bg-[#f7f4ef] border border-[#e8e2d9] rounded-xl text-sm text-[#1a1714] outline-none focus:border-[var(--brand-primary)] transition-colors"
                       value={tfForm.amount}
                       onChange={(e) => setTfForm(f => ({ ...f, amount: e.target.value }))}
                     />
@@ -727,7 +727,7 @@ export default function DashboardPage() {
                     <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#8c7f72] mb-1.5">Fecha</label>
                     <input
                       type="date"
-                      className="w-full px-3 py-2.5 bg-[#f7f4ef] border border-[#e8e2d9] rounded-xl text-sm text-[#1a1714] outline-none focus:border-[#e85d26] transition-colors"
+                      className="w-full px-3 py-2.5 bg-[#f7f4ef] border border-[#e8e2d9] rounded-xl text-sm text-[#1a1714] outline-none focus:border-[var(--brand-primary)] transition-colors"
                       value={tfForm.date}
                       onChange={(e) => setTfForm(f => ({ ...f, date: e.target.value }))}
                     />
@@ -738,7 +738,7 @@ export default function DashboardPage() {
                   <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#8c7f72] mb-1.5">Descripción</label>
                   <input
                     type="text" placeholder="ej. Ganancia del evento a caja general"
-                    className="w-full px-3 py-2.5 bg-[#f7f4ef] border border-[#e8e2d9] rounded-xl text-sm text-[#1a1714] outline-none focus:border-[#e85d26] transition-colors"
+                    className="w-full px-3 py-2.5 bg-[#f7f4ef] border border-[#e8e2d9] rounded-xl text-sm text-[#1a1714] outline-none focus:border-[var(--brand-primary)] transition-colors"
                     value={tfForm.description}
                     onChange={(e) => setTfForm(f => ({ ...f, description: e.target.value }))}
                   />
@@ -753,7 +753,7 @@ export default function DashboardPage() {
                 <button
                   onClick={handleSaveTransfer}
                   disabled={saving || amountNum > originBalance}
-                  className="flex-1 py-2.5 rounded-xl bg-[#e85d26] text-white text-sm font-bold hover:bg-[#cf4e1f] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >{saving ? 'Procesando...' : 'Transferir'}</button>
               </div>
             </div>

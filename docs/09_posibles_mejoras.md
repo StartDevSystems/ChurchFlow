@@ -36,11 +36,11 @@ Este documento describe una serie de mejoras técnicas y funcionales que pueden 
 - **Sugerencia:** Adoptar una librería de gestión de estado global como **Zustand**. Es ligera, fácil de usar y se integra muy bien con React, permitiendo crear "stores" para manejar datos globales (como la sesión del usuario, o los datos del dashboard) de manera más eficiente.
 
 ### 2. Optimización de Carga de Datos y Feedback al Usuario
-- **Problema:** Algunas páginas cargan todos los datos al inicio, lo que puede ser lento si el volumen de información crece.
-- **Sugerencia:**
-    - **Paginación:** En las tablas de Miembros y Transacciones, implementar paginación en el backend y frontend para cargar los datos en lotes (ej. de 20 en 20).
-    - **Búsqueda y Filtrado en el Servidor:** Implementar una funcionalidad de búsqueda que ejecute la consulta en el backend en lugar de filtrar los datos en el frontend, mejorando drásticamente el rendimiento.
-    - **Skeletons UI:** Mientras los datos cargan, mostrar "esqueletos" de la interfaz en lugar de un simple mensaje de "Cargando...". Esto mejora la percepción de velocidad por parte del usuario.
+- **Paginación:** En las tablas de Miembros y Transacciones, implementar paginación en el backend y frontend para cargar los datos en lotes (ej. de 20 en 20).
+- **Búsqueda y Filtrado en el Servidor:** Implementar una funcionalidad de búsqueda que ejecute la consulta en el backend en lugar de filtrar los datos en el frontend, mejorando drásticamente el rendimiento.
+- **Skeletons UI:** Mientras los datos cargan, mostrar "esqueletos" de la interfaz en lugar de un simple mensaje de "Cargando...".
+
+*(Nota: La responsividad y el diseño visual han sido mejorados en Febrero 2026, implementando un Sidebar adaptable y tablas móviles).*
 
 ### 3. Implementación de Roles y Permisos en la UI
 - **Problema:** La interfaz de usuario actualmente no distingue entre roles (un "USER" ve los mismos botones que un "ADMIN").

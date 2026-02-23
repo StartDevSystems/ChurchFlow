@@ -57,6 +57,28 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   return null; // Don't render anything if not authenticated and not on a public path, as a redirect is happening
 }
 
+// ConfigProvider component to handle dynamic styling from DB
+function ConfigProvider({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    async function applySettings() {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const settings = await res.json();
+          if (settings.primaryColor) {
+            document.documentElement.style.setProperty('--brand-primary', settings.primaryColor);
+          }
+        }
+      } catch (error) {
+        console.error('Error applying brand settings:', error);
+      }
+    }
+    applySettings();
+  }, []);
+
+  return <>{children}</>;
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -70,16 +92,18 @@ export default function RootLayout({
       <body className={inter.className}>
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <AuthWrapper>
-              <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
-                <Sidebar />
-                <main className="flex-1 p-4 md:p-8 h-screen overflow-y-auto mt-14 lg:mt-0">
-                  <div className="max-w-7xl mx-auto">
-                    {children}
-                  </div>
-                </main>
-              </div>
-            </AuthWrapper>
+            <ConfigProvider>
+              <AuthWrapper>
+                <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+                  <Sidebar />
+                  <main className="flex-1 p-4 md:p-8 h-screen overflow-y-auto mt-14 lg:mt-0">
+                    <div className="max-w-7xl mx-auto">
+                      {children}
+                    </div>
+                  </main>
+                </div>
+              </AuthWrapper>
+            </ConfigProvider>
           </ThemeProvider>
         </SessionProvider>
         <Toaster />

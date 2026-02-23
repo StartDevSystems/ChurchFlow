@@ -4,39 +4,34 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    const { email, password, firstName, lastName } = await request.json();
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    if (!email || !password || !firstName || !lastName) {
+      return NextResponse.json({ error: 'Todos los campos son obligatorios' }, { status: 400 });
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      console.log("Registro: El usuario ya existe:", email);
-      return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
+      return NextResponse.json({ error: 'El email ya está registrado' }, { status: 409 });
     }
 
-    console.log("Registro: Creando nuevo usuario...");
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
+        firstName,
+        lastName,
         role: "USER",
       },
     });
-    console.log("Registro: Usuario creado con éxito:", email);
 
-    // Don't return the hashed password in the response
     const { password: _, ...userWithoutPassword } = newUser;
     return NextResponse.json(userWithoutPassword, { status: 201 });
 
   } catch (error) {
-    console.error('Error during user registration:', error);
-    return NextResponse.json({ error: 'Failed to register user' }, { status: 500 });
+    console.error('Error en registro:', error);
+    return NextResponse.json({ error: 'Error al registrar usuario' }, { status: 500 });
   }
 }

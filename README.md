@@ -42,12 +42,11 @@ Esta aplicación es un sistema integral de gestión financiera diseñado especí
 - **/lib**: Utilidades compartidas y clientes (Prisma, Auth, Formateo de moneda).
 - **/scripts**: Automatizaciones (Backups, Generación de reportes automáticos).
 
-### 💻 Lógica de la Interfaz (UI)
-La interfaz está desarrollada siguiendo principios de **diseño moderno y limpio**:
-- **Consistencia:** Uso de una paleta de colores coherente y componentes UI estandarizados.
-- **Responsividad:** Adaptada para funcionar perfectamente en pantallas de escritorio y dispositivos móviles.
-- **Modo Oscuro:** Soporte nativo para temas claro y oscuro que se adapta a las preferencias del sistema.
-- **Visualización de Datos:** Uso intensivo de gráficos de líneas, barras y pasteles para transformar números en información comprensible.
+### 🎨 Diseño y Experiencia de Usuario (UX)
+- **Interfaz Premium:** Diseño modernizado con una estética limpia, profesional y personalizada.
+- **Totalmente Responsivo:** Optimizado para una experiencia fluida en celulares, tablets y computadoras.
+- **Navegación Inteligente:** Sidebar dinámico que se adapta al dispositivo (menú hamburguesa en móviles).
+- **Modo Oscuro/Claro:** Soporte nativo que respeta las preferencias del usuario con una paleta de colores vibrante.
 
 ### ⚙️ Lógica del Backend (API)
 - **Filtrado Inteligente:** La API de transacciones permite filtrar por tipo, evento o miembro.

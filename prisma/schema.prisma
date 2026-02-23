@@ -9,10 +9,14 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(uuid())
-  email    String @unique
-  password String
-  role     String @default("USER")
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  role        String   @default("USER")
+  permissions Json?    @default("{}")
+  image       String?  // Foto de perfil
+  firstName   String?
+  lastName    String?
 }
 
 model Member {
@@ -66,6 +70,35 @@ model Transfer {
   fromEventId String?
   toEventId   String?
   createdAt   DateTime @default(now())
+}
+
+model Settings {
+  id                      String   @id @default("system-settings")
+  churchName              String   @default("Finanzas Jóvenes")
+  churchSubtitle          String   @default("Iglesia Central")
+  currencySymbol          String   @default("RD$")
+  logoUrl                 String   @default("/logo de los jovenes.jpeg")
+  monthlyGoal             Float    @default(0)
+  
+  // Personalización Visual
+  primaryColor            String   @default("#e85d26")
+  themeMode               String   @default("system") // system, light, dark
+  
+  // Detalles para Reportes
+  reportSignatureName     String   @default("")
+  reportFooterText        String   @default("Dios les bendiga.")
+  
+  // Seguridad
+  allowPublicRegistration Boolean  @default(true)
+  
+  // Finanzas Avanzadas
+  generalFundName         String   @default("Caja General")
+  lowBalanceAlert         Float    @default(1000)
+  
+  // Notificaciones
+  webhookUrl              String   @default("")
+  
+  updatedAt               DateTime @updatedAt
 }
 
 enum TransactionType {
