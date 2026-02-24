@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import {
@@ -67,21 +68,79 @@ export default function TransactionsPage() {
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-  const exportToExcel = () => {
-    const dataToExport = filtered.map(t => ({
-      Fecha: format(new Date(t.date), 'dd/MM/yyyy'),
-      Descripción: t.description,
-      Categoría: t.category.name,
-      Tipo: t.type === 'income' ? 'Ingreso' : 'Gasto',
-      Monto: t.amount,
-      Miembro: t.member?.name || 'N/A',
-      Evento: t.event?.name || 'Caja General'
-    }));
+  const exportToExcel = async () => {
+    // Obtener ajustes para el logo y nombre
+    const settingsRes = await fetch('/api/settings');
+    const settings = await settingsRes.json();
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Transacciones");
-    XLSX.writeFile(wb, `Reporte_Finanzas_${format(new Date(), 'dd_MM_yyyy')}.xlsx`);
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Reporte Finanzas');
+
+    // 1. Configurar Columnas
+    worksheet.columns = [
+      { header: 'FECHA', key: 'fecha', width: 15 },
+      { header: 'DESCRIPCIÓN', key: 'desc', width: 40 },
+      { header: 'CATEGORÍA', key: 'cat', width: 20 },
+      { header: 'TIPO', key: 'tipo', width: 12 },
+      { header: 'MONTO (RD$)', key: 'monto', width: 15 },
+      { header: 'MIEMBRO', key: 'miembro', width: 25 },
+      { header: 'EVENTO / FONDO', key: 'evento', width: 25 },
+    ];
+
+    // 2. Estilo del Título de la Iglesia
+    worksheet.mergeCells('A1:G2');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = settings.churchName.toUpperCase();
+    titleCell.font = { name: 'Arial Black', size: 18, color: { argb: 'FFE85D26' } };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A3:G3');
+    const subtitleCell = worksheet.getCell('A3');
+    subtitleCell.value = `REPORTE DE MOVIMIENTOS - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
+    subtitleCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF8C7F72' } };
+    subtitleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Espacio antes de la tabla
+    worksheet.addRow([]);
+
+    // 3. Encabezados de Tabla con Estilo
+    const headerRow = worksheet.addRow(['FECHA', 'DESCRIPCIÓN', 'CATEGORÍA', 'TIPO', 'MONTO', 'MIEMBRO', 'EVENTO']);
+    headerRow.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A1714' } };
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+      cell.alignment = { horizontal: 'center' };
+      cell.border = { bottom: { style: 'thick', color: { argb: 'FFE85D26' } } };
+    });
+
+    // 4. Agregar Datos
+    filtered.forEach((t) => {
+      const row = worksheet.addRow([
+        format(new Date(t.date), 'dd/MM/yyyy'),
+        t.description,
+        t.category.name,
+        t.type === 'income' ? 'INGRESO' : 'GASTO',
+        t.amount,
+        t.member?.name || '-',
+        t.event?.name || 'Caja General'
+      ]);
+
+      // Estilo por fila según tipo
+      const colorCell = row.getCell(4);
+      colorCell.font = { bold: true, color: { argb: t.type === 'income' ? 'FF2A8A5E' : 'FFDC3545' } };
+      
+      row.getCell(5).numFmt = '"RD$ "#,##0';
+    });
+
+    // 5. Totales al final
+    worksheet.addRow([]);
+    const totalRow = worksheet.addRow(['', '', '', 'TOTAL CONSOLIDADO', totalIncome - totalExpense]);
+    totalRow.getCell(4).font = { bold: true };
+    totalRow.getCell(5).font = { bold: true, size: 12 };
+    totalRow.getCell(5).numFmt = '"RD$ "#,##0';
+
+    // Generar y Guardar
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), `Finanzas_${settings.churchName}_${format(new Date(), 'ddMMyy')}.xlsx`);
   };
 
   const generateReceipt = (t: Transaction) => {
