@@ -16,13 +16,13 @@ import { cn } from '@/lib/utils';
 
 const inter = Inter({ subsets: ['latin'] });
 
-function AuthWrapper({ children }: { children: React.ReactNode }) {
+function AppStructure({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const pathname = usePathname();
+  const router = useRouter();
 
   const publicPaths = ['/login', '/register'];
-  const isPublicPath = publicPaths.includes(pathname);
+  const isPublicPath = publicPaths.some(path => pathname === path || pathname?.startsWith(path + '/'));
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -33,7 +33,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     if (session && isPublicPath) {
         router.push('/');
     }
-  }, [session, status, isPublicPath, pathname, router]);
+  }, [session, status, isPublicPath, router]);
 
   if (status === 'loading' && !isPublicPath) {
     return (
@@ -44,8 +44,22 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isPublicPath || (session && status === 'authenticated')) {
+  if (isPublicPath) {
     return <>{children}</>;
+  }
+
+  if (session) {
+    return (
+      <div className="flex min-h-screen bg-[#0a0c14]">
+        <Sidebar />
+        <main className="flex-1 p-4 md:p-8 mt-14 lg:mt-0 relative overflow-x-hidden">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+        <CommandPalette />
+      </div>
+    );
   }
   
   return null;
@@ -87,17 +101,7 @@ export default function RootLayout({
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
             <ConfigProvider>
-              <AuthWrapper>
-                <div className="flex min-h-screen bg-[#0a0c14]">
-                  <Sidebar />
-                  <main className="flex-1 p-4 md:p-8 mt-14 lg:mt-0 relative overflow-x-hidden">
-                    <div className="max-w-7xl mx-auto">
-                      {children}
-                    </div>
-                  </main>
-                </div>
-                <CommandPalette />
-              </AuthWrapper>
+              <AppStructure>{children}</AppStructure>
             </ConfigProvider>
           </ThemeProvider>
         </SessionProvider>
