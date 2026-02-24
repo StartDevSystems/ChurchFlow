@@ -40,6 +40,17 @@ export async function POST(request: Request) {
         role, // If role is not provided, the default value from the schema will be used
       },
     });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        userEmail: session.user.email || 'N/A',
+        action: 'CREATE',
+        entity: 'Member',
+        details: `Registró al nuevo miembro: ${name} (${role})`
+      }
+    });
+
     return NextResponse.json(newMember, { status: 201 });
   } catch (error) {
     console.error('Error creating member:', error); // Log the full error

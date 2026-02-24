@@ -12,7 +12,8 @@ export default function NewMemberPage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('Joven'); // Default role
+  const [role, setRole] = useState('Joven'); 
+  const [birthDate, setBirthDate] = useState(''); // Nuevo estado
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,7 +26,7 @@ export default function NewMemberPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, phone, role }),
+        body: JSON.stringify({ name, phone, role, birthDate: birthDate ? new Date(birthDate) : null }),
       });
 
       if (response.ok) {
@@ -83,6 +84,15 @@ export default function NewMemberPage() {
                   <SelectItem value="Directiva">Directiva</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+              <Input
+                id="birthDate"
+                type="date"
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+              />
             </div>
           </CardContent>
           <CardFooter>

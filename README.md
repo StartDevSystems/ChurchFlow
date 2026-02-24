@@ -1,111 +1,58 @@
-# Sistema de Gestión Financiera - Ministerio de Jóvenes
+# ⛪ ChurchFlow v1.3 Beta - Edición Pro
 
-## 🚀 Descripción General
-Esta aplicación es un sistema integral de gestión financiera diseñado específicamente para el ministerio de jóvenes de una iglesia. Ofrece un control total sobre ingresos, gastos, miembros y eventos, combinando una interfaz web moderna con potentes capacidades de automatización.
+**ChurchFlow** es un ecosistema de gestión financiera y ministerial de alto rendimiento, diseñado específicamente para ministerios de jóvenes que buscan excelencia, transparencia y un impacto visual de élite.
 
-### 🌟 Características Principales
-- **Dashboard Interactivo:** Resumen financiero en tiempo real con gráficos de tendencias y desgloses por categoría.
-- **Gestión de Eventos (Fondos Separados):** Capacidad para gestionar las finanzas de eventos específicos (campamentos, retiros, etc.) de forma independiente al Fondo General de la iglesia.
-- **Seguimiento de Cuotas:** Monitoreo visual del progreso de los aportes de cada miembro.
-- **Reportes Profesionales:** Generación de reportes PDF detallados por rango de fechas.
-- **Perfil Financiero por Miembro:** Vista de 360° de los aportes y gastos vinculados a cada persona.
-- **Administración de Categorías:** Control total sobre las categorías de ingresos y gastos para mantener la consistencia.
+## 🚀 Lo Nuevo en la Versión 1.3 Beta
+Esta versión transforma el sistema de una simple base de datos a una **Plataforma de Inteligencia Ministerial**.
+
+### 🏀 Ficha Técnica "ESPN Style" (Perfil Pro)
+- **Visualización de Élite**: Inspirado en las fichas de atletas profesionales, cada miembro tiene un perfil dinámico con fondos de fibra de carbono y gradientes de alta intensidad.
+- **KPIs de Rendimiento**: Seguimiento en tiempo real de:
+  - **Aportación Total**: Dinero invertido en el ministerio.
+  - **Score de Fidelidad**: Algoritmo que calcula la asistencia de los últimos 30 días.
+  - **Rango Dinámico**: Basado en el cargo ministerial (Músico, Líder, Ujier, etc.).
+- **Estado de Actividad**: Indicador tipo "semáforo" (Activo, Inactivo, Observación) con brillo LED.
+- **Marquesina de Cumpleaños**: Tarjeta con movimiento (Marquee) integrada en el perfil.
+
+### 🧮 Calculadora Bendecida
+- **Personalización Total**: El administrador puede cambiar el nombre de la herramienta desde ajustes (ej: "Calculadora Santa", "Cuentas Claras").
+- **Presupuesto Inteligente**: Herramienta responsiva para calcular cuotas por persona basadas en costos de eventos.
+
+### 📊 Inteligencia de Datos (Estadísticas & Reportes)
+- **Ranking de Impacto**: Top de aportantes con barras de progreso visuales.
+- **Gráficas de Flujo**: Gráficos circulares tipo "Trading" para analizar la distribución de gastos.
+- **Centro de Reportes Ejecutivo**: Generación de reportes financieros con KPIs gigantes y exportación a PDF/Excel.
+
+### 🤖 Automatización y Notificaciones
+- **Telegram Bot v2**: Comandos interactivos `/saldo`, `/gastos` y `/miembros` con alertas en tiempo real.
+- **WhatsApp Direct Pro**: Botones inteligentes para enviar recordatorios de cuotas y felicitaciones de cumpleaños personalizadas con un clic.
+- **Sistema de Auditoría**: Registro exhaustivo de quién hizo qué y cuándo (logs de seguridad).
 
 ---
+
+## 🎨 El Sistema de Diseño: "Brutalismo de Élite"
+Hemos adoptado un estilo visual único que combina la fuerza del diseño brutalista con la elegancia de las interfaces de análisis deportivo:
+
+- **Paleta de Colores**:
+  - `Rich Black (#0a0c14)`: Para una profundidad profesional.
+  - `Church Orange (#e85d26)`: Color de identidad y energía.
+  - `Success Green & Danger Red`: Con efectos de brillo LED para estados.
+- **Geometría**: Bordes redondeados extremos (`rounded-[3rem]`) y bordes gruesos (`border-2` a `border-4`) para un look sólido.
+- **Tipografía**: Títulos en mayúsculas, negrita extrema (`font-black`) e itálica para transmitir velocidad y dinamismo.
 
 ## 🛠️ Tecnologías Utilizadas
-- **Framework:** [Next.js 14](https://nextjs.org/) (App Router)
-- **Lenguaje:** [TypeScript](https://www.typescriptlang.org/)
-- **Base de Datos:** [Prisma ORM](https://www.prisma.io/) con **SQLite**
-- **Estilos:** [Tailwind CSS](https://tailwindcss.com/)
-- **Componentes UI:** [Radix UI](https://www.radix-ui.com/) + Componentes personalizados (inspirados en shadcn/ui)
-- **Gráficos:** [Recharts](https://recharts.org/)
-- **Autenticación:** [NextAuth.js](https://next-auth.js.org/)
-- **PDF:** [jsPDF](https://github.com/parallax/jsPDF) + [autoTable](https://github.com/simonbengtsson/jspdf-autotable)
-- **Fechas:** [date-fns](https://date-fns.org/)
+- **Frontend**: Next.js 14 (App Router), Tailwind CSS, Framer Motion.
+- **Backend**: Prisma ORM, PostgreSQL (Supabase).
+- **Inteligencia**: Recharts (Gráficas), Lucide React (Iconografía Pro).
+- **PWA**: Soporte para instalación como aplicación nativa en móviles.
 
 ---
 
-## 📂 Estructura del Código y Desarrollo
-
-### 🏛️ Arquitectura de Archivos
-- **/app**: Lógica de rutas y API.
-  - **/api**: Endpoints del servidor (Transactions, Members, Events, Stats, Categories).
-  - **/events**: Módulo de gestión de eventos y sus finanzas.
-  - **/transactions**: Módulo de registro y edición de movimientos financieros.
-  - **/members**: Gestión de perfiles de miembros y roles.
-  - **/stats**: Perfiles financieros detallados y gráficos por miembro.
-- **/components**: Componentes de la interfaz.
-  - **/ui**: Componentes base reutilizables (Botones, Tablas, Tarjetas, etc.).
-  - `Sidebar.tsx`: Navegación principal.
-- **/prisma**: Definición del modelo de datos (`schema.prisma`) y migraciones.
-- **/lib**: Utilidades compartidas y clientes (Prisma, Auth, Formateo de moneda).
-- **/scripts**: Automatizaciones (Backups, Generación de reportes automáticos).
-
-### 🎨 Diseño y Experiencia de Usuario (UX)
-- **Interfaz Premium:** Diseño modernizado con una estética limpia, profesional y personalizada.
-- **Totalmente Responsivo:** Optimizado para una experiencia fluida en celulares, tablets y computadoras.
-- **Navegación Inteligente:** Sidebar dinámico que se adapta al dispositivo (menú hamburguesa en móviles).
-- **Modo Oscuro/Claro:** Soporte nativo que respeta las preferencias del usuario con una paleta de colores vibrante.
-
-### ⚙️ Lógica del Backend (API)
-- **Filtrado Inteligente:** La API de transacciones permite filtrar por tipo, evento o miembro.
-- **Integridad de Datos:** Relaciones estrictas en la base de datos entre transacciones, miembros y eventos.
-- **Seguridad:** Todas las operaciones de escritura y lectura están protegidas por sesión de usuario a través de NextAuth.
+## ⚠️ Nota Importante para Desarrolladores (Windows)
+Debido al bloqueo de archivos de Windows en tiempo de ejecución, tras realizar cambios en el esquema de base de datos (`schema.prisma`), es obligatorio:
+1. Detener el servidor (`Ctrl + C`).
+2. Ejecutar `npx prisma generate`.
+3. Reiniciar con `npm run dev`.
 
 ---
-
-## 🌐 Despliegue y Base de Datos (Febrero 2026)
-
-Este proyecto ha sido migrado de **SQLite** a **PostgreSQL (Supabase)** para permitir su despliegue en la web.
-
-### 🚀 Estado del Despliegue
-- **Hosting:** Vercel (`https://sociedad-jovenes.vercel.app`)
-- **Base de Datos:** Supabase (ID: `kydllcrcsmovpvgrsdko`)
-- **Estado Actual:** ✅ **OPERATIVO**. Conexión establecida con éxito mediante Pooler de Supabase.
-
-### 🔑 Configuración Requerida en Vercel
-Para mantener la estabilidad, las variables en Vercel deben ser:
-
-1. **DATABASE_URL**: URL del Pooler (Puerto 6543) con host `aws-1-us-east-1.pooler.supabase.com` y `?pgbouncer=true`.
-2. **DIRECT_URL**: URL del Pooler (Puerto 5432) para migraciones.
-3. **NEXTAUTH_URL**: `https://sociedad-jovenes.vercel.app`
-4. **NEXTAUTH_SECRET**: Clave secreta para sesiones.
-
----
-
-## 🛠️ Instalación y Ejecución
-
-1. **Instalar Dependencias:**
-   ```bash
-   npm install
-   ```
-
-2. **Configurar Base de Datos:**
-   ```bash
-   npx prisma migrate dev --name init
-   ```
-
-3. **Iniciar en Desarrollo:**
-   ```bash
-   npm run dev
-   ```
-
----
-
-## 📝 Notas de las Últimas Actualizaciones
-
-### Módulo de Eventos (Fondos Separados)
-Se ha implementado una funcionalidad crucial: la capacidad de separar los gastos de un evento del balance general. 
-- Al crear una transacción, ahora puedes elegir a qué evento asociarla.
-- Si no se asocia a ningún evento, la transacción se considera parte del **Fondo General**.
-- Cada evento tiene su propio "Dashboard" interno donde se ve su balance neto, sus ingresos y sus gastos sin mezclarse con otros fondos.
-
-### Perfil Financiero por Miembro
-En la sección de estadísticas, ahora puedes ver exactamente cuánto ha aportado y cuánto ha gastado cada miembro a lo largo del tiempo, con gráficos mensuales detallados.
-
-### Corrección de Errores y Estabilidad
-- Se corrigió el error de sintaxis en la API de transacciones que impedía mostrar los movimientos de los eventos.
-- Se mejoró el selector de categorías en la edición de transacciones para asegurar la integridad de los datos.
-
- 
+*Desarrollado con pasión para el Reino. q_q q_q q_q*

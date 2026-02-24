@@ -1,353 +1,169 @@
-'use client';
+"use client";
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { PlusCircle, Calendar, Users, TrendingUp, ArrowRight, Loader2, Calculator, X, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { PlusCircle, Edit, Trash2, Calendar, Receipt, Search } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel,
-  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
-  AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from '@/components/ui/AlertDialog';
-import { useToast } from '@/components/ui/use-toast';
-
-interface Event {
-  id: string;
-  name: string;
-  description?: string;
-  startDate: string;
-  endDate?: string;
-  createdAt: string;
-}
-
-interface Transaction {
-  id: string;
-  type: 'income' | 'expense';
-  amount: number;
-  eventId?: string;
-}
-
-interface EventWithStats extends Event {
-  totalIncome: number;
-  totalExpense: number;
-  balance: number;
-  txCount: number;
-}
-
-const BANNERS = [
-  { from: '#e85d26', to: '#f5a623', emoji: '🎪' },
-  { from: '#1a8a5e', to: '#42c988', emoji: '🌿' },
-  { from: '#1a4d8f', to: '#4a90d9', emoji: '🎤' },
-  { from: '#6b3fa0', to: '#a56bd4', emoji: '🙏' },
-  { from: '#0e7490', to: '#22d3ee', emoji: '⚡' },
-  { from: '#b91c1c', to: '#f87171', emoji: '🔥' },
-];
-
-type FilterType = 'todos' | 'activos' | 'finalizados';
-
-function getStatus(event: Event): { label: string; filter: FilterType } {
-  const now = new Date();
-  const start = new Date(event.startDate);
-  const end = event.endDate ? new Date(event.endDate) : null;
-  if (end && end < now) return { label: 'Finalizado', filter: 'finalizados' };
-  if (start > now) return { label: 'Próximo', filter: 'activos' };
-  return { label: 'Activo', filter: 'activos' };
-}
-
-function fmt(amount: number) {
-  return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 }).format(amount);
-}
+import { formatCurrency, cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<EventWithStats[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterType>('todos');
-  const [search, setSearch] = useState('');
-  const { toast } = useToast();
+  const [showCalc, setShowCalc] = useState(false);
+  const [calcName, setCalcName] = useState('Calculadora Pro');
+  
+  // Estado para la calculadora
+  const [calc, setCalc] = useState({ people: 50, cost: 0 });
 
   const fetchData = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const [evRes, txRes] = await Promise.all([
+      const [eRes, sRes] = await Promise.all([
         fetch('/api/events'),
-        fetch('/api/transactions'),
+        fetch('/api/settings')
       ]);
-      if (!evRes.ok) throw new Error('Error al cargar eventos');
-      const evData: Event[] = await evRes.json();
-      const txData: Transaction[] = txRes.ok ? await txRes.json() : [];
-
-      const enriched: EventWithStats[] = evData.map((ev) => {
-        const related = txData.filter((t) => t.eventId === ev.id);
-        const totalIncome = related.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-        const totalExpense = related.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-        return { ...ev, totalIncome, totalExpense, balance: totalIncome - totalExpense, txCount: related.length };
-      });
-
-      setEvents(enriched);
-    } catch (err: any) {
-      toast({ title: 'Error al cargar eventos', description: err.message, variant: 'destructive' });
+      
+      if (eRes.ok) setEvents(await eRes.json());
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        setCalcName(sData.calculatorName || 'Calculadora Pro');
+      }
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleDelete = async (id: string) => {
-    try {
-      const res = await fetch(`/api/events/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'No se pudo eliminar');
-      }
-      toast({ title: 'Evento eliminado', description: 'El evento fue eliminado con éxito.' });
-      fetchData();
-    } catch (err: any) {
-      toast({ title: 'Error al eliminar', description: err.message, variant: 'destructive' });
-    }
-  };
-
-  const totalBalance = events.reduce((s, e) => s + e.balance, 0);
-  const activos = events.filter((e) => getStatus(e).filter === 'activos').length;
-  const finalizados = events.filter((e) => getStatus(e).filter === 'finalizados').length;
-
-  const proximos = events
-    .filter((e) => new Date(e.startDate) > new Date())
-    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-  const proximoEvento = proximos[0];
-
-  const filtered = events.filter((ev) => {
-    const matchFilter = filter === 'todos' || getStatus(ev).filter === filter;
-    const matchSearch = ev.name.toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
-  });
-
-  return (
-    <div className="min-h-screen bg-[#f7f4ef] dark:bg-gray-950 p-6 md:p-10">
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <p className="text-xs font-medium tracking-widest text-[#8c7f72] dark:text-gray-500 uppercase mb-1">Módulo</p>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[#1a1714] dark:text-white" style={{ letterSpacing: '-0.04em' }}>
-            Eventos 🎪
-          </h1>
-        </div>
-        <Link href="/events/new">
-          <Button className="flex items-center gap-2 bg-[#e85d26] hover:bg-[#cf4e1f] text-white shadow-lg shadow-orange-200 dark:shadow-none border-0 rounded-xl px-5 py-2.5 font-semibold">
-            <PlusCircle className="h-4 w-4" />
-            Nuevo Evento
-          </Button>
-        </Link>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 p-5 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#e85d26]" />
-          <p className="text-[10px] font-semibold tracking-widest text-[#8c7f72] uppercase mb-2">Total Eventos</p>
-          <p className="text-4xl font-black text-[#e85d26]" style={{ letterSpacing: '-0.04em' }}>{loading ? '—' : events.length}</p>
-          <p className="text-xs text-[#8c7f72] mt-1">{activos} activos · {finalizados} finalizados</p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 p-5 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#2d8a5e]" />
-          <p className="text-[10px] font-semibold tracking-widest text-[#8c7f72] uppercase mb-2">Balance General</p>
-          {/* FIX: text-3xl en vez de text-4xl para que no se desborde con números grandes */}
-          <p className={`text-3xl font-black break-all ${totalBalance >= 0 ? 'text-[#2d8a5e]' : 'text-red-500'}`} style={{ letterSpacing: '-0.03em' }}>
-            {loading ? '—' : fmt(totalBalance)}
-          </p>
-          <p className="text-xs text-[#8c7f72] mt-1">Suma de todos los eventos</p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 p-5 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#1a4d8f]" />
-          <p className="text-[10px] font-semibold tracking-widest text-[#8c7f72] uppercase mb-2">Próximo Evento</p>
-          <p className="text-lg font-black text-[#1a4d8f] leading-tight mt-1" style={{ letterSpacing: '-0.02em' }}>
-            {loading ? '—' : proximoEvento ? proximoEvento.name : 'Sin eventos próximos'}
-          </p>
-          {proximoEvento && (
-            <p className="text-xs text-[#8c7f72] mt-1">
-              {format(new Date(proximoEvento.startDate), 'd MMM, yyyy', { locale: es })}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Filtros */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        {(['todos', 'activos', 'finalizados'] as FilterType[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all capitalize ${
-              filter === f
-                ? 'bg-[#e85d26] border-[#e85d26] text-white'
-                : 'bg-white dark:bg-gray-900 border-[#e8e2d9] dark:border-gray-700 text-[#8c7f72] hover:border-[#e85d26] hover:text-[#e85d26]'
-            }`}
-          >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
-        <div className="ml-auto flex items-center gap-2 bg-white dark:bg-gray-900 border border-[#e8e2d9] dark:border-gray-700 rounded-lg px-3 py-1.5">
-          <Search className="h-3.5 w-3.5 text-[#8c7f72]" />
-          <input
-            type="text"
-            placeholder="Buscar evento..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="outline-none bg-transparent text-sm text-[#1a1714] dark:text-white placeholder:text-[#8c7f72] w-40"
-          />
-        </div>
-      </div>
-
-      {/* Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 overflow-hidden animate-pulse">
-              <div className="h-28 bg-gray-200 dark:bg-gray-800" />
-              <div className="p-5 space-y-3">
-                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
-                <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
-                <div className="h-14 bg-gray-100 dark:bg-gray-800 rounded-xl" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-24">
-          <p className="text-5xl mb-4">🗓️</p>
-          <p className="text-xl font-bold text-[#1a1714] dark:text-white mb-2">No hay eventos</p>
-          <p className="text-sm text-[#8c7f72] mb-6">
-            {search ? 'Intenta con otro término de búsqueda.' : 'Crea tu primer evento para comenzar.'}
-          </p>
-          {!search && (
-            <Link href="/events/new">
-              <Button className="bg-[#e85d26] hover:bg-[#cf4e1f] text-white rounded-xl">
-                <PlusCircle className="h-4 w-4 mr-2" /> Crear evento
-              </Button>
-            </Link>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((event, idx) => {
-            const banner = BANNERS[idx % BANNERS.length];
-            const status = getStatus(event);
-            return (
-              <EventCard
-                key={event.id}
-                event={event}
-                banner={banner}
-                statusLabel={status.label}
-                onDelete={handleDelete}
-              />
-            );
-          })}
-        </div>
-      )}
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <Loader2 className="h-12 w-12 animate-spin text-[var(--brand-primary)]" />
     </div>
   );
-}
 
-interface EventCardProps {
-  event: EventWithStats;
-  banner: { from: string; to: string; emoji: string };
-  statusLabel: string;
-  onDelete: (id: string) => void;
-}
-
-function EventCard({ event, banner, statusLabel, onDelete }: EventCardProps) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#e8e2d9] dark:border-gray-800 overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-200 flex flex-col">
-
-      {/* Banner */}
-      <div
-        className="h-28 relative flex items-end justify-between px-5 pb-4"
-        style={{ background: `linear-gradient(135deg, ${banner.from}, ${banner.to})` }}
-      >
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.6) 0%, transparent 50%)' }} />
-        <div className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl backdrop-blur-sm">
-          {banner.emoji}
+    <div className="max-w-7xl mx-auto pb-20 px-4 md:px-0">
+      <div className="mb-12 flex flex-col md:flex-row justify-between md:items-end gap-8">
+        <div>
+          <h1 className="text-4xl md:text-7xl font-black text-white uppercase tracking-tighter italic leading-none">
+            Eventos & <span className="text-[var(--brand-primary)]">Proyectos</span>
+          </h1>
+          <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[#8c7f72] mt-4">Planificación y seguimiento de actividades</p>
         </div>
-        <span className="relative z-10 text-[10px] font-semibold tracking-wider uppercase text-white/90 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-          {statusLabel === 'Finalizado' ? '✓' : statusLabel === 'Próximo' ? '✦' : '●'} {statusLabel}
-        </span>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <button 
+            onClick={() => setShowCalc(true)}
+            className="px-6 py-4 bg-white/5 border-2 border-white/10 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2 shadow-xl"
+          >
+            <Calculator size={16} /> {calcName}
+          </button>
+          <Link href="/events/new" className="w-full sm:w-auto">
+            <button className="w-full px-8 py-4 bg-[var(--brand-primary)] text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-2xl shadow-orange-500/20 hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
+              <PlusCircle size={16} /> Crear Evento
+            </button>
+          </Link>
+        </div>
       </div>
 
-      {/* Body */}
-      <div className="p-5 flex flex-col flex-1">
-        <h2 className="font-extrabold text-[#1a1714] dark:text-white text-lg leading-tight mb-1" style={{ letterSpacing: '-0.02em' }}>
-          {event.name}
-        </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {events.map((event) => (
+          <Link key={event.id} href={`/events/${event.id}`}>
+            <Card className="rounded-[3rem] bg-[#13151f] border-2 border-white/5 overflow-hidden group hover:border-[var(--brand-primary)] transition-all shadow-xl h-full flex flex-col">
+              <div className="bg-gradient-to-r from-[var(--brand-primary)] to-orange-600 p-6 relative overflow-hidden shrink-0">
+                <Calendar className="absolute top-[-10px] right-[-10px] h-24 w-24 opacity-20 -rotate-12" />
+                <p className="text-[8px] font-black uppercase tracking-widest text-white/60 mb-1">Actividad Próxima</p>
+                <CardTitle className="text-2xl font-black uppercase italic text-white truncate">{event.name}</CardTitle>
+              </div>
+              
+              <CardContent className="p-8 flex-1 flex flex-col">
+                <div className="flex items-center gap-3 mb-6 text-gray-400">
+                  <Clock size={14} className="text-[var(--brand-primary)]" />
+                  <p className="text-[10px] font-black uppercase tracking-widest">
+                    {format(new Date(event.startDate), "d 'de' MMMM", { locale: es })}
+                  </p>
+                </div>
 
-        {event.description && (
-          <p className="text-xs text-[#8c7f72] leading-relaxed mb-3 line-clamp-2">{event.description}</p>
+                <p className="text-xs text-gray-500 font-medium line-clamp-2 mb-8 flex-1 uppercase tracking-tight italic leading-relaxed">
+                  {event.description || 'Sin descripción detallada.'}
+                </p>
+
+                <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-auto">
+                  <div>
+                    <p className="text-[8px] font-black uppercase text-gray-600 mb-1">Ver Detalles</p>
+                    <ArrowRight size={16} className="text-[var(--brand-primary)] transition-transform group-hover:translate-x-2" />
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[8px] font-black uppercase text-gray-600 mb-1">Estado</p>
+                    <span className="px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest">Abierto</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      {/* CALCULADORA MODAL RESPONSIVA */}
+      <AnimatePresence>
+        {showCalc && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl" onClick={() => setShowCalc(false)}>
+            <motion.div 
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className="bg-[#13151f] border-2 border-white/10 rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 w-full max-w-lg shadow-2xl relative overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-[var(--brand-primary)]" />
+              <button onClick={() => setShowCalc(false)} className="absolute top-4 right-4 md:top-6 md:right-6 text-gray-500 hover:text-white transition-colors p-2"><X size={24} /></button>
+              
+              <div className="text-center mb-8">
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] rounded-2xl md:rounded-3xl mx-auto mb-4 flex items-center justify-center shadow-inner">
+                  <Calculator className="w-7 h-7 md:w-8 md:h-8" strokeWidth={2.5} />
+                </div>
+                <h3 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tighter">
+                  {calcName.split(' ')[0]} <span className="text-[var(--brand-primary)]">{calcName.split(' ').slice(1).join(' ')}</span>
+                </h3>
+                <p className="text-[9px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Presupuesto Inteligente</p>
+              </div>
+
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-[8px] md:text-[9px] font-black text-gray-500 uppercase ml-3 tracking-widest">Cantidad de Jóvenes</label>
+                  <input 
+                    type="number" 
+                    className="w-full bg-white/5 border-2 border-white/5 p-4 md:p-5 rounded-2xl text-white font-black text-xl md:text-2xl outline-none focus:border-[var(--brand-primary)] transition-all"
+                    value={calc.people}
+                    onChange={e => setCalc({...calc, people: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[8px] md:text-[9px] font-black text-gray-500 uppercase ml-3 tracking-widest">Costo Total (RD$)</label>
+                  <input 
+                    type="number" 
+                    className="w-full bg-white/5 border-2 border-white/5 p-4 md:p-5 rounded-2xl text-white font-black text-xl md:text-2xl outline-none focus:border-[var(--brand-primary)] transition-all"
+                    placeholder="0.00"
+                    onChange={e => setCalc({...calc, cost: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+
+                <Card className="rounded-[2rem] md:rounded-[2.5rem] bg-[var(--brand-primary)] text-white p-6 md:p-8 mt-6 shadow-2xl border-none text-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+                  <p className="relative z-10 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-2">Aporte Sugerido por Joven</p>
+                  <h4 className="relative z-10 text-3xl md:text-5xl font-black italic tracking-tighter">
+                    {formatCurrency(calc.cost / (calc.people || 1))}
+                  </h4>
+                  <p className="relative z-10 text-[8px] md:text-[9px] font-bold mt-3 uppercase tracking-widest opacity-60">Meta: {formatCurrency(calc.cost)}</p>
+                </Card>
+              </div>
+            </motion.div>
+          </div>
         )}
-
-        <div className="flex items-center gap-1.5 text-xs text-[#8c7f72] mb-4">
-          <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-          <span>
-            {format(new Date(event.startDate), 'd MMM yyyy', { locale: es })}
-            {event.endDate && ` — ${format(new Date(event.endDate), 'd MMM yyyy', { locale: es })}`}
-          </span>
-        </div>
-
-        {/* FIX: Cambié grid-cols-3 por una lista vertical para que los números grandes no se corten */}
-        <div className="bg-[#f7f4ef] dark:bg-gray-800 rounded-xl p-3 mb-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold tracking-wider uppercase text-[#8c7f72]">Ingresos</p>
-            <p className="text-sm font-extrabold text-[#2d8a5e]">{fmt(event.totalIncome)}</p>
-          </div>
-          <div className="flex items-center justify-between border-t border-[#e8e2d9] dark:border-gray-700 pt-2">
-            <p className="text-[10px] font-semibold tracking-wider uppercase text-[#8c7f72]">Gastos</p>
-            <p className="text-sm font-extrabold text-[#e85d26]">{fmt(event.totalExpense)}</p>
-          </div>
-          <div className="flex items-center justify-between border-t border-[#e8e2d9] dark:border-gray-700 pt-2">
-            <p className="text-[10px] font-semibold tracking-wider uppercase text-[#8c7f72]">Balance</p>
-            <p className={`text-sm font-extrabold ${event.balance >= 0 ? 'text-[#1a1714] dark:text-white' : 'text-red-500'}`}>
-              {event.balance >= 0 ? '+' : ''}{fmt(event.balance)}
-            </p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between mt-auto">
-          <div className="flex items-center gap-1.5 text-xs text-[#8c7f72]">
-            <Receipt className="h-3.5 w-3.5" />
-            {event.txCount} transaccion{event.txCount !== 1 ? 'es' : ''}
-          </div>
-          <div className="flex gap-1.5">
-            <Link href={`/events/edit/${event.id}`}>
-              <button className="w-8 h-8 rounded-lg border border-[#e8e2d9] dark:border-gray-700 flex items-center justify-center text-[#8c7f72] hover:border-[#e85d26] hover:text-[#e85d26] transition-colors">
-                <Edit className="h-3.5 w-3.5" />
-              </button>
-            </Link>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <button className="w-8 h-8 rounded-lg border border-[#e8e2d9] dark:border-gray-700 flex items-center justify-center text-[#8c7f72] hover:border-red-400 hover:text-red-500 transition-colors">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Eliminar evento?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Se eliminará &quot;{event.name}&quot;. Las transacciones asociadas quedarán desvinculadas del evento. Esta acción no se puede deshacer.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onDelete(event.id)}>Eliminar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-      </div>
+      </AnimatePresence>
     </div>
   );
 }

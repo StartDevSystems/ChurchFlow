@@ -1,424 +1,213 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
-import { ArrowDown, ArrowUp, DollarSign, CalendarIcon, Trash2, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, DollarSign, Calendar as CalendarIcon, Trash2, Users, ArrowLeft, Save, TrendingUp, Target, Clock, Star, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
-import { Calendar } from '@/components/ui/Calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/Popover';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/AlertDialog";
 
-// --- TYPE DEFINITIONS ---
-interface Event {
-  id: string;
-  name: string;
-  description?: string | null;
-  startDate: string;
-  endDate?: string | null;
-}
+interface Event { id: string; name: string; description?: string | null; startDate: string; endDate?: string | null; }
+interface Transaction { id: string; type: 'income' | 'expense'; category: { name: string }; amount: number; date: string; description: string; member?: { id: string; name: string } | null; }
+interface MemberContribution { memberId: string; memberName: string; totalContributed: number; txCount: number; }
 
-interface Transaction {
-  id: string;
-  type: 'income' | 'expense';
-  category: { name: string };
-  amount: number;
-  date: string;
-  description: string;
-  member?: { id: string; name: string } | null;
-}
+const fmt = (amount: number) => new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 }).format(amount);
 
-// Aportes agrupados por miembro
-interface MemberContribution {
-  memberId: string;
-  memberName: string;
-  totalContributed: number;
-  txCount: number;
-}
-
-// --- HELPER FUNCTIONS ---
-const fmt = (amount: number) =>
-  new Intl.NumberFormat('es-DO', {
-    style: 'currency',
-    currency: 'DOP',
-    maximumFractionDigits: 0,
-  }).format(amount);
-
-// --- MAIN COMPONENT ---
 export default function EventDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
   const { toast } = useToast();
 
-  // --- STATE MANAGEMENT ---
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [balance, setBalance] = useState({ income: 0, expense: 0, net: 0 });
   const [memberContributions, setMemberContributions] = useState<MemberContribution[]>([]);
-
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // --- DATA FETCHING ---
-  useEffect(() => {
-    if (!id) return;
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [eventRes, transRes] = await Promise.all([
+        fetch(`/api/events/${id}`),
+        fetch(`/api/transactions?eventId=${id}`)
+      ]);
+      if (!eventRes.ok) throw new Error('Failed to fetch event.');
+      const eventData: Event = await eventRes.json();
+      setName(eventData.name);
+      setDescription(eventData.description || '');
+      setStartDate(eventData.startDate.split('T')[0]);
+      setEndDate(eventData.endDate ? eventData.endDate.split('T')[0] : '');
 
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const [eventRes, transRes] = await Promise.all([
-          fetch(`/api/events/${id}`),
-          fetch(`/api/transactions?eventId=${id}`)
-        ]);
+      const transData: Transaction[] = await transRes.json();
+      setTransactions(transData);
 
-        if (!eventRes.ok) throw new Error('Failed to fetch event details.');
-        const eventData: Event = await eventRes.json();
+      const totalIncome = transData.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+      const totalExpense = transData.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+      setBalance({ income: totalIncome, expense: totalExpense, net: totalIncome - totalExpense });
 
-        setName(eventData.name);
-        setDescription(eventData.description || '');
-        setStartDate(new Date(eventData.startDate));
-        setEndDate(eventData.endDate ? new Date(eventData.endDate) : undefined);
-
-        if (!transRes.ok) throw new Error('Failed to fetch event transactions.');
-        const transData: Transaction[] = await transRes.json();
-        setTransactions(transData);
-
-        // Calcular balance
-        const totalIncome = transData.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-        const totalExpense = transData.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-        setBalance({ income: totalIncome, expense: totalExpense, net: totalIncome - totalExpense });
-
-        // ── Calcular aportes por miembro ──────────────────────────────────
-        // Solo se toman los ingresos que tienen un miembro asociado
-        const incomeWithMember = transData.filter(t => t.type === 'income' && t.member);
-
-        const contributionMap = new Map<string, MemberContribution>();
-        incomeWithMember.forEach(t => {
-          const key = t.member!.id;
-          if (!contributionMap.has(key)) {
-            contributionMap.set(key, {
-              memberId: t.member!.id,
-              memberName: t.member!.name,
-              totalContributed: 0,
-              txCount: 0,
-            });
-          }
-          const entry = contributionMap.get(key)!;
-          entry.totalContributed += t.amount;
-          entry.txCount += 1;
-        });
-
-        // Ordenar de mayor a menor aporte
-        const sorted = Array.from(contributionMap.values()).sort(
-          (a, b) => b.totalContributed - a.totalContributed
-        );
-        setMemberContributions(sorted);
-
-      } catch (error: any) {
-        toast({ title: "Error", description: "No se pudieron cargar los datos del evento.", variant: "destructive" });
-        router.push('/events');
-      } finally {
-        setLoading(false);
-      }
+      const contributionMap = new Map<string, MemberContribution>();
+      transData.filter(t => t.type === 'income' && t.member).forEach(t => {
+        const key = t.member!.id;
+        if (!contributionMap.has(key)) contributionMap.set(key, { memberId: key, memberName: t.member!.name, totalContributed: 0, txCount: 0 });
+        const entry = contributionMap.get(key)!;
+        entry.totalContributed += t.amount;
+        entry.txCount += 1;
+      });
+      setMemberContributions(Array.from(contributionMap.values()).sort((a, b) => b.totalContributed - a.totalContributed));
+    } catch (error) {
+      router.push('/events');
+    } finally {
+      setLoading(false);
     }
+  }, [id, router]);
 
-    fetchData();
-  }, [id, router, toast]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  // --- EVENT HANDLERS ---
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const response = await fetch(`/api/events/${id}`, {
+      const res = await fetch(`/api/events/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, startDate, endDate }),
+        body: JSON.stringify({ name, description, startDate: new Date(startDate), endDate: endDate ? new Date(endDate) : null }),
       });
-      if (!response.ok) throw new Error('Failed to update event');
-      toast({ title: "Éxito", description: "Evento actualizado correctamente." });
-      router.refresh();
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+      if (res.ok) toast({ title: "Evento Actualizado ✓" });
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
-    try {
-      await fetch(`/api/events/${id}`, { method: 'DELETE' });
-      toast({ title: "Éxito", description: "Evento eliminado." });
-      router.push('/events');
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
+    await fetch(`/api/events/${id}`, { method: 'DELETE' });
+    router.push('/events');
   };
 
-  // --- RENDER LOGIC ---
-  if (loading) {
-    return (
-      <div className="space-y-4 p-6">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-28 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 animate-pulse" />
-        ))}
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen bg-[#0a0c14]">
+      <Loader2 className="h-12 w-12 animate-spin text-[var(--brand-primary)]" />
+    </div>
+  );
 
-  // El total aportado por el equipo (suma de aportes de miembros)
   const totalByMembers = memberContributions.reduce((acc, m) => acc + m.totalContributed, 0);
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Detalles del Evento</h1>
-
-      {/* ── Balance Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Ingresos</CardTitle>
-            <ArrowUp className="text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{fmt(balance.income)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Gastos</CardTitle>
-            <ArrowDown className="text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{fmt(balance.expense)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Balance Neto</CardTitle>
-            <DollarSign className="text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${balance.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {fmt(balance.net)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Aportes por Miembro ── */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-[#e85d26]" />
-                Aportes del Equipo
-              </CardTitle>
-              <CardDescription className="mt-1">
-                Ingresos asociados a un miembro en este evento
-              </CardDescription>
-            </div>
-            {memberContributions.length > 0 && (
-              <div className="text-right">
-                <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-0.5">Total aportado</p>
-                <p className="text-xl font-black text-[#e85d26]">{fmt(totalByMembers)}</p>
+    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8 min-h-screen bg-[#0a0c14] text-white pb-20 overflow-x-hidden">
+      {/* Header Estilo Pro */}
+      <div className="relative w-full pt-10 pb-16 px-6 bg-gradient-to-b from-blue-600/10 to-[#0a0c14] border-b border-white/5">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <button onClick={() => router.push('/events')} className="mb-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] opacity-40 hover:opacity-100 transition-all"><ArrowLeft size={14} /> Volver a eventos</button>
+          
+          <div className="flex flex-col lg:flex-row justify-between items-center lg:items-end gap-8">
+            <div className="text-center lg:text-left">
+              <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_#3b82f6]" />
+                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-gray-500">Actividad Ministerial</p>
               </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {memberContributions.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-6">
-              No hay ingresos asociados a miembros en este evento.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Miembro</TableHead>
-                  <TableHead className="text-center">Transacciones</TableHead>
-                  <TableHead className="text-right">Total Aportado</TableHead>
-                  <TableHead className="text-right">% del Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {memberContributions.map((m, i) => {
-                  const percentage = totalByMembers > 0
-                    ? ((m.totalContributed / totalByMembers) * 100).toFixed(1)
-                    : '0.0';
-                  return (
-                    <TableRow key={m.memberId}>
-                      <TableCell className="text-gray-400 font-mono text-sm">{i + 1}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-xs font-bold text-[#e85d26]">
-                            {m.memberName.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="font-semibold text-gray-800 dark:text-gray-100">{m.memberName}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {m.txCount}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-green-600">
-                        {fmt(m.totalContributed)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-20 h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-[#e85d26]"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-gray-500 w-10 text-right">{percentage}%</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── Edit Form ── */}
-      <Card>
-        <CardHeader><CardTitle>Editar Evento</CardTitle></CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <Label htmlFor="name">Nombre del Evento</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+              <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter leading-none mb-4 break-words">{name}</h1>
+              <p className="text-xl md:text-2xl font-black uppercase text-blue-400 italic tracking-widest">{format(new Date(startDate + 'T12:00:00'), "d 'de' MMMM yyyy", { locale: es })}</p>
             </div>
-            <div>
-              <Label htmlFor="description">Descripción</Label>
-              <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Fecha de Inicio</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start", !startDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "PPP", { locale: es }) : <span>Selecciona fecha</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus locale={es} />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div>
-                <Label>Fecha de Fin</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start", !endDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "PPP", { locale: es }) : <span>Selecciona fecha</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus locale={es} />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <Button type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar Cambios'}</Button>
+            <div className="flex gap-3">
               <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button type="button" variant="destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />Eliminar
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                    <AlertDialogDescription>Esta acción no se puede deshacer y eliminará el evento.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
-                  </AlertDialogFooter>
+                <AlertDialogTrigger asChild><button className="px-8 py-4 bg-red-500/10 border-2 border-red-500/20 rounded-2xl text-red-500 font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-all">Eliminar Evento</button></AlertDialogTrigger>
+                <AlertDialogContent className="rounded-[2.5rem] border-2 border-[#1a1714] bg-[#13151f] text-white">
+                  <AlertDialogHeader><AlertDialogTitle className="font-black text-2xl uppercase italic">¿Borrar Evento?</AlertDialogTitle><AlertDialogDescription className="text-gray-400 font-bold uppercase text-xs">Esta acción borrará todos los registros financieros vinculados.</AlertDialogDescription></AlertDialogHeader>
+                  <AlertDialogFooter><AlertDialogCancel className="rounded-xl font-black uppercase text-[10px]">No</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600 rounded-xl font-black uppercase text-[10px]">Sí, Borrar</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
 
-      {/* ── Transactions Table ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transacciones del Evento</CardTitle>
-          <CardDescription>Movimientos financieros asociados a este evento.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descripción</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Miembro</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Monto</TableHead>
-                <TableHead>Fecha</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.length > 0 ? (
-                transactions.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell>{t.description}</TableCell>
-                    <TableCell>{t.category.name}</TableCell>
-                    <TableCell>
-                      {t.member
-                        ? <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.member.name}</span>
-                        : <span className="text-xs text-gray-400">—</span>
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${t.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {t.type === 'income' ? 'Ingreso' : 'Gasto'}
-                      </span>
-                    </TableCell>
-                    <TableCell className={t.type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                      {fmt(t.amount)}
-                    </TableCell>
-                    <TableCell>{format(new Date(t.date), 'dd/MM/yyyy')}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-gray-500">
-                    No hay transacciones para este evento.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="max-w-7xl mx-auto px-6 mt-8 relative z-20">
+        {/* KPI Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+          {[
+            { label: 'Ingresos', val: fmt(balance.income), Icon: ArrowUp, color: 'text-green-500', bg: 'bg-green-500/10' },
+            { label: 'Gastos', val: fmt(balance.expense), Icon: ArrowDown, color: 'text-red-500', bg: 'bg-red-500/10' },
+            { label: 'Balance Neto', val: fmt(balance.net), Icon: DollarSign, color: balance.net >= 0 ? 'text-blue-400' : 'text-orange-500', bg: 'bg-white/5' }
+          ].map((s, i) => (
+            <Card key={i} className="rounded-[2.5rem] bg-[#13151f] border-2 border-white/5 p-8 flex flex-col items-center justify-center text-center shadow-2xl transition-all hover:border-white/10">
+              <div className={cn("p-4 rounded-3xl mb-4", s.bg)}><s.Icon className={cn("h-8 w-8", s.color)} /></div>
+              <p className="text-[9px] font-black uppercase text-gray-500 mb-2 tracking-[0.2em]">{s.label}</p>
+              <h4 className="text-3xl font-black italic text-white tracking-tighter">{s.val}</h4>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-7 space-y-10">
+            {/* Aportes por Miembro */}
+            <div>
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3 mb-8"><Star className="text-yellow-500 h-6 w-6" /> Aportes del Equipo</h3>
+              <div className="space-y-3">
+                {memberContributions.length === 0 ? (
+                  <div className="p-10 border-2 border-dashed border-white/5 rounded-[3rem] text-center text-[10px] font-black text-gray-600 uppercase">No hay aportes individuales aún</div>
+                ) : memberContributions.map((m) => {
+                  const pct = totalByMembers > 0 ? (m.totalContributed / totalByMembers) * 100 : 0;
+                  return (
+                    <Card key={m.memberId} className="rounded-[2rem] bg-[#13151f]/40 border border-white/5 p-5 group hover:border-blue-500/30 transition-all">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center font-black text-blue-400 text-xs shadow-inner uppercase">{m.memberName.charAt(0)}</div>
+                          <p className="font-black uppercase text-sm tracking-tight">{m.memberName}</p>
+                        </div>
+                        <p className="font-black italic text-lg text-blue-400">{fmt(m.totalContributed)}</p>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500 rounded-full shadow-[0_0_8px_#3b82f6]" style={{ width: `${pct}%` }} />
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Editar Evento */}
+            <div>
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3 mb-8"><Save className="text-[var(--brand-primary)] h-6 w-6" /> Ajustar Detalles</h3>
+              <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#13151f]/40 p-10 rounded-[3rem] border border-white/5">
+                <div className="space-y-2 md:col-span-2"><Label className="text-[9px] font-black uppercase text-gray-500 ml-3">Nombre</Label><Input value={name} onChange={e => setName(e.target.value)} className="bg-white/5 border-2 border-white/5 p-6 rounded-2xl font-black uppercase h-14" /></div>
+                <div className="space-y-2"><Label className="text-[9px] font-black uppercase text-gray-500 ml-3">Fecha Inicio</Label><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full bg-white/5 border-2 border-white/5 p-4 rounded-2xl text-white font-black uppercase outline-none focus:border-blue-500 color-scheme-dark" /></div>
+                <div className="space-y-2"><Label className="text-[9px] font-black uppercase text-gray-500 ml-3">Fecha Fin (Opcional)</Label><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full bg-white/5 border-2 border-white/5 p-4 rounded-2xl text-white font-black uppercase outline-none focus:border-blue-500 color-scheme-dark" /></div>
+                <div className="space-y-2 md:col-span-2"><Label className="text-[9px] font-black uppercase text-gray-500 ml-3">Descripción</Label><Textarea value={description} onChange={e => setDescription(e.target.value)} className="bg-white/5 border-2 border-white/5 p-6 rounded-3xl font-black uppercase min-h-[120px]" /></div>
+                <button type="submit" disabled={saving} className="md:col-span-2 w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-500 hover:text-white transition-all shadow-xl">{saving ? 'Guardando...' : 'Guardar Cambios'}</button>
+              </form>
+            </div>
+          </div>
+
+          {/* Historial de Transacciones del Evento */}
+          <div className="lg:col-span-5 space-y-8">
+            <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-3"><Clock className="text-purple-500 h-6 w-6" /> Movimientos</h3>
+            <div className="space-y-3">
+              {transactions.map((t) => (
+                <div key={t.id} className="p-5 bg-[#13151f] rounded-[1.5rem] border border-white/5 flex justify-between items-center group hover:border-white/20 transition-all shadow-lg">
+                  <div className="min-w-0 flex-1 mr-4">
+                    <p className="text-[8px] font-black text-gray-500 uppercase">{format(new Date(t.date), 'dd MMM yy', { locale: es })}</p>
+                    <p className="text-xs font-black text-white uppercase truncate mt-1">{t.description}</p>
+                    <span className="text-[8px] font-black uppercase text-blue-400 mt-1 block">{t.category.name}</span>
+                  </div>
+                  <p className={cn("font-black italic text-base shrink-0", t.type === 'income' ? "text-green-500" : "text-red-500")}>{t.type === 'income' ? '+' : '-'}{fmt(t.amount)}</p>
+                </div>
+              ))}
+              {transactions.length === 0 && <div className="p-10 border-2 border-dashed border-white/5 rounded-[2rem] text-center text-[10px] font-black text-gray-600 uppercase">Sin movimientos</div>}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

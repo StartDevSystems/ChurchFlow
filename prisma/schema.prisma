@@ -23,10 +23,45 @@ model Member {
   id           String        @id @default(uuid())
   name         String
   phone        String
+  email        String?       
+  image        String?       
   role         String        @default("Joven")
+  position     String?       @default("Miembro") // Nuevo: Músico, Ujier, etc.
+  status       String        @default("ACTIVO")  // Nuevo: ACTIVO, INACTIVO, OBSERVACION
+  monthlyDue   Float         @default(0) 
+  birthDate    DateTime?     
   createdAt    DateTime      @default(now())
   transactions Transaction[]
+  attendances  Attendance[]
 }
+
+model Attendance {
+  id        String   @id @default(uuid())
+  memberId  String
+  eventId   String?
+  date      DateTime @default(now())
+  member    Member   @relation(fields: [memberId], references: [id])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String
+  userEmail   String
+  action      String   // CREATE, UPDATE, DELETE
+  entity      String   // Transaction, Member, Event
+  details     String   
+  createdAt   DateTime @default(now())
+}
+
 
 model Category {
   id           String          @id @default(uuid())
@@ -97,6 +132,8 @@ model Settings {
   
   // Notificaciones
   webhookUrl              String   @default("")
+  whatsappMessageTemplate String   @default("Hola {nombre}! 👋 Te escribo de la Iglesia para recordarte que para el mes de {mes} faltan {monto} de tu cuota. ¡Dios te bendiga!")
+  calculatorName          String   @default("Calculadora Bendecida")
   
   updatedAt               DateTime @updatedAt
 }

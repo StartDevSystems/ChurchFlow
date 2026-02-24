@@ -23,7 +23,9 @@ export async function GET() {
         allowPublicRegistration: true,
         generalFundName: 'Caja General',
         lowBalanceAlert: 1000,
-        webhookUrl: ''
+        webhookUrl: '',
+        calculatorName: 'Calculadora Bendecida',
+        whatsappMessageTemplate: 'Hola {nombre}! 👋 Te escribo de la Iglesia para recordarte que para el mes de {mes} faltan {monto} de tu cuota. ¡Dios te bendiga!'
       });
     }
 
@@ -48,7 +50,7 @@ export async function PATCH(request: Request) {
       churchName, churchSubtitle, currencySymbol, logoUrl, 
       monthlyGoal, primaryColor, themeMode, reportSignatureName, 
       reportFooterText, allowPublicRegistration, generalFundName, 
-      lowBalanceAlert, webhookUrl 
+      lowBalanceAlert, webhookUrl, whatsappMessageTemplate, calculatorName
     } = body;
 
     const settingsData = {
@@ -64,7 +66,9 @@ export async function PATCH(request: Request) {
       allowPublicRegistration: Boolean(allowPublicRegistration),
       generalFundName,
       lowBalanceAlert: parseFloat(lowBalanceAlert) || 0,
-      webhookUrl
+      webhookUrl,
+      whatsappMessageTemplate,
+      calculatorName
     };
     
     const settings = await prisma.settings.upsert({

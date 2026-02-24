@@ -1,189 +1,138 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/Popover';
-import { Calendar } from '@/components/ui/Calendar';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
-import { CalendarIcon, Download, ArrowDown, ArrowUp, DollarSign } from 'lucide-react';
-import { format } from 'date-fns';
+import { Calendar as CalendarIcon, FileText, Download, Filter, Search, Loader2, ArrowUpCircle, ArrowDownCircle, PieChart } from 'lucide-react';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-
-interface Transaction {
-  id: string;
-  type: 'income' | 'expense';
-  category: string;
-  amount: number;
-  date: string;
-  description: string;
-}
-
-interface ReportData {
-  transactions: Transaction[];
-  totalIncome: number;
-  totalExpenses: number;
-  balance: number;
-}
+import { formatCurrency, cn } from '@/lib/utils';
 
 export default function ReportsPage() {
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
-  const [reportData, setReportData] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState({
+    from: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+    to: format(endOfMonth(new Date()), 'yyyy-MM-dd')
+  });
 
-  const handleGenerateReport = async () => {
-    if (!startDate || !endDate) {
-      alert('Por favor, seleccione un rango de fechas.');
-      return;
-    }
+  const fetchReport = useCallback(async () => {
     setLoading(true);
-    setReportData(null);
     try {
-      const response = await fetch('/api/transactions/report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate, endDate }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setReportData(data);
-      } else {
-        console.error('Failed to generate report');
-      }
-    } catch (error) {
-      console.error(error);
+      const res = await fetch(`/api/transactions/report?from=${range.from}&to=${range.to}`);
+      if (res.ok) setData(await res.json());
     } finally {
       setLoading(false);
     }
-  };
+  }, [range]);
 
-  const handleDownloadPdf = () => {
-    if (!reportData || !startDate || !endDate) return;
+  useEffect(() => { fetchReport(); }, [fetchReport]);
 
-    const doc = new jsPDF();
-    const { transactions, totalIncome, totalExpenses, balance } = reportData;
-
-    doc.text('Reporte Financiero', 14, 16);
-    doc.setFontSize(10);
-    doc.text(`Periodo: ${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`, 14, 24);
-    
-    doc.setFontSize(12);
-    doc.text(`Resumen Financiero`, 14, 36);
-    doc.setFontSize(10);
-    doc.text(`- Ingresos Totales: ${formatCurrency(totalIncome)}`, 14, 44);
-    doc.text(`- Gastos Totales: ${formatCurrency(totalExpenses)}`, 14, 50);
-    doc.text(`- Balance: ${formatCurrency(balance)}`, 14, 56);
-
-    (doc as any).autoTable({
-      startY: 64,
-      head: [['Fecha', 'Descripción', 'Categoría', 'Tipo', 'Monto']],
-      body: transactions.map(t => [
-        format(new Date(t.date), 'dd/MM/yyyy'),
-        t.description,
-        t.category,
-        t.type === 'income' ? 'Ingreso' : 'Gasto',
-        formatCurrency(t.amount)
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [22, 163, 74] },
-    });
-
-    doc.save(`reporte_${format(startDate, 'yyyy-MM-dd')}_${format(endDate, 'yyyy-MM-dd')}.pdf`);
-  };
-  
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  if (loading && !data) return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+      <Loader2 className="h-12 w-12 animate-spin text-[var(--brand-primary)]" />
+      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500">Conciliando cuentas...</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Reportes Financieros</h1>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Seleccionar Periodo</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col md:flex-row gap-4 items-center">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant={"outline"} className={cn("w-[280px] justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, 'PPP', { locale: es }) : <span>Fecha de inicio</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus /></PopoverContent>
-          </Popover>
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant={"outline"} className={cn("w-[280px] justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, 'PPP', { locale: es }) : <span>Fecha de fin</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus /></PopoverContent>
-          </Popover>
-
-          <Button onClick={handleGenerateReport} disabled={loading || !startDate || !endDate}>
-            {loading ? 'Generando...' : 'Generar Reporte'}
+    <div className="max-w-7xl mx-auto pb-20 px-4 md:px-0">
+      {/* Header */}
+      <div className="mb-12 flex flex-col md:flex-row justify-between md:items-end gap-8">
+        <div>
+          <h1 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter italic leading-none">
+            Centro de <span className="text-[var(--brand-primary)]">Reportes</span>
+          </h1>
+          <p className="text-xs font-bold uppercase tracking-[0.4em] text-[#8c7f72] mt-4">Auditoría y control de flujo de caja</p>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-4 bg-[#13151f] p-4 rounded-[2.5rem] border-2 border-white/5 shadow-2xl">
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-black text-gray-500 uppercase ml-2">Desde</span>
+            <input type="date" value={range.from} onChange={e => setRange({...range, from: e.target.value})} className="bg-white/5 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-black text-gray-500 uppercase ml-2">Hasta</span>
+            <input type="date" value={range.to} onChange={e => setRange({...range, to: e.target.value})} className="bg-white/5 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark" />
+          </div>
+          <Button onClick={() => window.print()} className="bg-[var(--brand-primary)] text-white px-8 py-6 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:scale-105 transition-all">
+            <Download size={16} className="mr-2" /> Exportar PDF
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {reportData && (
-        <Card>
-          <CardHeader className="flex flex-row justify-between items-start">
-            <div>
-              <CardTitle>Resultados del Reporte</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Periodo del {startDate && format(startDate, 'dd/MM/yyyy')} al {endDate && format(endDate, 'dd/MM/yyyy')}
-              </p>
-            </div>
-            <Button onClick={handleDownloadPdf} variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              Descargar PDF
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Ingresos</CardTitle>
-                  <ArrowUp className="h-4 w-4 text-green-500" />
-                </CardHeader>
-                <CardContent><div className="text-2xl font-bold">{formatCurrency(reportData.totalIncome)}</div></CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Gastos</CardTitle>
-                  <ArrowDown className="h-4 w-4 text-red-500" />
-                </CardHeader>
-                <CardContent><div className="text-2xl font-bold">{formatCurrency(reportData.totalExpenses)}</div></CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Balance</CardTitle>
-                  <DollarSign className="h-4 w-4 text-gray-500" />
-                </CardHeader>
-                <CardContent><div className="text-2xl font-bold">{formatCurrency(reportData.balance)}</div></CardContent>
-              </Card>
-            </div>
-            <Table>
-              <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Descripción</TableHead><TableHead>Monto</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {reportData.transactions.map(t => (
-                  <TableRow key={t.id}>
-                    <TableCell>{format(new Date(t.date), 'dd/MM/yyyy')}</TableCell>
-                    <TableCell>{t.description}</TableCell>
-                    <TableCell className={t.type === 'income' ? 'text-green-600' : 'text-red-600'}>{formatCurrency(t.amount)}</TableCell>
-                  </TableRow>
+      {data && (
+        <>
+          {/* Main KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <Card className="rounded-[3rem] bg-green-500 text-white p-8 relative overflow-hidden group shadow-2xl">
+              <ArrowUpCircle className="absolute top-[-20px] right-[-20px] h-40 w-40 opacity-10 rotate-12" />
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Ingresos del Periodo</p>
+              <h3 className="text-5xl font-black italic tracking-tighter">{formatCurrency(data.summary.totalIncome)}</h3>
+            </Card>
+
+            <Card className="rounded-[3rem] bg-red-500 text-white p-8 relative overflow-hidden group shadow-2xl">
+              <ArrowDownCircle className="absolute top-[-20px] right-[-20px] h-40 w-40 opacity-10 rotate-12" />
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Gastos del Periodo</p>
+              <h3 className="text-5xl font-black italic tracking-tighter">{formatCurrency(data.summary.totalExpense)}</h3>
+            </Card>
+
+            <Card className="rounded-[3rem] bg-[#1a1714] text-white p-8 border-4 border-[var(--brand-primary)] shadow-2xl">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--brand-primary)] mb-2">Balance Neto</p>
+              <h3 className={cn("text-5xl font-black italic tracking-tighter", data.summary.netBalance >= 0 ? "text-green-400" : "text-red-400")}>
+                {formatCurrency(data.summary.netBalance)}
+              </h3>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Categorías */}
+            <Card className="lg:col-span-5 rounded-[3rem] bg-[#13151f] border-2 border-white/5 p-8 shadow-xl">
+              <CardHeader className="px-0 pb-8 border-b border-white/5 mb-6">
+                <CardTitle className="text-xl font-black uppercase italic flex items-center gap-3">
+                  <PieChart className="text-[var(--brand-primary)]" /> Resumen por Categorías
+                </CardTitle>
+              </CardHeader>
+              <div className="space-y-4">
+                {data.categories.map((cat: any) => (
+                  <div key={cat.name} className="group">
+                    <div className="flex justify-between items-center mb-2 px-2">
+                      <p className="text-[10px] font-black uppercase text-gray-400">{cat.name}</p>
+                      <p className={cn("text-xs font-black", cat.type === 'income' ? "text-green-500" : "text-red-500")}>
+                        {formatCurrency(cat.total)}
+                      </p>
+                    </div>
+                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div className={cn("h-full rounded-full", cat.type === 'income' ? "bg-green-500" : "bg-red-500")} style={{ width: `${Math.min(100, (cat.total / (cat.type === 'income' ? data.summary.totalIncome : data.summary.totalExpense)) * 100)}%` }} />
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              </div>
+            </Card>
+
+            {/* Listado de Operaciones */}
+            <Card className="lg:col-span-7 rounded-[3rem] bg-[#13151f] border-2 border-white/5 p-8 shadow-xl">
+              <CardHeader className="px-0 pb-8 border-b border-white/5 mb-6">
+                <CardTitle className="text-xl font-black uppercase italic flex items-center gap-3">
+                  <FileText className="text-blue-500" /> Detalle de Movimientos
+                </CardTitle>
+              </CardHeader>
+              <div className="space-y-3 max-h-[600px] overflow-y-auto no-scrollbar pr-2">
+                {data.transactions.map((t: any) => (
+                  <div key={t.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex justify-between items-center hover:bg-white/[0.05] transition-all">
+                    <div>
+                      <p className="text-[8px] font-black text-gray-500 uppercase">{format(new Date(t.date), 'dd MMM yyyy', { locale: es })}</p>
+                      <p className="text-xs font-black text-white uppercase truncate max-w-[250px]">{t.description}</p>
+                    </div>
+                    <p className={cn("font-black italic text-sm", t.type === 'income' ? "text-green-500" : "text-red-500")}>
+                      {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </>
       )}
     </div>
   );

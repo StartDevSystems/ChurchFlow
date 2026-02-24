@@ -11,9 +11,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/AlertDialog";
-import { PlusCircle, Edit, Trash2, ArrowUpRight, ArrowDownRight, Search, Download, FileText } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, ArrowUpRight, ArrowDownRight, Search, Download, FileText, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 type TransactionType = 'income' | 'expense';
 
@@ -36,6 +37,8 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | TransactionType>('all');
   const [search, setSearch] = useState('');
+  const [isCompact, setIsCompact] = useState(false);
+  const [dateRange, setDateRange] = useState({ from: '', to: '' }); // Nuevas fechas
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -60,17 +63,22 @@ export default function TransactionsPage() {
     } catch (e) { console.error(e); }
   };
 
-  const filtered = transactions.filter(t =>
-    t.description.toLowerCase().includes(search.toLowerCase()) ||
-    t.category.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = transactions.filter(t => {
+    const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase()) ||
+                         t.category.name.toLowerCase().includes(search.toLowerCase());
+    
+    const txDate = new Date(t.date);
+    const matchesFrom = dateRange.from ? txDate >= new Date(dateRange.from) : true;
+    const matchesTo = dateRange.to ? txDate <= new Date(dateRange.to) : true;
+
+    return matchesSearch && matchesFrom && matchesTo;
+  });
 
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
   const exportToExcel = async () => {
     try {
-      // Obtener ajustes para el logo y nombre
       const settingsRes = await fetch('/api/settings');
       const settings = await settingsRes.json();
       const brandColor = (settings.primaryColor || '#e85d26').replace('#', '');
@@ -79,7 +87,6 @@ export default function TransactionsPage() {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Reporte Finanzas');
 
-      // 1. Intentar cargar el logo si existe
       if (settings.logoUrl) {
         try {
           const response = await fetch(settings.logoUrl);
@@ -87,18 +94,15 @@ export default function TransactionsPage() {
           const arrayBuffer = await blob.arrayBuffer();
           const imageId = workbook.addImage({
             buffer: arrayBuffer,
-            extension: settings.logoUrl.endsWith('.png') ? 'png' : 'jpeg',
+            extension: 'jpeg',
           });
           worksheet.addImage(imageId, {
             tl: { col: 0.2, row: 0.2 },
             ext: { width: 60, height: 60 }
           });
-        } catch (imgError) {
-          console.error('No se pudo cargar el logo en el Excel:', imgError);
-        }
+        } catch (imgError) {}
       }
 
-      // 2. Configurar Columnas
       worksheet.columns = [
         { header: 'FECHA', key: 'fecha', width: 15 },
         { header: 'DESCRIPCIÓN', key: 'desc', width: 40 },
@@ -109,7 +113,6 @@ export default function TransactionsPage() {
         { header: 'EVENTO / FONDO', key: 'evento', width: 25 },
       ];
 
-      // 3. Estilo del Título de la Iglesia (Movido a la derecha del logo si hay logo)
       worksheet.mergeCells('B1:G2');
       const titleCell = worksheet.getCell('B1');
       titleCell.value = settings.churchName.toUpperCase();
@@ -122,23 +125,17 @@ export default function TransactionsPage() {
       subtitleCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF8C7F72' } };
       subtitleCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
-      // Espacio antes de la tabla
       worksheet.addRow([]);
       worksheet.addRow([]);
 
-      // 4. Encabezados de Tabla con Estilo
       const headerRow = worksheet.addRow(['FECHA', 'DESCRIPCIÓN', 'CATEGORÍA', 'TIPO', 'MONTO', 'MIEMBRO', 'EVENTO']);
       headerRow.eachCell((cell) => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A1714' } };
         cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
         cell.alignment = { horizontal: 'center' };
-        cell.border = { 
-          bottom: { style: 'thick', color: { argb: brandColorARGB } },
-          top: { style: 'thin', color: { argb: 'FF333333' } }
-        };
+        cell.border = { bottom: { style: 'thick', color: { argb: brandColorARGB } } };
       });
 
-      // 5. Agregar Datos
       filtered.forEach((t) => {
         const row = worksheet.addRow([
           format(new Date(t.date), 'dd/MM/yyyy'),
@@ -149,82 +146,39 @@ export default function TransactionsPage() {
           t.member?.name || '-',
           t.event?.name || 'Caja General'
         ]);
-
         const colorCell = row.getCell(4);
         colorCell.font = { bold: true, color: { argb: t.type === 'income' ? 'FF2A8A5E' : 'FFDC3545' } };
         row.getCell(5).numFmt = '"RD$ "#,##0';
-        
-        row.eachCell((cell) => {
-          cell.border = { bottom: { style: 'thin', color: { argb: 'FFF0ECE6' } } };
-        });
       });
 
-      // 6. Totales al final
-      worksheet.addRow([]);
-      const totalRow = worksheet.addRow(['', '', '', 'TOTAL CONSOLIDADO', totalIncome - totalExpense]);
-      totalRow.getCell(4).font = { bold: true };
-      totalRow.getCell(5).font = { bold: true, size: 12, color: { argb: brandColorARGB } };
-      totalRow.getCell(5).numFmt = '"RD$ "#,##0';
-
-      // Generar y Guardar
       const buffer = await workbook.xlsx.writeBuffer();
-      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `Finanzas_${settings.churchName}_${format(new Date(), 'ddMMyy')}.xlsx`);
+      saveAs(new Blob([buffer]), `Finanzas_${settings.churchName}_${format(new Date(), 'ddMMyy')}.xlsx`);
     } catch (error) {
-      console.error('Error al exportar Excel:', error);
-      alert('Hubo un error al generar el archivo Excel. Por favor revisa la consola.');
+      console.error(error);
     }
   };
 
   const generateReceipt = async (t: Transaction) => {
-    // Obtener el color dinámico
     const settingsRes = await fetch('/api/settings');
     const settings = await settingsRes.json();
     const hex = settings.primaryColor || '#e85d26';
-    
-    // Convertir Hex a RGB para jsPDF
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
 
     const doc = new jsPDF() as any;
-    
-    // Header
-    doc.setFillColor(r, g, b); // Color dinámico de la iglesia
+    doc.setFillColor(r, g, b);
     doc.rect(0, 0, 210, 40, 'F');
-    
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
-    doc.setFont("helvetica", "bold");
     doc.text(settings.churchName.toUpperCase(), 105, 20, { align: "center" });
     doc.setFontSize(14);
     doc.text("COMPROBANTE FINANCIERO", 105, 30, { align: "center" });
     
-    // Body
-    doc.setTextColor(26, 23, 20);
-    doc.setFontSize(12);
-    doc.text(`ID Transacción: ${t.id.substring(0, 8)}`, 20, 50);
-    doc.text(`Fecha: ${format(new Date(t.date), 'dd/MM/yyyy')}`, 20, 60);
-    
     doc.autoTable({
       startY: 70,
       head: [['Descripción', 'Categoría', 'Tipo', 'Monto']],
-      body: [[
-        t.description,
-        t.category.name,
-        t.type === 'income' ? 'Ingreso' : 'Gasto',
-        fmt(t.amount)
-      ]],
-      headStyles: { fillStyle: [r, g, b] } // Encabezado de tabla dinámico
+      body: [[t.description, t.category.name, t.type === 'income' ? 'Ingreso' : 'Gasto', fmt(t.amount)]],
+      headStyles: { fillStyle: [r, g, b] }
     });
-    
-    doc.text("Firma Autorizada:", 20, 120);
-    doc.line(20, 140, 80, 140);
-    doc.text(settings.reportSignatureName || "", 20, 145);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(140, 127, 114);
-    doc.text(settings.reportFooterText || "Dios les bendiga.", 105, 270, { align: "center" });
-    doc.text("Generado por ChurchFlow", 105, 280, { align: "center" });
     
     doc.save(`Recibo_${t.id.substring(0, 8)}.pdf`);
   };
@@ -232,322 +186,97 @@ export default function TransactionsPage() {
   return (
     <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8">
       <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .tx-row { animation: slideUp 0.25s ease both; }
-        .btn-filter-active {
-          background: var(--brand-primary) !important;
-          border-color: var(--brand-primary) !important;
-          color: #fff !important;
-        }
-        .btn-nueva-tx {
-          background: var(--brand-primary);
-          box-shadow: 0 4px 20px color-mix(in srgb, var(--brand-primary) 40%, transparent);
-        }
-        .btn-nueva-tx:hover {
-          filter: brightness(1.1);
-        }
-        .stat-border-brand {
-          border-left: 3px solid var(--brand-primary);
-        }
-        .edit-btn:hover {
-          border-color: var(--brand-primary) !important;
-          color: var(--brand-primary) !important;
-        }
-        .grid-bg {
-          background-image: linear-gradient(color-mix(in srgb, var(--brand-primary) 5%, transparent) 1px, transparent 1px),
-                            linear-gradient(90deg, color-mix(in srgb, var(--brand-primary) 5%, transparent) 1px, transparent 1px);
-          background-size: 40px 40px;
-        }
-        .hero-glow {
-          background: radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 12%, transparent) 0%, transparent 70%);
-        }
-        .empty-icon {
-          background: linear-gradient(135deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 60%, #f5a623));
-        }
-        .label-brand {
-          color: color-mix(in srgb, var(--brand-primary) 80%, transparent);
-        }
+        .btn-filter-active { background: var(--brand-primary) !important; border-color: var(--brand-primary) !important; color: #fff !important; }
+        .btn-nueva-tx { background: var(--brand-primary); box-shadow: 0 4px 20px color-mix(in srgb, var(--brand-primary) 40%, transparent); }
+        .grid-bg { background-image: linear-gradient(color-mix(in srgb, var(--brand-primary) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--brand-primary) 5%, transparent) 1px, transparent 1px); background-size: 40px 40px; }
       `}</style>
 
-      <div style={{
-        background: 'linear-gradient(160deg, #0f1117 0%, #1a1d2e 60%, #0f1117 100%)',
-        padding: '40px 40px 56px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
+      <div style={{ background: 'linear-gradient(160deg, #0f1117 0%, #1a1d2e 60%, #0f1117 100%)', padding: '40px 40px 56px', position: 'relative', overflow: 'hidden' }}>
         <div className="grid-bg" style={{ position: 'absolute', inset: 0 }} />
-        <div className="hero-glow" style={{
-          position: 'absolute', top: '-60px', right: '10%',
-          width: '300px', height: '300px', borderRadius: '50%',
-          pointerEvents: 'none',
-        }} />
-
         <div className="relative z-10">
-          <p className="label-brand" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '8px' }}>
-            MÓDULO FINANCIERO
-          </p>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-            <h1 style={{ fontSize: '36px', fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>
-              Transacciones
-            </h1>
+            <h1 style={{ fontSize: '36px', fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>Transacciones</h1>
             <div className="flex gap-3">
-              <button onClick={exportToExcel} style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '10px 20px', borderRadius: '12px',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff', fontSize: '13px', fontWeight: 700,
-                cursor: 'pointer', whiteSpace: 'nowrap',
-              }}>
-                <Download size={15} />
-                Excel
-              </button>
-              <Link href="/transactions/new">
-                <button className="btn-nueva-tx" style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  padding: '10px 20px', borderRadius: '12px',
-                  color: '#fff', fontSize: '13px', fontWeight: 700,
-                  border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                }}>
-                  <PlusCircle size={15} />
-                  Nueva Transacción
-                </button>
-              </Link>
+              <button onClick={exportToExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all"><Download size={14} /> Excel</button>
+              <Link href="/transactions/new"><button className="btn-nueva-tx flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-black text-[10px] uppercase tracking-widest"><PlusCircle size={14} /> Nueva</button></Link>
             </div>
           </div>
-
-          <div className="flex gap-6 mt-8 flex-wrap">
-            <div style={{ borderLeft: '3px solid #2a8a5e', paddingLeft: '14px' }}>
-              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase' }}>Total Ingresos</p>
-              <p style={{ fontSize: '22px', fontWeight: 900, color: '#4ade80', letterSpacing: '-0.03em' }}>{fmt(totalIncome)}</p>
-            </div>
-            <div style={{ borderLeft: '3px solid #dc3545', paddingLeft: '14px' }}>
-              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase' }}>Total Gastos</p>
-              <p style={{ fontSize: '22px', fontWeight: 900, color: '#f87171', letterSpacing: '-0.03em' }}>{fmt(totalExpense)}</p>
-            </div>
-            <div className="stat-border-brand" style={{ paddingLeft: '14px' }}>
-              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase' }}>Registros</p>
-              <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>{transactions.length}</p>
-            </div>
+          <div className="flex gap-6 mt-8">
+            <div className="border-l-2 border-[#4ade80] pl-4"><p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Ingresos</p><p className="text-xl font-black text-[#4ade80]">{fmt(totalIncome)}</p></div>
+            <div className="border-l-2 border-[#f87171] pl-4"><p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Gastos</p><p className="text-xl font-black text-[#f87171]">{fmt(totalExpense)}</p></div>
           </div>
         </div>
       </div>
 
       <div className="px-4 md:px-8 py-6">
-        <div style={{
-          background: '#1a1d2e',
-          border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: '16px',
-          padding: '10px 14px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: '10px',
-          marginBottom: '16px',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
-        }}>
-          <div className="flex gap-1.5">
-            {[
-              { key: 'all', label: 'Todas' },
-              { key: 'income', label: 'Ingresos' },
-              { key: 'expense', label: 'Gastos' },
-            ].map(f => (
-              <button
-                key={f.key}
-                onClick={() => setFilter(f.key as any)}
-                className={filter === f.key ? 'btn-filter-active' : ''}
-                style={{
-                  padding: '6px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  background: 'transparent',
-                  color: 'rgba(255,255,255,0.45)',
-                  cursor: 'pointer', transition: 'all 0.2s',
-                }}
-              >{f.label}</button>
+        <div className="flex flex-wrap items-center gap-4 mb-6 bg-[#1a1d2e] p-3 rounded-2xl border border-white/5 shadow-2xl">
+          <div className="flex gap-1">
+            {['all', 'income', 'expense'].map(f => (
+              <button key={f} onClick={() => setFilter(f as any)} className={cn("px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filter === f ? "bg-[var(--brand-primary)] text-white" : "text-gray-500 hover:text-white")}>{f === 'all' ? 'Todo' : f === 'income' ? 'Ingresos' : 'Gastos'}</button>
             ))}
           </div>
+          
+          <button 
+            onClick={() => setIsCompact(!isCompact)}
+            className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2", isCompact ? "bg-white text-black border-white" : "text-gray-500 border-gray-800")}
+          >
+            {isCompact ? <EyeOff size={14} /> : <Eye size={14} />} {isCompact ? "Normal" : "Rápida"}
+          </button>
 
-          <div className="ml-auto flex items-center gap-2" style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '10px',
-            padding: '7px 12px',
-          }}>
-            <Search size={13} color="rgba(255,255,255,0.35)" />
-            <input
-              type="text"
-              placeholder="Buscar transacción..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{
-                outline: 'none', background: 'transparent',
-                fontSize: '13px', color: '#fff',
-                width: '160px',
-              }}
-              className="placeholder:text-white/30"
-            />
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1">
+            <span className="text-[8px] font-black text-gray-500 uppercase">Desde</span>
+            <input type="date" value={dateRange.from} onChange={e => setDateRange({...dateRange, from: e.target.value})} className="bg-transparent border-none outline-none text-white text-[9px] font-bold uppercase color-scheme-dark" />
+            <span className="text-[8px] font-black text-gray-500 uppercase ml-2">Hasta</span>
+            <input type="date" value={dateRange.to} onChange={e => setDateRange({...dateRange, to: e.target.value})} className="bg-transparent border-none outline-none text-white text-[9px] font-bold uppercase color-scheme-dark" />
+          </div>
+
+          <div className="ml-auto flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+            <Search size={14} className="text-gray-500" />
+            <input type="text" placeholder="BUSCAR..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-white text-[10px] font-black uppercase w-32" />
           </div>
         </div>
 
-        <div style={{ background: '#13151f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}>
-          {loading ? (
-            <div className="p-6 space-y-3">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-14 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className={cn("bg-[#13151f] rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl transition-all", isCompact ? "p-2" : "p-0")}>
+          <table className="w-full text-left">
+            <thead className={cn("bg-white/5", isCompact ? "hidden" : "block")}>
+              <tr className="grid grid-cols-12 px-8 py-4">
+                <th className="col-span-5 text-[9px] font-black uppercase tracking-widest text-gray-500">Descripción</th>
+                <th className="col-span-3 text-[9px] font-black uppercase tracking-widest text-gray-500 text-center">Categoría</th>
+                <th className="col-span-2 text-[9px] font-black uppercase tracking-widest text-gray-500 text-right">Monto</th>
+                <th className="col-span-2 text-[9px] font-black uppercase tracking-widest text-gray-500 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filtered.map((t) => (
+                <tr key={t.id} className={cn(
+                  "grid grid-cols-12 items-center hover:bg-white/[0.02] transition-all",
+                  isCompact ? "px-4 py-2" : "px-8 py-5"
+                )}>
+                  <td className="col-span-5 flex items-center gap-3">
+                    <div className={cn("rounded-lg flex items-center justify-center shrink-0", isCompact ? "w-6 h-6" : "w-10 h-10", t.type === 'income' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
+                      {t.type === 'income' ? <ArrowUpRight size={isCompact ? 12 : 18} /> : <ArrowDownRight size={isCompact ? 12 : 18} />}
+                    </div>
+                    <div className="truncate">
+                      <p className={cn("font-black uppercase tracking-tight text-white", isCompact ? "text-[10px]" : "text-sm")}>{t.description}</p>
+                      {!isCompact && <p className="text-[9px] font-bold text-gray-500 uppercase">{format(new Date(t.date), 'dd MMMM yyyy', { locale: es })}</p>}
+                    </div>
+                  </td>
+                  <td className="col-span-3 text-center">
+                    <span className={cn("px-3 py-1 rounded-full bg-white/5 text-gray-400 font-black uppercase tracking-tighter", isCompact ? "text-[8px]" : "text-[10px]")}>{t.category.name}</span>
+                  </td>
+                  <td className={cn("col-span-2 text-right font-black italic", isCompact ? "text-xs" : "text-lg", t.type === 'income' ? "text-green-500" : "text-red-500")}>
+                    {t.type === 'income' ? '+' : '-'}{fmt(t.amount)}
+                  </td>
+                  <td className="col-span-2 flex justify-end gap-2">
+                    <button onClick={() => generateReceipt(t)} className="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all"><FileText size={isCompact ? 12 : 14} /></button>
+                    <Link href={`/transactions/edit/${t.id}`} className="p-2 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition-all"><Edit size={isCompact ? 12 : 14} /></Link>
+                  </td>
+                </tr>
               ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="py-20 text-center">
-              <div className="empty-icon" style={{
-                width: '52px', height: '52px', borderRadius: '14px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 14px',
-              }}>
-                <ArrowUpRight size={22} color="#fff" />
-              </div>
-              <p className="font-bold text-[#1a1714] dark:text-white text-base mb-1">Sin transacciones</p>
-              <p className="text-sm text-[#8c7f72]">
-                {search ? 'No hay resultados para tu búsqueda.' : 'Crea la primera transacción para comenzar.'}
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="hidden md:grid" style={{
-                gridTemplateColumns: '1fr 130px 100px 120px 90px 72px',
-                padding: '10px 20px',
-                borderBottom: '1px solid rgba(26,29,46,0.08)',
-                background: 'rgba(26,29,46,0.03)',
-              }}>
-                {['Descripción', 'Categoría', 'Tipo', 'Monto', 'Fecha', ''].map((h, i) => (
-                  <p key={i} style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>{h}</p>
-                ))}
-              </div>
-
-              {filtered.map((t, idx) => (
-                <div key={t.id} className="tx-row" style={{ animationDelay: `${idx * 25}ms` }}>
-                  <div
-                    className="hidden md:grid"
-                    style={{
-                      gridTemplateColumns: '1fr 130px 100px 120px 90px 72px',
-                      padding: '13px 20px',
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      alignItems: 'center',
-                      transition: 'background 0.15s',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                      <div style={{
-                        width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: t.type === 'income' ? 'rgba(42,138,94,0.1)' : 'rgba(220,53,69,0.1)',
-                      }}>
-                        {t.type === 'income' ? <ArrowUpRight size={14} color="#2a8a5e" /> : <ArrowDownRight size={14} color="#dc3545" />}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.description}</p>
-                        {(t.member || t.event) && (
-                          <p style={{ fontSize: '10px', color: '#8c7f72', marginTop: '1px' }}>
-                            {t.member && <span>{t.member.name}</span>}
-                            {t.member && t.event && ' · '}
-                            {t.event && <span style={{ color: '#0e7490' }}>{t.event.name}</span>}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.category.name}</p>
-                    <span style={{
-                      display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: 700,
-                      background: t.type === 'income' ? 'rgba(42,138,94,0.1)' : 'rgba(220,53,69,0.1)',
-                      color: t.type === 'income' ? '#2a8a5e' : '#dc3545', width: 'fit-content',
-                    }}>
-                      {t.type === 'income' ? 'Ingreso' : 'Gasto'}
-                    </span>
-                    <p style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '-0.02em', color: t.type === 'income' ? '#2a8a5e' : '#dc3545' }}>
-                      {t.type === 'income' ? '+' : '-'}{fmt(t.amount)}
-                    </p>
-                    <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{format(new Date(t.date), 'd MMM yy', { locale: es })}</p>
-                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
-                      <button onClick={() => generateReceipt(t)} style={{
-                        width: '28px', height: '28px', borderRadius: '7px',
-                        border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', color: '#60a5fa', transition: 'all 0.15s',
-                      }} title="Descargar Recibo PDF"><FileText size={11} /></button>
-                      <Link href={`/transactions/edit/${t.id}`}>
-                        <button className="edit-btn" style={{
-                          width: '28px', height: '28px', borderRadius: '7px',
-                          border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          cursor: 'pointer', color: 'rgba(255,255,255,0.4)', transition: 'all 0.15s',
-                        }}><Edit size={11} /></button>
-                      </Link>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button style={{
-                            width: '28px', height: '28px', borderRadius: '7px',
-                            border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer', color: 'rgba(255,255,255,0.4)', transition: 'all 0.15s',
-                          }}><Trash2 size={11} /></button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
-                            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(t.id)} className="bg-red-500 hover:bg-red-600">Eliminar</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-
-                  <div className="md:hidden flex items-center gap-3 p-4" style={{ borderBottom: '1px solid #f7f4ef' }}>
-                    <div style={{
-                      width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: t.type === 'income' ? 'rgba(42,138,94,0.1)' : 'rgba(220,53,69,0.1)',
-                    }}>
-                      {t.type === 'income' ? <ArrowUpRight size={16} color="#2a8a5e" /> : <ArrowDownRight size={16} color="#dc3545" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[#1a1714] dark:text-white truncate">{t.description}</p>
-                      <p className="text-[10px] text-[#8c7f72]">{t.category.name} · {format(new Date(t.date), 'd MMM yy', { locale: es })}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p style={{ fontSize: '13px', fontWeight: 800, color: t.type === 'income' ? '#2a8a5e' : '#dc3545' }}>
-                        {t.type === 'income' ? '+' : '-'}{fmt(t.amount)}
-                      </p>
-                      <div className="flex gap-1 mt-1 justify-end">
-                        <Link href={`/transactions/edit/${t.id}`}>
-                          <button className="w-6 h-6 rounded flex items-center justify-center border border-[#e8e2d9] text-[#8c7f72]"><Edit size={10} /></button>
-                        </Link>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button className="w-6 h-6 rounded flex items-center justify-center border border-[#e8e2d9] text-[#8c7f72]"><Trash2 size={10} /></button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
-                              <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(t.id)} className="bg-red-500 hover:bg-red-600">Eliminar</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

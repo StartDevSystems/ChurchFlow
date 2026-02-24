@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -10,14 +11,14 @@ import { useToast } from '@/components/ui/use-toast';
 import { 
   Home, DollarSign, Image as ImageIcon, Save, Loader2, Upload, Trash, 
   Users, Palette, FileText, Shield, Bell, CheckCircle2, XCircle, Key, Lock, RotateCcw,
-  User as UserIcon, MoreVertical, ShieldCheck
+  User as UserIcon, MoreVertical, ShieldCheck, MessageCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-type Tab = 'general' | 'visual' | 'users' | 'reports' | 'finance' | 'notifications';
+type Tab = 'general' | 'visual' | 'users' | 'reports' | 'finance' | 'notifications' | 'security';
 
 const PERMISSION_LABELS: Record<string, string> = {
   view_members: 'Miembros',
@@ -43,6 +44,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [newPassword, setNewPass] = useState('');
   
@@ -59,7 +61,9 @@ export default function SettingsPage() {
     allowPublicRegistration: true,
     generalFundName: 'Caja General',
     lowBalanceAlert: '1000',
-    webhookUrl: ''
+    webhookUrl: '',
+    whatsappMessageTemplate: '',
+    calculatorName: 'Calculadora Bendecida'
   });
 
   useEffect(() => {
@@ -70,9 +74,10 @@ export default function SettingsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [settingsRes, usersRes] = await Promise.all([
+      const [settingsRes, usersRes, auditRes] = await Promise.all([
         fetch('/api/settings'),
-        fetch('/api/users')
+        fetch('/api/users'),
+        fetch('/api/admin/audit')
       ]);
       
       if (settingsRes.ok) {
@@ -82,13 +87,12 @@ export default function SettingsPage() {
           primaryColor: data.primaryColor || DEFAULT_ORANGE,
           monthlyGoal: (data.monthlyGoal || 0).toString(),
           lowBalanceAlert: (data.lowBalanceAlert || 0).toString(),
+          calculatorName: data.calculatorName || 'Calculadora Bendecida'
         });
       }
       
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        setUsers(usersData);
-      }
+      if (usersRes.ok) setUsers(await usersRes.json());
+      if (auditRes.ok) setAuditLogs(await auditRes.json());
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -111,9 +115,22 @@ export default function SettingsPage() {
         body: JSON.stringify(form),
       });
       if (response.ok) {
-        toast({ title: 'Configuración guardada ✓' });
+        toast({ title: 'Configuración guardada ✓', variant: 'success' });
         document.documentElement.style.setProperty('--brand-primary', form.primaryColor);
+      } else {
+        const errorData = await response.json();
+        toast({ 
+          title: 'Error al guardar', 
+          description: errorData.error || 'Ocurrió un problema en el servidor',
+          variant: 'destructive' 
+        });
       }
+    } catch (error: any) {
+      toast({ 
+        title: 'Error de conexión', 
+        description: 'No se pudo contactar con el servidor',
+        variant: 'destructive' 
+      });
     } finally { setSaving(false); }
   };
 
@@ -181,10 +198,10 @@ export default function SettingsPage() {
   return (
     <div className="max-w-6xl mx-auto pb-20 px-4 md:px-0">
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-black text-[#1a1714] dark:text-white uppercase tracking-tighter italic">
+        <h1 className="text-3xl md:text-4xl font-black text-[#1a1714] dark:text-white uppercase tracking-tighter italic leading-none mb-2">
           Control <span className="text-[var(--brand-primary)]">Master</span>
         </h1>
-        <p className="text-xs md:text-sm text-[#8c7f72] font-bold uppercase tracking-[0.2em]">Administración Central</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#8c7f72]">Centro de mando oficial</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
@@ -196,6 +213,7 @@ export default function SettingsPage() {
             { id: 'reports', label: 'Papelería', icon: FileText },
             { id: 'finance', label: 'Cajas', icon: DollarSign },
             { id: 'notifications', label: 'Alertas', icon: Bell },
+            { id: 'security', label: 'Seguridad', icon: Shield },
           ].map((item) => (
             <button
               key={item.id}
@@ -281,7 +299,7 @@ export default function SettingsPage() {
                       <input type="file" id="user-img" className="hidden" accept="image/*" onChange={handleUserImageUpload} />
                       <Label htmlFor="user-img" className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-[2rem] opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-white text-[10px] font-black uppercase">Cambiar</Label>
                     </div>
-                    <button onClick={() => toggleUserRole(editingUser.id, editingUser.role)} disabled={editingUser.id === session?.user?.id} className={cn("w-full py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all", editingUser.role === 'ADMIN' ? "bg-purple-600 text-white shadow-lg" : "bg-[#f7f4ef] text-[#8c7f72] border border-[#e8e2d9]")}>
+                    <button onClick={() => toggleUserRole(editingUser.id, editingUser.role)} disabled={editingUser.id === session?.user?.id} className={cn("w-full py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all", editingUser.role === 'ADMIN' ? "bg-purple-600" : "bg-[#f7f4ef] text-[#8c7f72] border border-[#e8e2d9]")}>
                       {editingUser.role}
                     </button>
                   </Card>
@@ -360,7 +378,18 @@ export default function SettingsPage() {
                     <Button variant="outline" onClick={() => setForm({...form, primaryColor: DEFAULT_ORANGE})} className="rounded-2xl border-[#e8e2d9] text-[#8c7f72] font-black text-[10px] uppercase h-12 px-6">Restablecer</Button>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+
+                <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-gray-800">
+                  <Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Nombre de la Calculadora</Label>
+                  <Input 
+                    value={form.calculatorName} 
+                    onChange={e => setForm({...form, calculatorName: e.target.value})} 
+                    className="max-w-md rounded-xl h-12 font-black uppercase italic"
+                    placeholder="EJ: CALCULADORA BENDECIDA"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100 dark:border-gray-800">
                   {['system', 'light', 'dark'].map(m => (
                     <button key={m} onClick={() => { setForm({...form, themeMode: m}); setTheme(m); }} className={cn("py-5 rounded-[1.5rem] font-black text-[10px] uppercase border-2", form.themeMode === m ? "bg-[#1a1714] dark:bg-white text-white dark:text-black" : "text-[#8c7f72]")}>{m}</button>
                   ))}
@@ -395,9 +424,64 @@ export default function SettingsPage() {
 
           {activeTab === 'notifications' && (
             <Card className="rounded-[2.5rem] border-[#e8e2d9] dark:border-gray-800 shadow-sm animate-in fade-in duration-500">
-              <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8"><CardTitle className="text-xl font-black uppercase italic">Alertas</CardTitle></CardHeader>
-              <CardContent className="p-8 space-y-6">
-                <div className="space-y-2"><Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Webhook URL</Label><Input value={form.webhookUrl} onChange={e => setForm({...form, webhookUrl: e.target.value})} className="rounded-xl" placeholder="Discord / Telegram" /></div>
+              <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8"><CardTitle className="text-xl font-black uppercase italic">Alertas y Mensajes</CardTitle></CardHeader>
+              <CardContent className="p-8 space-y-8">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-4 w-4 text-blue-500" />
+                      <Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Notificaciones Navegador</Label>
+                    </div>
+                    <Button onClick={() => Notification.requestPermission()} className="h-8 px-4 text-[8px] font-black uppercase rounded-lg bg-blue-600">Activar</Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t border-white/5">
+                  <Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Webhook URL</Label>
+                  <Input value={form.webhookUrl} onChange={e => setForm({...form, webhookUrl: e.target.value})} className="rounded-xl" placeholder="https://api.telegram.org/..." />
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4 text-[#25D366]" />
+                    <Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Mensaje WhatsApp</Label>
+                  </div>
+                  <textarea value={form.whatsappMessageTemplate} onChange={e => setForm({...form, whatsappMessageTemplate: e.target.value})} className="w-full h-32 p-4 rounded-2xl bg-[#f7f4ef] dark:bg-gray-900 border-2 border-transparent focus:border-[var(--brand-primary)] outline-none text-xs" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'security' && (
+            <Card className="rounded-[2.5rem] border-[#e8e2d9] dark:border-gray-800 shadow-sm overflow-hidden animate-in fade-in duration-500">
+              <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-6 w-6 text-red-500" />
+                    <div><CardTitle className="text-xl font-black uppercase italic">Auditoría</CardTitle></div>
+                  </div>
+                  <Button onClick={async () => {
+                    const res = await fetch('/api/admin/backup');
+                    const data = await res.json();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = `Backup_${new Date().getTime()}.json`; a.click();
+                  }} className="bg-black text-white font-black text-[9px] uppercase px-4 rounded-xl h-9">Respaldo</Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full text-left">
+                  <tbody className="divide-y divide-[#f0ece6] dark:divide-gray-800">
+                    {auditLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-[#fcfbf9] dark:hover:bg-gray-800/20 transition-all">
+                        <td className="px-8 py-4 text-[10px] font-bold text-gray-500">{format(new Date(log.createdAt), 'dd/MM/yy HH:mm')}</td>
+                        <td className="px-8 py-4 text-xs font-black">{log.userEmail}</td>
+                        <td className="px-8 py-4"><span className={cn("text-[8px] font-black px-2 py-0.5 rounded uppercase", log.action === 'DELETE' ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")}>{log.action}</span></td>
+                        <td className="px-8 py-4 text-xs italic opacity-70">{log.details}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </CardContent>
             </Card>
           )}

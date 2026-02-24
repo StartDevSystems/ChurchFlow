@@ -20,8 +20,6 @@ export async function POST(request: Request) {
     // Comando /saldo
     else if (text === '/saldo') {
       const transactions = await prisma.transaction.findMany();
-      const transfers = await prisma.transfer.findMany();
-
       const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
       const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
       
@@ -32,6 +30,41 @@ export async function POST(request: Request) {
 💰 Balance Total: RD$ ${balance.toLocaleString()}
 📈 Ingresos: RD$ ${income.toLocaleString()}
 📉 Gastos: RD$ ${expense.toLocaleString()}`);
+    }
+    // Comando /gastos (Top 5 gastos del mes)
+    else if (text === '/gastos') {
+      const start = new Date();
+      start.setDate(1); // Primer día del mes
+      
+      const topExpenses = await prisma.transaction.findMany({
+        where: { type: 'expense', date: { gte: start } },
+        orderBy: { amount: 'desc' },
+        take: 5,
+        include: { category: true }
+      });
+
+      let msg = '💸 *TOP 5 GASTOS DEL MES*\n\n';
+      if (topExpenses.length === 0) msg += 'No hay gastos registrados este mes.';
+      else {
+        topExpenses.forEach((t, i) => {
+          msg += `${i+1}. ${t.description}\n💰 RD$ ${t.amount.toLocaleString()} (${t.category.name})\n\n`;
+        });
+      }
+      await sendToTelegram(chatId, msg);
+    }
+    // Comando /miembros (Resumen de jóvenes)
+    else if (text === '/miembros') {
+      const count = await prisma.member.count();
+      const lastMembers = await prisma.member.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 3
+      });
+
+      let msg = `👥 *COMUNIDAD*\n\nTotal Jóvenes: ${count}\n\n*Últimos registrados:*\n`;
+      lastMembers.forEach(m => {
+        msg += `• ${m.name} (${m.role})\n`;
+      });
+      await sendToTelegram(chatId, msg);
     }
 
     return NextResponse.json({ ok: true });

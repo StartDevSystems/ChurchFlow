@@ -5,118 +5,102 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownRight, Landmark, ArrowLeftRight, PlusCircle, TrendingUp, Activity, Zap } from 'lucide-react';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
-} from 'recharts';
+import { ArrowUpRight, ArrowDownRight, Landmark, ArrowLeftRight, PlusCircle, TrendingUp, Activity, Zap, Calendar, Cake, GripVertical } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-interface Transaction {
-  id: string; type: 'income' | 'expense'; amount: number; date: string;
-  description: string; eventId?: string | null;
-  category: { id: string; name: string; type: string };
-  member?: { id: string; name: string } | null;
-  event?: { id: string; name: string } | null;
-}
-interface Event { id: string; name: string; startDate: string; endDate?: string; }
-interface Transfer { id: string; amount: number; description: string; date: string; fromEventId?: string | null; toEventId?: string | null; }
-interface EventWithStats extends Event { totalIncome: number; totalExpense: number; balance: number; txCount: number; }
-interface MonthlyData { month: string; Ingresos: number; Gastos: number; }
-
-const fmt = (amount: number) =>
-  new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 }).format(amount);
+// ─── Componentes de Soporte ──────────────────────────────────────────────────
+const fmt = (amount: number) => new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 }).format(amount);
 
 const MONTH_MAP: Record<string, number> = {
-  ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5,
-  jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11,
+  ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11,
 };
 
-// ─── 3D Transfer Visual ───────────────────────────────────────────────────────
-function TransferVisual({ fromName, toName, amount }: { fromName: string; toName: string; amount: string }) {
-  const amountNum = parseFloat(amount) || 0;
+// ─── Componente de Widget Sortable ──────────────────────────────────────────
+function SortableWidget({ id, children }: { id: string, children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 100 : 'auto', opacity: isDragging ? 0.8 : 1 };
+
   return (
-    <div style={{ perspective: '800px', width: '100%', height: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-      <div style={{ width: '110px', height: '68px', borderRadius: '10px', background: 'linear-gradient(135deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 60%, #f5a623))', animation: 'floatLeft 3s ease-in-out infinite, pulse3d 3s ease-in-out infinite', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '9px 11px', position: 'relative', zIndex: 2, flexShrink: 0 }}>
-        <div style={{ width: '22px', height: '16px', borderRadius: '3px', background: 'linear-gradient(135deg, #ffd700, #ffaa00)' }} />
-        <div>
-          <div style={{ fontSize: '6px', color: 'rgba(255,255,255,0.6)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '2px' }}>Origen</div>
-          <div style={{ fontSize: '8px', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '88px' }}>{fromName}</div>
-        </div>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: '10px', background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%)', pointerEvents: 'none' }} />
+    <div ref={setNodeRef} style={style} className="relative group mb-4">
+      <div {...attributes} {...listeners} className="absolute top-4 right-4 opacity-0 group-hover:opacity-40 cursor-grab active:cursor-grabbing z-50 p-2 hover:bg-white/10 rounded-lg transition-all">
+        <GripVertical size={18} className="text-white" />
       </div>
-
-      <div style={{ position: 'relative', width: '70px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-        <div style={{ position: 'relative', width: '100%', height: '18px' }}>
-          {[0, 1, 2].map(i => (
-            <div key={i} style={{ position: 'absolute', top: '50%', width: '5px', height: '5px', borderRadius: '50%', background: 'var(--brand-primary)', animation: 'flowParticle 1.5s ease-in-out infinite', animationDelay: `${i * 0.5}s` }} />
-          ))}
-          <div style={{ position: 'absolute', top: '50%', left: '10%', right: '10%', height: '1px', background: 'linear-gradient(90deg, rgba(255,255,255,0.1), var(--brand-primary), rgba(255,255,255,0.1))', transform: 'translateY(-50%)' }} />
-          <div style={{ position: 'absolute', right: '8%', top: '50%', transform: 'translateY(-50%)', width: 0, height: 0, borderTop: '3px solid transparent', borderBottom: '3px solid transparent', borderLeft: '6px solid var(--brand-primary)' }} />
-        </div>
-        {amountNum > 0 && (
-          <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '2px 7px', fontSize: '7px', fontWeight: 800, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
-            {fmt(amountNum)}
-          </div>
-        )}
-      </div>
-
-      <div style={{ width: '110px', height: '68px', borderRadius: '10px', background: 'linear-gradient(135deg, #1a4d8f, #2a8a5e)', animation: 'floatRight 3s ease-in-out infinite', animationDelay: '0.3s', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '9px 11px', position: 'relative', zIndex: 2, flexShrink: 0 }}>
-        <div style={{ width: '22px', height: '16px', borderRadius: '3px', background: 'linear-gradient(135deg, #ffd700, #ffaa00)' }} />
-        <div>
-          <div style={{ fontSize: '6px', color: 'rgba(255,255,255,0.6)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '2px' }}>Destino</div>
-          <div style={{ fontSize: '8px', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '88px' }}>{toName}</div>
-        </div>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: '10px', background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%)', pointerEvents: 'none' }} />
-      </div>
+      {children}
     </div>
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Dashboard Principal ────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { toast } = useToast();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [transfers, setTransfers] = useState<any[]>([]);
+  const [birthdays, setBirthdays] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTransfer, setShowTransfer] = useState(false);
   const [tfForm, setTfForm] = useState({ fromEventId: '', toEventId: '', amount: '', description: '', date: format(new Date(), 'yyyy-MM-dd') });
   const [saving, setSaving] = useState(false);
 
+  const [widgetOrder, setWidgetOrder] = useState<string[]>(['banner', 'cards-row', 'middle-row', 'bottom-row']);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('churchflow-dashboard-order-v2');
+    if (savedOrder) setWidgetOrder(JSON.parse(savedOrder));
+  }, []);
+
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
-      const [txRes, evRes, trRes] = await Promise.all([fetch('/api/transactions'), fetch('/api/events'), fetch('/api/transfers')]);
+      const [txRes, evRes, trRes, bRes] = await Promise.all([
+        fetch('/api/transactions'), fetch('/api/events'), fetch('/api/transfers'), fetch('/api/members/birthdays')
+      ]);
       setTransactions(txRes.ok ? await txRes.json() : []);
       setEvents(evRes.ok ? await evRes.json() : []);
       setTransfers(trRes.ok ? await trRes.json() : []);
+      setBirthdays(bRes.ok ? await bRes.json() : []);
     } catch { toast({ title: 'Error al cargar datos', variant: 'destructive' }); }
     finally { setLoading(false); }
   }, [toast]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Lógica de datos
   const cajaTransactions = transactions.filter(t => !t.eventId);
   const cajaIncome = cajaTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const cajaExpense = cajaTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const netCajaTransfers = transfers.reduce((acc, tr) => { if (!tr.fromEventId) return acc - tr.amount; if (!tr.toEventId) return acc + tr.amount; return acc; }, 0);
   const cajaBalance = cajaIncome - cajaExpense + netCajaTransfers;
-
+  
   const now = new Date();
-  const thisMontCaja = cajaTransactions.filter(t => { const d = new Date(t.date); return d >= startOfMonth(now) && d <= endOfMonth(now); });
-  const monthIncome = thisMontCaja.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const monthExpense = thisMontCaja.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const thisMonthCaja = cajaTransactions.filter(t => { const d = new Date(t.date); return d >= startOfMonth(now) && d <= endOfMonth(now); });
+  const monthIncome = thisMonthCaja.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const monthExpense = thisMonthCaja.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-  const eventsWithStats: EventWithStats[] = events.map(ev => {
+  const eventsWithStats = events.map(ev => {
     const related = transactions.filter(t => t.eventId === ev.id);
-    const totalIncome = related.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const totalExpense = related.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const netEventTransfers = transfers.reduce((acc, tr) => { if (tr.fromEventId === ev.id) return acc - tr.amount; if (tr.toEventId === ev.id) return acc + tr.amount; return acc; }, 0);
-    return { ...ev, totalIncome, totalExpense, balance: (totalIncome - totalExpense) + netEventTransfers, txCount: related.length };
-  }).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+    const in_ = related.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const out_ = related.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const net = transfers.reduce((acc, tr) => { if (tr.fromEventId === ev.id) return acc - tr.amount; if (tr.toEventId === ev.id) return acc + tr.amount; return acc; }, 0);
+    return { ...ev, balance: (in_ - out_) + net, txCount: related.length, totalIncome: in_, totalExpense: out_ };
+  });
 
-  const monthlyMap = new Map<string, MonthlyData>();
+  const totalBalance = cajaBalance + eventsWithStats.reduce((s, e) => s + e.balance, 0);
+  
+  const upcomingEvent = eventsWithStats
+    .filter(e => new Date(e.startDate) >= new Date())
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(a.startDate).getTime())[0];
+  
+  const daysToEvent = upcomingEvent ? Math.ceil((new Date(upcomingEvent.startDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+
+  const monthlyMap = new Map<string, any>();
   cajaTransactions.forEach(t => {
     const key = format(parseISO(t.date), 'MMM yy', { locale: es });
     if (!monthlyMap.has(key)) monthlyMap.set(key, { month: key, Ingresos: 0, Gastos: 0 });
@@ -128,426 +112,277 @@ export default function DashboardPage() {
     return parse(a.month) - parse(b.month);
   });
 
-  const fundName = (eventId?: string | null) => { if (!eventId) return 'Caja General'; return events.find(e => e.id === eventId)?.name ?? 'Evento'; };
-  const getOriginBalance = () => { if (!tfForm.fromEventId) return cajaBalance; return eventsWithStats.find(e => e.id === tfForm.fromEventId)?.balance ?? 0; };
-  const originBalance = getOriginBalance();
-  const amountNum = parseFloat(tfForm.amount) || 0;
-  const afterTransfer = originBalance - amountNum;
-  const totalBalance = cajaBalance + eventsWithStats.reduce((s, e) => s + e.balance, 0);
-
-  const handleSaveTransfer = async () => {
-    if (!tfForm.amount || !tfForm.description || !tfForm.date) { toast({ title: 'Completa todos los campos', variant: 'destructive' }); return; }
-    if (tfForm.fromEventId === tfForm.toEventId) { toast({ title: 'Origen y destino no pueden ser iguales', variant: 'destructive' }); return; }
-    if (amountNum > originBalance) { toast({ title: 'Fondos insuficientes', description: `El origen solo tiene ${fmt(originBalance)} disponible.`, variant: 'destructive' }); return; }
-    setSaving(true);
-    try {
-      const res = await fetch('/api/transfers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: tfForm.amount, description: tfForm.description, date: tfForm.date, fromEventId: tfForm.fromEventId || null, toEventId: tfForm.toEventId || null }) });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
-      toast({ title: 'Transferencia registrada' });
-      setShowTransfer(false);
-      setTfForm({ fromEventId: '', toEventId: '', amount: '', description: '', date: format(new Date(), 'yyyy-MM-dd') });
-      fetchAll();
-    } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
-    finally { setSaving(false); }
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = widgetOrder.indexOf(active.id as string);
+      const newIndex = widgetOrder.indexOf(over.id as string);
+      const newOrder = arrayMove(widgetOrder, oldIndex, newIndex);
+      setWidgetOrder(newOrder);
+      localStorage.setItem('churchflow-dashboard-order-v2', JSON.stringify(newOrder));
+    }
   };
 
-  if (loading) return (
-    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8" style={{ background: '#0a0c14', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: '3px solid rgba(255,255,255,0.06)', borderTopColor: 'var(--brand-primary)', animation: 'spin 1s linear infinite', margin: '0 auto 14px' }} />
-        <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase' }}>Cargando</p>
-      </div>
-    </div>
-  );
+  const handleSaveTransfer = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/transfers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: tfForm.amount, description: tfForm.description, date: tfForm.date, fromEventId: null, toEventId: null }) });
+      if (res.ok) { toast({ title: 'Transferencia registrada' }); setShowTransfer(false); fetchAll(); }
+    } finally { setSaving(false); }
+  };
 
-  return (
-    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8" style={{ background: '#0a0c14', minHeight: '100vh' }}>
-      <style>{`
-        @keyframes floatLeft {
-          0%,100%{transform:rotateY(25deg) rotateX(8deg) translateZ(0) translateY(0);}
-          50%{transform:rotateY(25deg) rotateX(8deg) translateZ(8px) translateY(-4px);}
-        }
-        @keyframes floatRight {
-          0%,100%{transform:rotateY(-25deg) rotateX(8deg) translateZ(0) translateY(0);}
-          50%{transform:rotateY(-25deg) rotateX(8deg) translateZ(8px) translateY(-4px);}
-        }
-        @keyframes flowParticle {
-          0%{left:20%;opacity:0;transform:translateY(-50%) scale(0.5);}
-          20%{opacity:1;transform:translateY(-50%) scale(1);}
-          80%{opacity:1;transform:translateY(-50%) scale(1);}
-          100%{left:80%;opacity:0;transform:translateY(-50%) scale(0.5);}
-        }
-        @keyframes pulse3d {
-          0%,100%{box-shadow:0 8px 32px color-mix(in srgb, var(--brand-primary) 30%, transparent);}
-          50%{box-shadow:0 12px 48px color-mix(in srgb, var(--brand-primary) 50%, transparent);}
-        }
-        @keyframes spin { to{transform:rotate(360deg);} }
-        @keyframes fadeUp {
-          from{opacity:0;transform:translateY(18px);}
-          to{opacity:1;transform:translateY(0);}
-        }
-        @keyframes glowPulse {
-          0%,100%{opacity:0.5;}
-          50%{opacity:1;}
-        }
-        .dash-card {
-          animation: fadeUp 0.5s ease both;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .dash-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-        }
-        .glass {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 18px;
-          backdrop-filter: blur(10px);
-        }
-        .grid-bg {
-          background-image:
-            linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-          background-size: 44px 44px;
-        }
-        .row-item {
-          padding: 10px;
-          border-radius: 10px;
-          transition: background 0.15s;
-          cursor: default;
-        }
-        .row-item:hover { background: rgba(255,255,255,0.04); }
-        .brand-dot {
-          animation: glowPulse 2s ease-in-out infinite;
-          box-shadow: 0 0 8px var(--brand-primary);
-        }
-      `}</style>
+  if (loading) return <div className="min-h-screen bg-[#0a0c14] flex items-center justify-center"><div className="w-12 h-12 rounded-full border-4 border-white/5 border-t-[var(--brand-primary)] animate-spin" /></div>;
 
-      {/* Background */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-        <div className="grid-bg" style={{ position: 'absolute', inset: 0 }} />
-        <div style={{ position: 'absolute', top: '-200px', left: '15%', width: '700px', height: '700px', borderRadius: '50%', background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 7%, transparent) 0%, transparent 70%)', animation: 'glowPulse 4s ease-in-out infinite' }} />
-        <div style={{ position: 'absolute', bottom: '-150px', right: '5%', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(26,77,143,0.06) 0%, transparent 70%)' }} />
-      </div>
-
-      <div style={{ position: 'relative', zIndex: 1, padding: '36px 32px 60px', maxWidth: '1400px', margin: '0 auto' }}>
-
-        {/* ── Header ── */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px', marginBottom: '36px', animation: 'fadeUp 0.4s ease both' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <div className="brand-dot" style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--brand-primary)', flexShrink: 0 }} />
-              <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>SISTEMA ACTIVO · {format(now, "d 'de' MMMM yyyy", { locale: es })}</p>
+  const renderWidget = (id: string) => {
+    switch (id) {
+      case 'banner':
+        return (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="dash-card glass p-8 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--brand-primary)] to-transparent" />
+            <div className="absolute top-[-40px] right-[-40px] w-64 h-64 rounded-full bg-[var(--brand-primary)]/10 blur-[80px]" />
+            <div className="flex flex-wrap gap-8 items-center relative z-10">
+              <div className="flex-1 min-w-[300px]">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 mb-2">Balance Total Consolidado</p>
+                <h2 className={cn("text-6xl font-black italic tracking-tighter leading-none", totalBalance >= 0 ? "text-[#4ade80]" : "text-[#f87171]")}>{fmt(totalBalance)}</h2>
+                <p className="text-[10px] text-gray-600 font-bold mt-4 uppercase tracking-widest">Caja General + {events.length} Eventos Activos</p>
+              </div>
+              <div className="flex gap-10">
+                <div className="border-l-2 border-[var(--brand-primary)]/30 pl-6"><p className="text-[9px] font-black uppercase text-gray-500 mb-1 tracking-tighter">Caja General</p><p className="text-2xl font-black text-white">{fmt(cajaBalance)}</p></div>
+                <div className="border-l-2 border-[#4ade80]/30 pl-6"><p className="text-[9px] font-black uppercase text-[#4ade80] mb-1 tracking-tighter">Ingresos Mes</p><p className="text-2xl font-black text-[#4ade80]">{fmt(monthIncome)}</p></div>
+                <div className="border-l-2 border-[#f87171]/30 pl-6"><p className="text-[9px] font-black uppercase text-[#f87171] mb-1 tracking-tighter">Gastos Mes</p><p className="text-2xl font-black text-[#f87171]">{fmt(monthExpense)}</p></div>
+              </div>
             </div>
-            <h1 style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 900, color: '#fff', letterSpacing: '-0.05em', lineHeight: 1 }}>
-              Dashboard
-            </h1>
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', animation: 'fadeUp 0.4s ease 0.1s both' }}>
-            <button onClick={() => setShowTransfer(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.6)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
-              onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.borderColor = 'var(--brand-primary)'; b.style.color = 'var(--brand-primary)'; }}
-              onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.borderColor = 'rgba(255,255,255,0.09)'; b.style.color = 'rgba(255,255,255,0.6)'; }}
-            >
-              <ArrowLeftRight size={14} /> Nueva Transferencia
-            </button>
-            <Link href="/transactions/new">
-              <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', background: 'var(--brand-primary)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: 'none', boxShadow: '0 4px 24px color-mix(in srgb, var(--brand-primary) 40%, transparent)' }}>
-                <PlusCircle size={14} /> Registrar Movimiento
-              </button>
+          </motion.div>
+        );
+      case 'cards-row':
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {upcomingEvent ? (
+              <div className="dash-card glass p-6 border-l-4 border-l-[var(--brand-primary)] flex items-center justify-between" style={{ background: 'linear-gradient(90deg, rgba(232,93,38,0.1), transparent)' }}>
+                <div className="flex items-center gap-5">
+                  <div className="bg-[var(--brand-primary)] text-white p-4 rounded-2xl shadow-lg shadow-orange-500/20"><Calendar size={24} strokeWidth={3} /></div>
+                  <div><p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--brand-primary)]">Próximo Evento</p><h3 className="text-xl font-black uppercase italic text-white truncate max-w-[200px]">{upcomingEvent.name}</h3></div>
+                </div>
+                <div className="text-right"><p className="text-4xl font-black text-white italic leading-none">{daysToEvent}</p><p className="text-[9px] font-black uppercase text-gray-500">Días</p></div>
+              </div>
+            ) : (
+              <div className="dash-card glass p-6 border-l-4 border-l-gray-800 flex items-center gap-4 opacity-50"><Calendar size={20} className="text-gray-600" /><p className="text-xs font-black uppercase text-gray-600">Sin eventos en agenda</p></div>
+            )}
+            <Link href="/members/birthdays">
+              <div className="dash-card glass p-6 border-l-4 border-l-pink-500 flex items-center justify-between h-full overflow-hidden relative group/bday" style={{ background: 'linear-gradient(90deg, rgba(236,72,153,0.1), transparent)' }}>
+                <div className="flex items-center gap-5 z-10">
+                  <div className="bg-pink-500 text-white p-4 rounded-2xl shadow-lg shadow-pink-500/20 group-hover/bday:scale-110 transition-transform"><Cake size={24} strokeWidth={3} /></div>
+                  <div className="overflow-hidden">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-pink-500">Cumpleaños (Ver Todos)</p>
+                    <div className="h-8 flex items-center overflow-hidden">
+                      <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ duration: 15, ease: "linear", repeat: Infinity }} className="flex whitespace-nowrap gap-12">
+                        {[1, 2].map(set => (
+                          <div key={set} className="flex gap-12 items-center">
+                            {birthdays.length > 0 ? birthdays.map(b => (
+                              <span key={`${set}-${b.id}`} className="text-xl font-black uppercase italic text-white flex items-center gap-3">
+                                {b.name} <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-md not-italic">{b.day}/{b.month}</span>
+                              </span>
+                            )) : <span className="text-xl font-black uppercase italic text-white opacity-30">Nadie en agenda</span>}
+                            {birthdays.length > 0 && <span className="text-pink-500 text-2xl">\uD83C\uDF81</span>}
+                          </div>
+                        ))}
+                      </motion.div>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right z-10 bg-[#0a0c14]/80 pl-4 border-l border-white/5"><p className="text-4xl font-black text-white italic leading-none">{birthdays.length}</p><p className="text-[9px] font-black uppercase text-gray-500 tracking-tighter">Jóvenes</p></div>
+              </div>
             </Link>
           </div>
-        </div>
-
-        {/* ── KPI Hero Banner ── */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="dash-card glass" 
-          style={{ padding: '28px 32px', marginBottom: '20px', background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))', overflow: 'hidden', position: 'relative' }}
-        >
-          {/* Top accent */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, var(--brand-primary), transparent)' }} />
-          {/* Corner decoration */}
-          <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '200px', height: '200px', borderRadius: '50%', background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 8%, transparent), transparent 70%)', pointerEvents: 'none' }} />
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-            <div style={{ flex: '1 1 200px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '8px' }}>Balance Total Consolidado</p>
-              <p style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 900, color: totalBalance >= 0 ? '#4ade80' : '#f87171', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                {fmt(totalBalance)}
-              </p>
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', marginTop: '6px' }}>Caja General + {eventsWithStats.length} eventos</p>
-            </div>
-
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-              {[
-                { label: 'Caja General', value: cajaBalance, color: 'var(--brand-primary)', Icon: Landmark },
-                { label: 'Ingresos mes', value: monthIncome, color: '#4ade80', Icon: ArrowUpRight },
-                { label: 'Gastos mes', value: monthExpense, color: '#f87171', Icon: ArrowDownRight },
-              ].map(({ label, value, color, Icon }, i) => (
-                <motion.div 
-                  key={i} 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 + (i * 0.1) }}
-                  style={{ paddingLeft: '20px', borderLeft: `2px solid ${color}25` }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px', opacity: 0.6 }}>
-                    <Icon size={11} color={color} />
-                    <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color }}>
-                      {label}
-                    </p>
-                  </div>
-                  <p style={{ fontSize: '20px', fontWeight: 900, color, letterSpacing: '-0.03em' }}>{fmt(value)}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* ── Row 2: Eventos + Movimientos ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>
-
-          {/* Eventos */}
-          <div className="dash-card glass" style={{ padding: '22px', animationDelay: '0.15s' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Activity size={13} color="var(--brand-primary)" />
-                </div>
-                <div>
-                  <p style={{ fontSize: '13px', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Fondos por Evento</p>
-                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>{eventsWithStats.length} eventos</p>
-                </div>
+        );
+      case 'middle-row':
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="dash-card glass p-6">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3"><Activity size={18} className="text-[var(--brand-primary)]" /><h3 className="font-black uppercase text-sm text-white italic">Fondos por Evento</h3></div>
+                <Link href="/events" className="px-3 py-1 bg-white/5 rounded-full text-[8px] font-black uppercase text-[var(--brand-primary)] border border-[var(--brand-primary)]/20 hover:bg-[var(--brand-primary)] hover:text-white transition-all">Ver todos</Link>
               </div>
-              <Link href="/events" style={{ fontSize: '11px', fontWeight: 700, color: 'var(--brand-primary)', textDecoration: 'none', opacity: 0.7 }}>Ver todos →</Link>
-            </div>
-
-            {eventsWithStats.length === 0 ? (
-              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '28px 0' }}>No hay eventos registrados</p>
-            ) : eventsWithStats.slice(0, 5).map((ev, i) => {
-              const colors = ['var(--brand-primary)', '#60a5fa', '#0e7490', '#a78bfa', '#4ade80'];
-              const c = colors[i % colors.length];
-              const pct = ev.totalIncome > 0 ? Math.min(100, Math.max(0, (ev.balance / ev.totalIncome) * 100)) : 0;
-              return (
-                <div key={ev.id} className="row-item" style={{ marginBottom: '2px', animation: `fadeUp 0.4s ease ${0.2 + i * 0.05}s both` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: c, flexShrink: 0, boxShadow: `0 0 5px ${c}` }} />
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.name}</p>
-                    <p style={{ fontSize: '12px', fontWeight: 800, color: ev.balance >= 0 ? '#4ade80' : '#f87171', letterSpacing: '-0.02em', flexShrink: 0 }}>
-                      {ev.balance >= 0 ? '+' : ''}{fmt(ev.balance)}
-                    </p>
-                  </div>
-                  <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)', borderRadius: '1px', overflow: 'hidden', marginLeft: '17px' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: c, borderRadius: '1px', transition: 'width 1s ease' }} />
-                  </div>
-                  <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', marginTop: '3px', marginLeft: '17px' }}>{ev.txCount} tx · {fmt(ev.totalIncome)} in · {fmt(ev.totalExpense)} out</p>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Últimos movimientos */}
-          <div className="dash-card glass" style={{ padding: '22px', animationDelay: '0.2s' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Zap size={13} color="#4ade80" />
-                </div>
-                <div>
-                  <p style={{ fontSize: '13px', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Últimos Movimientos</p>
-                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>Actividad reciente</p>
-                </div>
-              </div>
-              <Link href="/transactions" style={{ fontSize: '11px', fontWeight: 700, color: 'var(--brand-primary)', textDecoration: 'none', opacity: 0.7 }}>Ver todos →</Link>
-            </div>
-
-            {transactions.length === 0 ? (
-              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '28px 0' }}>No hay transacciones aún</p>
-            ) : transactions.slice(0, 5).map((t, i) => (
-              <div key={t.id} className="row-item" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px', animation: `fadeUp 0.4s ease ${0.25 + i * 0.05}s both` }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.type === 'income' ? 'rgba(42,138,94,0.12)' : 'rgba(220,53,69,0.12)' }}>
-                  {t.type === 'income' ? <ArrowUpRight size={13} color="#4ade80" /> : <ArrowDownRight size={13} color="#f87171" />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.description}</p>
-                  <div style={{ display: 'flex', gap: '5px', marginTop: '2px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}>{t.category?.name}</span>
-                    <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)' }}>{format(new Date(t.date), 'd MMM', { locale: es })}</span>
-                  </div>
-                </div>
-                <p style={{ fontSize: '12px', fontWeight: 800, color: t.type === 'income' ? '#4ade80' : '#f87171', letterSpacing: '-0.02em', flexShrink: 0 }}>
-                  {t.type === 'income' ? '+' : '-'}{fmt(t.amount)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Row 3: Gráfica + Transferencias ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-
-          {/* Gráfica */}
-          <div className="dash-card glass" style={{ padding: '22px', animationDelay: '0.28s' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TrendingUp size={13} color="#60a5fa" />
-              </div>
-              <div>
-                <p style={{ fontSize: '13px', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Tendencia Mensual</p>
-                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>Caja General · ingresos vs gastos</p>
-              </div>
-            </div>
-
-            {monthlyTrends.length === 0 ? (
-              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '40px 0' }}>No hay datos suficientes</p>
-            ) : (
-              <>
-                <ResponsiveContainer width="100%" height={190}>
-                  <AreaChart data={monthlyTrends} margin={{ top: 5, right: 4, left: 0, bottom: 5 }}>
-                    <defs>
-                      <linearGradient id="gIn" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2a8a5e" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#2a8a5e" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="gOut" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#dc3545" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#dc3545" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                    <XAxis dataKey="month" stroke="transparent" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.25)' }} />
-                    <YAxis tickFormatter={(v: number) => fmt(v)} stroke="transparent" tick={{ fontSize: 8, fill: 'rgba(255,255,255,0.25)' }} width={80} />
-                    <Tooltip formatter={(v: any, n: any) => [fmt(Number(v)), n]} contentStyle={{ background: '#1a1d2e', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', fontSize: 11 }} labelStyle={{ color: 'rgba(255,255,255,0.5)', fontWeight: 700 }} />
-                    <Area type="monotone" dataKey="Ingresos" stroke="#2a8a5e" strokeWidth={2} fill="url(#gIn)" dot={{ r: 3, fill: '#2a8a5e', strokeWidth: 0 }} />
-                    <Area type="monotone" dataKey="Gastos" stroke="#dc3545" strokeWidth={2} fill="url(#gOut)" dot={{ r: 3, fill: '#dc3545', strokeWidth: 0 }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-                <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '6px' }}>
-                  {[{ c: '#2a8a5e', l: 'Ingresos' }, { c: '#dc3545', l: 'Gastos' }].map(x => (
-                    <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <div style={{ width: '12px', height: '2px', background: x.c, borderRadius: '1px' }} />
-                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>{x.l}</span>
+              <div className="space-y-3">
+                {eventsWithStats.slice(0, 4).map(ev => {
+                  const pct = ev.totalIncome > 0 ? Math.min(100, (ev.balance / ev.totalIncome) * 100) : 0;
+                  return (
+                    <div key={ev.id} className="group/item">
+                      <div className="flex items-center justify-between mb-2 px-1">
+                        <p className="text-xs font-black text-gray-300 uppercase tracking-tight">{ev.name}</p>
+                        <p className={cn("text-xs font-black", ev.balance >= 0 ? "text-[#4ade80]" : "text-[#f87171]")}>{fmt(ev.balance)}</p>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(5, pct)}%` }} className={cn("h-full rounded-full", ev.balance >= 0 ? "bg-[#4ade80]" : "bg-[#f87171]")} /></div>
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Transferencias */}
-          <div className="dash-card glass" style={{ padding: '22px', animationDelay: '0.33s' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <ArrowLeftRight size={13} color="#60a5fa" />
-                </div>
-                <div>
-                  <p style={{ fontSize: '13px', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Transferencias</p>
-                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>Entre fondos</p>
-                </div>
+                  );
+                })}
               </div>
-              <button onClick={() => setShowTransfer(true)} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 11px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.2s' }}
-                onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.borderColor = 'var(--brand-primary)'; b.style.color = 'var(--brand-primary)'; }}
-                onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.borderColor = 'rgba(255,255,255,0.08)'; b.style.color = 'rgba(255,255,255,0.4)'; }}
-              >+ Nueva</button>
             </div>
-
-            {transfers.length === 0 ? (
-              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '28px 0' }}>No hay transferencias aún</p>
-            ) : transfers.slice(0, 4).map((tr, i) => (
-              <div key={tr.id} className="row-item" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px', animation: `fadeUp 0.4s ease ${0.38 + i * 0.05}s both` }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(26,77,143,0.15)' }}>
-                  <ArrowLeftRight size={12} color="#60a5fa" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr.description}</p>
-                  <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.22)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {fundName(tr.fromEventId)} → {fundName(tr.toEventId)} · {format(new Date(tr.date), 'd MMM', { locale: es })}
-                  </p>
-                </div>
-                <p style={{ fontSize: '12px', fontWeight: 800, color: '#60a5fa', letterSpacing: '-0.02em', flexShrink: 0 }}>{fmt(tr.amount)}</p>
+            <div className="dash-card glass p-6">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3"><Zap size={18} className="text-[#4ade80]" /><h3 className="font-black uppercase text-sm text-white italic">Actividad Reciente</h3></div>
+                <Link href="/transactions" className="px-3 py-1 bg-white/5 rounded-full text-[8px] font-black uppercase text-[#4ade80] border border-[#4ade80]/20 hover:bg-[#4ade80] hover:text-white transition-all">Historial</Link>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Modal Transferencia ── */}
-      {showTransfer && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowTransfer(false); }}
-        >
-          <div style={{ width: '100%', maxWidth: '440px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.7)', animation: 'fadeUp 0.3s ease' }}>
-
-            {/* Header */}
-            <div style={{ background: 'linear-gradient(160deg, #0f1117 0%, #1a1d2e 50%, #0f1117 100%)', padding: '28px 28px 20px', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(color-mix(in srgb, var(--brand-primary) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--brand-primary) 5%, transparent) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-              <div style={{ position: 'absolute', top: '-50px', left: '50%', transform: 'translateX(-50%)', width: '220px', height: '220px', borderRadius: '50%', background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 14%, transparent) 0%, transparent 70%)', pointerEvents: 'none' }} />
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div>
-                    <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: 'color-mix(in srgb, var(--brand-primary) 75%, transparent)', marginBottom: '4px' }}>TRANSFERENCIA DE FONDOS</p>
-                    <h3 style={{ fontSize: '20px', fontWeight: 900, color: '#fff', letterSpacing: '-0.04em' }}>Mover Capital</h3>
-                  </div>
-                  <button onClick={() => setShowTransfer(false)} style={{ width: '30px', height: '30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                </div>
-                <TransferVisual fromName={fundName(tfForm.fromEventId || null)} toName={fundName(tfForm.toEventId || null)} amount={tfForm.amount} />
-                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', marginTop: '12px' }}>
-                  <div>
-                    <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '3px' }}>Disponible</p>
-                    <p style={{ fontSize: '18px', fontWeight: 900, color: originBalance >= 0 ? '#4ade80' : '#f87171', letterSpacing: '-0.03em' }}>{fmt(originBalance)}</p>
-                  </div>
-                  {amountNum > 0 && (
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '3px' }}>Quedará</p>
-                      <p style={{ fontSize: '18px', fontWeight: 900, color: afterTransfer >= 0 ? '#94a3b8' : '#f87171', letterSpacing: '-0.03em' }}>{fmt(afterTransfer)}</p>
+              <div className="space-y-3">
+                {transactions.slice(0, 4).map(t => (
+                  <div key={t.id} className="flex items-center gap-4 p-3 rounded-2xl bg-white/[0.02] hover:bg-white/5 transition-all border border-white/5 group/tx">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover/tx:scale-110", t.type === 'income' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
+                      {t.type === 'income' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                     </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Form */}
-            <div style={{ background: '#0f1117', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '24px 28px 28px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                {(['fromEventId', 'toEventId'] as const).map((key, i) => (
-                  <div key={key}>
-                    <label style={{ display: 'block', fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '6px' }}>{i === 0 ? 'Origen' : 'Destino'}</label>
-                    <select style={{ width: '100%', padding: '9px 11px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', fontSize: '12px', color: '#fff', outline: 'none' }} value={tfForm[key]} onChange={e => setTfForm(f => ({ ...f, [key]: e.target.value }))}>
-                      <option value="" style={{ background: '#1a1d2e' }}>Caja General</option>
-                      {events.map(ev => <option key={ev.id} value={ev.id} style={{ background: '#1a1d2e' }}>{ev.name}</option>)}
-                    </select>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-white uppercase truncate">{t.description}</p>
+                      <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">{format(new Date(t.date), 'dd MMMM', { locale: es })}</p>
+                    </div>
+                    <p className={cn("text-sm font-black italic", t.type === 'income' ? "text-[#4ade80]" : "text-[#f87171]")}>{t.type === 'income' ? '+' : '-'}{fmt(t.amount)}</p>
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '6px' }}>Monto (RD$)</label>
-                  <input type="number" placeholder="0" style={{ width: '100%', padding: '9px 11px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${amountNum > originBalance && amountNum > 0 ? '#f87171' : 'rgba(255,255,255,0.07)'}`, borderRadius: '10px', fontSize: '12px', color: '#fff', outline: 'none' }} value={tfForm.amount} onChange={e => setTfForm(f => ({ ...f, amount: e.target.value }))} />
-                  {amountNum > originBalance && amountNum > 0 && <p style={{ fontSize: '9px', color: '#f87171', marginTop: '4px', fontWeight: 600 }}>Excede el balance disponible</p>}
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '6px' }}>Fecha</label>
-                  <input type="date" style={{ width: '100%', padding: '9px 11px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', fontSize: '12px', color: '#fff', outline: 'none', colorScheme: 'dark' }} value={tfForm.date} onChange={e => setTfForm(f => ({ ...f, date: e.target.value }))} />
-                </div>
+            </div>
+          </div>
+        );
+      case 'bottom-row':
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="dash-card glass p-6 min-h-[350px] flex flex-col">
+              <div className="flex items-center gap-3 mb-8"><TrendingUp size={18} className="text-[#60a5fa]" /><h3 className="font-black uppercase text-sm text-white italic">Análisis de Tendencia</h3></div>
+              <div className="flex-1 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthlyTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorIn" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2a8a5e" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#2a8a5e" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorOut" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#dc3545" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#dc3545" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                    <XAxis 
+                      dataKey="month" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#4b5563', fontSize: 10, fontWeight: 'bold' }} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#4b5563', fontSize: 10, fontWeight: 'bold' }} 
+                      tickFormatter={(v) => `$${v/1000}k`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#13151f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px' }}
+                      itemStyle={{ fontSize: '12px', fontWeight: '900', textTransform: 'uppercase' }}
+                      labelStyle={{ color: '#9ca3af', marginBottom: '4px', fontSize: '10px', fontWeight: 'bold' }}
+                      formatter={(value: any) => [fmt(Number(value || 0)), '']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="Ingresos" 
+                      stroke="#2a8a5e" 
+                      strokeWidth={4}
+                      fillOpacity={1} 
+                      fill="url(#colorIn)" 
+                      animationDuration={2000}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="Gastos" 
+                      stroke="#dc3545" 
+                      strokeWidth={4}
+                      fillOpacity={1} 
+                      fill="url(#colorOut)" 
+                      animationDuration={2500}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '6px' }}>Descripción</label>
-                <input type="text" placeholder="ej. Ganancia del evento a caja general" style={{ width: '100%', padding: '9px 11px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', fontSize: '12px', color: '#fff', outline: 'none' }} value={tfForm.description} onChange={e => setTfForm(f => ({ ...f, description: e.target.value }))} />
+              <div className="flex gap-6 mt-4 justify-center">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#2a8a5e]" /><span className="text-[10px] font-black text-gray-500 uppercase">Ingresos</span></div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#dc3545]" /><span className="text-[10px] font-black text-gray-500 uppercase">Gastos</span></div>
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => setShowTransfer(false)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>Cancelar</button>
-                <button onClick={handleSaveTransfer} disabled={saving || amountNum > originBalance} style={{ flex: 1, padding: '10px', borderRadius: '10px', background: 'var(--brand-primary)', fontSize: '13px', fontWeight: 700, color: '#fff', border: 'none', cursor: saving || amountNum > originBalance ? 'not-allowed' : 'pointer', opacity: saving || amountNum > originBalance ? 0.4 : 1, boxShadow: '0 4px 16px color-mix(in srgb, var(--brand-primary) 35%, transparent)' }}>
-                  {saving ? 'Procesando...' : 'Transferir'}
-                </button>
+            </div>
+            <div className="dash-card glass p-6">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3"><ArrowLeftRight size={18} className="text-[#a78bfa]" /><h3 className="font-black uppercase text-sm text-white italic">Transferencias</h3></div>
+                <button onClick={() => setShowTransfer(true)} className="px-3 py-1 bg-[#a78bfa]/10 rounded-full text-[8px] font-black uppercase text-[#a78bfa] border border-[#a78bfa]/20 hover:bg-[#a78bfa] hover:text-white transition-all">+ Nueva</button>
+              </div>
+              <div className="space-y-3">
+                {transfers.slice(0, 4).map(tr => (
+                  <div key={tr.id} className="flex items-center gap-4 p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0"><ArrowLeftRight size={16} /></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-gray-300 uppercase truncate">{tr.description}</p>
+                      <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">{format(new Date(tr.date), 'dd MMM', { locale: es })}</p>
+                    </div>
+                    <p className="text-sm font-black text-blue-400 italic">{fmt(tr.amount)}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+        );
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8 min-h-screen bg-[#0a0c14] pb-20 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-[-200px] left-[-100px] w-[600px] h-[600px] bg-[var(--brand-primary)]/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-200px] right-[-100px] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-6 pt-12 relative z-10">
+        <div className="mb-12 flex flex-col md:flex-row justify-between md:items-end gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-[var(--brand-primary)] animate-pulse shadow-[0_0_8px_var(--brand-primary)]" />
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500">Sistema ChurchFlow Activo</p>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-black text-white uppercase italic tracking-tighter leading-none">Dashboard</h1>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => window.print()} className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all">Imprimir Reporte</button>
+            <Link href="/transactions/new"><button className="px-8 py-4 bg-[var(--brand-primary)] text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-2xl shadow-orange-500/40 hover:-translate-y-1 active:scale-95 transition-all">Registrar Movimiento</button></Link>
+          </div>
         </div>
-      )}
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={widgetOrder} strategy={verticalListSortingStrategy}>
+            {widgetOrder.map(id => (
+              <SortableWidget key={id} id={id}>
+                {renderWidget(id)}
+              </SortableWidget>
+            ))}
+          </SortableContext>
+        </DndContext>
+      </div>
+
+      {/* Modal Transferencia con Flow */}
+      <AnimatePresence>
+        {showTransfer && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setShowTransfer(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-[#13151f] border-2 border-white/10 rounded-[3rem] p-10 w-full max-w-md shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="absolute top-0 left-0 right-0 h-2 bg-[var(--brand-primary)]" />
+              <h3 className="text-3xl font-black uppercase italic text-white mb-2 tracking-tighter">Mover Capital</h3>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-8 text-center">Transferencia entre fondos internos</p>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-500 uppercase ml-2">Monto RD$</label>
+                  <input type="number" placeholder="0.00" className="w-full bg-white/5 border-2 border-white/5 p-5 rounded-2xl text-white font-black text-xl outline-none focus:border-[var(--brand-primary)] transition-all" value={tfForm.amount} onChange={e => setTfForm({...tfForm, amount: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-500 uppercase ml-2">Descripción del movimiento</label>
+                  <input type="text" placeholder="EJ: GANANCIA RETIRO A CAJA" className="w-full bg-white/5 border-2 border-white/5 p-5 rounded-2xl text-white font-black text-sm outline-none focus:border-[var(--brand-primary)] transition-all uppercase" value={tfForm.description} onChange={e => setTfForm({...tfForm, description: e.target.value})} />
+                </div>
+                <button onClick={handleSaveTransfer} disabled={saving} className="w-full bg-[var(--brand-primary)] p-6 rounded-[1.5rem] text-white font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-orange-500/20 hover:brightness-110 active:scale-95 transition-all mt-4">{saving ? 'Procesando...' : 'Confirmar Transferencia'}</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

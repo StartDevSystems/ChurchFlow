@@ -77,6 +77,17 @@ export async function POST(request: Request) {
       }
     });
 
+    // --- Auditoría ---
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        userEmail: session.user.email || 'N/A',
+        action: 'CREATE',
+        entity: 'Transaction',
+        details: `Creó ${type === 'income' ? 'Ingreso' : 'Gasto'} por ${amountNum} - ${description}`
+      }
+    });
+
     // --- Lógica de Alertas Beta ---
     try {
       const settings = await prisma.settings.findUnique({ where: { id: 'system-settings' } });

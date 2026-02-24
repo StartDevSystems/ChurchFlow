@@ -10,6 +10,7 @@ import { usePathname, useRouter } from 'next/navigation'; // Import usePathname 
 import { useEffect } from 'react';
 
 import { Toaster } from '@/components/ui/toaster';
+import { CommandPalette } from '@/components/CommandPalette';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -96,12 +97,13 @@ export default function RootLayout({
               <AuthWrapper>
                 <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
                   <Sidebar />
-                  <main className="flex-1 p-4 md:p-8 h-screen overflow-y-auto mt-14 lg:mt-0">
+                  <main className="flex-1 p-4 md:p-8 mt-14 lg:mt-0">
                     <div className="max-w-7xl mx-auto">
                       {children}
                     </div>
                   </main>
                 </div>
+                <CommandPalette />
               </AuthWrapper>
             </ConfigProvider>
           </ThemeProvider>
