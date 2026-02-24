@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import Link from 'next/link';
+import { UserPlus, Loader2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -52,43 +53,97 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#f7f4ef] dark:bg-gray-950 p-4">
-      <Card className="w-full max-w-md rounded-[2.5rem] shadow-2xl border-[#e8e2d9] dark:border-gray-800 overflow-hidden">
-        <CardHeader className="text-center pt-10 pb-6 bg-[#f7f4ef] dark:bg-gray-900/50">
-          <CardTitle className="text-3xl font-black uppercase tracking-tighter italic">Únete al <span className="text-[#e85d26]">Equipo</span></CardTitle>
-          <CardDescription className="font-bold text-[10px] uppercase tracking-widest">Crea tu cuenta de gestión</CardDescription>
+    <div className="flex items-center justify-center min-h-screen bg-[#0a0c14] px-4 relative overflow-hidden">
+      {/* Decoración Neón */}
+      <div className="absolute top-[-100px] left-[-100px] w-96 h-96 bg-[var(--brand-primary)]/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-100px] right-[-100px] w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <Card className="w-full max-w-md rounded-[3rem] bg-[#13151f] border-2 border-white/5 shadow-2xl relative z-10 overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[var(--brand-primary)] to-orange-600" />
+        
+        <CardHeader className="text-center pt-12 pb-8">
+          <div className="w-16 h-16 bg-[var(--brand-primary)]/10 rounded-3xl mx-auto mb-6 flex items-center justify-center border border-[var(--brand-primary)]/20 shadow-inner">
+            <UserPlus className="h-8 w-8 text-[var(--brand-primary)]" strokeWidth={2.5} />
+          </div>
+          <CardTitle className="text-4xl font-black uppercase italic tracking-tighter text-white">Únete al <span className="text-[var(--brand-primary)]">Equipo</span></CardTitle>
+          <CardDescription className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-500 mt-2">Crea tu cuenta de gestión ministerial</CardDescription>
         </CardHeader>
-        <CardContent className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
+
+        <CardContent className="px-8 pb-12">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label className="text-[10px] font-black uppercase ml-1">Nombre</Label>
-                <Input value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} className="rounded-xl" required />
+                <Label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-2">Nombre</Label>
+                <Input 
+                  value={form.firstName} 
+                  onChange={e => setForm({...form, firstName: e.target.value})} 
+                  className="bg-white/5 border-2 border-white/5 h-12 rounded-xl text-white font-black uppercase text-xs focus:border-[var(--brand-primary)] px-4" 
+                  required 
+                />
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px] font-black uppercase ml-1">Apellido</Label>
-                <Input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} className="rounded-xl" required />
+                <Label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-2">Apellido</Label>
+                <Input 
+                  value={form.lastName} 
+                  onChange={e => setForm({...form, lastName: e.target.value})} 
+                  className="bg-white/5 border-2 border-white/5 h-12 rounded-xl text-white font-black uppercase text-xs focus:border-[var(--brand-primary)] px-4" 
+                  required 
+                />
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] font-black uppercase ml-1">Email</Label>
-              <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="rounded-xl" placeholder="m@iglesia.com" required />
+              <Label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-2">Email Oficial</Label>
+              <Input 
+                type="email" 
+                value={form.email} 
+                onChange={e => setForm({...form, email: e.target.value})} 
+                className="bg-white/5 border-2 border-white/5 h-12 rounded-xl text-white font-black text-xs focus:border-[var(--brand-primary)] px-4" 
+                placeholder="m@iglesia.com" 
+                required 
+              />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] font-black uppercase ml-1">Contraseña</Label>
-              <Input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="rounded-xl" required />
+              <Label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-2">Contraseña</Label>
+              <Input 
+                type="password" 
+                value={form.password} 
+                onChange={e => setForm({...form, password: e.target.value})} 
+                className="bg-white/5 border-2 border-white/5 h-12 rounded-xl text-white font-black text-xs focus:border-[var(--brand-primary)] px-4" 
+                required 
+              />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] font-black uppercase ml-1">Confirmar</Label>
-              <Input type="password" value={form.confirmPassword} onChange={e => setForm({...form, confirmPassword: e.target.value})} className="rounded-xl" required />
+              <Label className="text-[9px] font-black uppercase text-gray-500 tracking-widest ml-2">Confirmar</Label>
+              <Input 
+                type="password" 
+                value={form.confirmPassword} 
+                onChange={e => setForm({...form, confirmPassword: e.target.value})} 
+                className="bg-white/5 border-2 border-white/5 h-12 rounded-xl text-white font-black text-xs focus:border-[var(--brand-primary)] px-4" 
+                required 
+              />
             </div>
-            {error && <p className="text-red-500 text-[10px] font-bold uppercase text-center">{error}</p>}
-            <Button type="submit" className="w-full bg-[#1a1714] dark:bg-white text-white dark:text-black font-black py-6 rounded-2xl mt-4 shadow-xl active:scale-95 transition-all" disabled={loading}>
-              {loading ? 'REGISTRANDO...' : 'CREAR MI CUENTA'}
-            </Button>
-            <p className="text-center text-[10px] font-bold text-[#8c7f72] uppercase mt-4">
-              ¿Ya tienes cuenta? <Link href="/login" className="text-[#e85d26] hover:underline ml-1">Inicia Sesión</Link>
-            </p>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-center">
+                <p className="text-red-500 text-[10px] font-black uppercase tracking-widest italic">{error}</p>
+              </div>
+            )}
+            
+            <button 
+              type="submit" 
+              className="w-full bg-white text-black hover:bg-[var(--brand-primary)] hover:text-white h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 mt-4"
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Crear Mi Cuenta'}
+            </button>
+
+            <div className="text-center pt-4">
+              <p className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">
+                ¿Ya eres parte?{' '}
+                <Link href="/login" className="text-[var(--brand-primary)] hover:underline ml-1">
+                  Inicia Sesión
+                </Link>
+              </p>
+            </div>
           </form>
         </CardContent>
       </Card>

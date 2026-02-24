@@ -5,18 +5,17 @@ import '../styles/globals.css';
 import { Inter } from 'next/font/google';
 import { Sidebar } from '@/components/Sidebar';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { SessionProvider, useSession } from 'next-auth/react'; // Import SessionProvider and useSession
-import { usePathname, useRouter } from 'next/navigation'; // Import usePathname and useRouter
+import { SessionProvider, useSession } from 'next-auth/react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 import { Toaster } from '@/components/ui/toaster';
 import { CommandPalette } from '@/components/CommandPalette';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const inter = Inter({ subsets: ['latin'] });
 
-
-
-// AuthWrapper component to handle client-side redirection
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -26,39 +25,32 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   const isPublicPath = publicPaths.includes(pathname);
 
   useEffect(() => {
-    if (status === 'loading') return; // Do nothing while loading
+    if (status === 'loading') return;
 
     if (!session && !isPublicPath) {
       router.push('/login');
     }
-    // If authenticated and on a public path, redirect to dashboard
     if (session && isPublicPath) {
         router.push('/');
     }
   }, [session, status, isPublicPath, pathname, router]);
 
-
-  // Only render children if session is loaded or on a public path
   if (status === 'loading' && !isPublicPath) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-        <p>Cargando sesión...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0c14] text-white">
+        <Loader2 className="h-12 w-12 animate-spin text-[var(--brand-primary)] mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-50">Cargando Sistema Pro...</p>
       </div>
     );
   }
 
-  // If on a public path, render immediately.
-  // If session exists, render children.
-  // Otherwise, user is unauthenticated and not on a public path, so the useEffect will redirect.
-  // In this case, we don't render children to prevent flicker before redirect.
   if (isPublicPath || (session && status === 'authenticated')) {
     return <>{children}</>;
   }
   
-  return null; // Don't render anything if not authenticated and not on a public path, as a redirect is happening
+  return null;
 }
 
-// ConfigProvider component to handle dynamic styling from DB
 function ConfigProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function applySettings() {
@@ -86,18 +78,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
         <link rel="icon" href="/logo de los jovenes.jpeg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
       </head>
-      <body className={inter.className}>
+      <body className={cn(inter.className, "bg-[#0a0c14] text-white selection:bg-[var(--brand-primary)] selection:text-white overflow-x-hidden")}>
         <SessionProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ThemeProvider attribute="class" defaultTheme="dark" forceTheme="dark">
             <ConfigProvider>
               <AuthWrapper>
-                <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+                <div className="flex min-h-screen bg-[#0a0c14]">
                   <Sidebar />
-                  <main className="flex-1 p-4 md:p-8 mt-14 lg:mt-0">
+                  <main className="flex-1 p-4 md:p-8 mt-14 lg:mt-0 relative overflow-x-hidden">
                     <div className="max-w-7xl mx-auto">
                       {children}
                     </div>
