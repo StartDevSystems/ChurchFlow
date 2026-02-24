@@ -14,10 +14,58 @@ import { PlusCircle, Edit, Trash2, ArrowUpRight, ArrowDownRight, Search, Downloa
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-// ... (tipos e interfaces se mantienen igual)
+type TransactionType = 'income' | 'expense';
+
+interface Transaction {
+  id: string;
+  type: TransactionType;
+  category: { id: string; name: string; type: TransactionType };
+  amount: number;
+  date: string;
+  description: string;
+  member?: { id: string; name: string } | null;
+  event?: { id: string; name: string } | null;
+}
+
+const fmt = (amount: number) =>
+  new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 }).format(amount);
 
 export default function TransactionsPage() {
-  // ... (estados existentes)
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | TransactionType>('all');
+  const [search, setSearch] = useState('');
+
+  const fetchTransactions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const url = filter === 'all' ? '/api/transactions' : `/api/transactions?type=${filter}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch');
+      setTransactions(await res.json());
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+      if (res.ok) setTransactions(prev => prev.filter(t => t.id !== id));
+    } catch (e) { console.error(e); }
+  };
+
+  const filtered = transactions.filter(t =>
+    t.description.toLowerCase().includes(search.toLowerCase()) ||
+    t.category.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
   const exportToExcel = () => {
     const dataToExport = filtered.map(t => ({
@@ -76,8 +124,6 @@ export default function TransactionsPage() {
     doc.save(`Recibo_${t.id.substring(0, 8)}.pdf`);
   };
 
-  // ... (resto del componente)
-
   return (
     <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8">
       <style>{`
@@ -121,7 +167,6 @@ export default function TransactionsPage() {
         }
       `}</style>
 
-      {/* ── Hero oscuro ── */}
       <div style={{
         background: 'linear-gradient(160deg, #0f1117 0%, #1a1d2e 60%, #0f1117 100%)',
         padding: '40px 40px 56px',
@@ -168,7 +213,6 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          {/* Mini stats */}
           <div className="flex gap-6 mt-8 flex-wrap">
             <div style={{ borderLeft: '3px solid #2a8a5e', paddingLeft: '14px' }}>
               <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase' }}>Total Ingresos</p>
@@ -186,10 +230,7 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* ── Contenido ── */}
       <div className="px-4 md:px-8 py-6">
-
-        {/* Barra de filtros — oscura para continuar el hero */}
         <div style={{
           background: '#1a1d2e',
           border: '1px solid rgba(255,255,255,0.07)',
@@ -245,7 +286,6 @@ export default function TransactionsPage() {
           </div>
         </div>
 
-        {/* Tabla */}
         <div style={{ background: '#13151f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}>
           {loading ? (
             <div className="p-6 space-y-3">
@@ -269,7 +309,6 @@ export default function TransactionsPage() {
             </div>
           ) : (
             <>
-              {/* Header tabla */}
               <div className="hidden md:grid" style={{
                 gridTemplateColumns: '1fr 130px 100px 120px 90px 72px',
                 padding: '10px 20px',
@@ -281,10 +320,8 @@ export default function TransactionsPage() {
                 ))}
               </div>
 
-              {/* Filas */}
               {filtered.map((t, idx) => (
                 <div key={t.id} className="tx-row" style={{ animationDelay: `${idx * 25}ms` }}>
-                  {/* Desktop */}
                   <div
                     className="hidden md:grid"
                     style={{
@@ -294,8 +331,6 @@ export default function TransactionsPage() {
                       alignItems: 'center',
                       transition: 'background 0.15s',
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(232,93,38,0.04)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                       <div style={{
@@ -303,9 +338,7 @@ export default function TransactionsPage() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         background: t.type === 'income' ? 'rgba(42,138,94,0.1)' : 'rgba(220,53,69,0.1)',
                       }}>
-                        {t.type === 'income'
-                          ? <ArrowUpRight size={14} color="#2a8a5e" />
-                          : <ArrowDownRight size={14} color="#dc3545" />}
+                        {t.type === 'income' ? <ArrowUpRight size={14} color="#2a8a5e" /> : <ArrowDownRight size={14} color="#dc3545" />}
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontSize: '13px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.description}</p>
@@ -352,10 +385,7 @@ export default function TransactionsPage() {
                             border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             cursor: 'pointer', color: 'rgba(255,255,255,0.4)', transition: 'all 0.15s',
-                          }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#dc3545'; (e.currentTarget as HTMLButtonElement).style.color = '#dc3545'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)'; }}
-                          ><Trash2 size={11} /></button>
+                          }}><Trash2 size={11} /></button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
@@ -371,7 +401,6 @@ export default function TransactionsPage() {
                     </div>
                   </div>
 
-                  {/* Mobile */}
                   <div className="md:hidden flex items-center gap-3 p-4" style={{ borderBottom: '1px solid #f7f4ef' }}>
                     <div style={{
                       width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
