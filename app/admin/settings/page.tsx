@@ -106,7 +106,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const response = await fetch('/api/settings', {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });

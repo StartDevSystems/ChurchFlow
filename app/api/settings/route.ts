@@ -33,7 +33,7 @@ export async function GET() {
   }
 }
 
-export async function PUT(request: Request) {
+export async function PATCH(request: Request) {
   try {
     // 🛡️ Seguridad: Solo ADMIN puede modificar los ajustes
     const session = await getServerSession(authOptions);
@@ -43,24 +43,42 @@ export async function PUT(request: Request) {
 
     const body = await request.json();
     
+    // Extraer solo los campos válidos para el modelo Settings
+    const { 
+      churchName, churchSubtitle, currencySymbol, logoUrl, 
+      monthlyGoal, primaryColor, themeMode, reportSignatureName, 
+      reportFooterText, allowPublicRegistration, generalFundName, 
+      lowBalanceAlert, webhookUrl 
+    } = body;
+
+    const settingsData = {
+      churchName,
+      churchSubtitle,
+      currencySymbol,
+      logoUrl,
+      monthlyGoal: parseFloat(monthlyGoal) || 0,
+      primaryColor,
+      themeMode,
+      reportSignatureName,
+      reportFooterText,
+      allowPublicRegistration: Boolean(allowPublicRegistration),
+      generalFundName,
+      lowBalanceAlert: parseFloat(lowBalanceAlert) || 0,
+      webhookUrl
+    };
+    
     const settings = await prisma.settings.upsert({
       where: { id: 'system-settings' },
-      update: {
-        ...body,
-        monthlyGoal: parseFloat(body.monthlyGoal) || 0,
-        lowBalanceAlert: parseFloat(body.lowBalanceAlert) || 0,
-      },
+      update: settingsData,
       create: {
         id: 'system-settings',
-        ...body,
-        monthlyGoal: parseFloat(body.monthlyGoal) || 0,
-        lowBalanceAlert: parseFloat(body.lowBalanceAlert) || 0,
+        ...settingsData
       },
     });
 
     return NextResponse.json(settings);
   } catch (error: any) {
-    console.error('Settings PUT Error:', error);
+    console.error('Settings PATCH Error:', error);
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
   }
 }
