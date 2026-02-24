@@ -79,7 +79,7 @@ export async function POST(request: Request) {
 
     // --- Lógica de Alertas Beta ---
     try {
-      const settings = await prisma.systemSettings.findUnique({ where: { id: 'system-settings' } });
+      const settings = await prisma.settings.findUnique({ where: { id: 'system-settings' } });
       
       if (settings && settings.webhookUrl) {
         const currency = settings.currencySymbol;

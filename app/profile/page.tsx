@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
@@ -110,9 +111,15 @@ export default function ProfilePage() {
           <Card className="rounded-[3rem] border-2 border-[var(--brand-primary)] p-8 text-center shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-[var(--brand-primary)] to-transparent opacity-10" />
             <div className="relative w-32 h-32 mx-auto mb-6 group">
-              <div className="w-full h-full rounded-[2.5rem] overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <div className="w-full h-full rounded-[2.5rem] overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center relative">
                 {localImage ? (
-                  <img src={localImage} alt="Mi Perfil" className="w-full h-full object-cover" />
+                  <Image 
+                    src={localImage} 
+                    alt="Mi Perfil" 
+                    fill 
+                    className="object-cover"
+                    unoptimized
+                  />
                 ) : (
                   <UserIcon className="w-12 h-12 text-[#d1ccc4]" />
                 )}

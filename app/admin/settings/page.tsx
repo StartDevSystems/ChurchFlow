@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -241,7 +242,7 @@ export default function SettingsPage() {
                         <td className="px-8 py-6">
                           <div className="flex items-center gap-4">
                             <div className="relative w-12 h-12 rounded-2xl overflow-hidden border-2 border-[#e8e2d9] dark:border-gray-700 group-hover:border-[var(--brand-primary)] transition-colors">
-                              {u.image ? <img src={u.image} alt="Avatar" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-[#f7f4ef] dark:bg-gray-800 text-[#8c7f72] font-black">{u.email[0].toUpperCase()}</div>}
+                              {u.image ? <Image src={u.image} alt="Avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center bg-[#f7f4ef] dark:bg-gray-800 text-[#8c7f72] font-black">{u.email[0].toUpperCase()}</div>}
                             </div>
                             <div>
                               <p className="font-black text-[#1a1714] dark:text-white text-sm tracking-tight">{u.firstName ? `${u.firstName} ${u.lastName}` : u.email}</p>
@@ -274,8 +275,8 @@ export default function SettingsPage() {
                 <div className="md:col-span-1 space-y-6">
                   <Card className="rounded-[2.5rem] border-2 border-[var(--brand-primary)] p-8 text-center shadow-2xl">
                     <div className="relative w-32 h-32 mx-auto mb-6 group">
-                      <div className="w-full h-full rounded-[2rem] overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl">
-                        {editingUser.image ? <img src={editingUser.image} alt="Perfil" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-2xl font-black">{editingUser.email[0].toUpperCase()}</div>}
+                      <div className="w-full h-full rounded-[2rem] overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl relative">
+                        {editingUser.image ? <Image src={editingUser.image} alt="Perfil" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-2xl font-black">{editingUser.email[0].toUpperCase()}</div>}
                       </div>
                       <input type="file" id="user-img" className="hidden" accept="image/*" onChange={handleUserImageUpload} />
                       <Label htmlFor="user-img" className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-[2rem] opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-white text-[10px] font-black uppercase">Cambiar</Label>
@@ -336,7 +337,9 @@ export default function SettingsPage() {
                   <div className="space-y-2"><Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Subtítulo</Label><Input value={form.churchSubtitle} onChange={e => setForm({...form, churchSubtitle: e.target.value})} className="rounded-2xl h-12" /></div>
                 </div>
                 <div className="flex flex-col md:flex-row items-center gap-10 p-8 border-2 border-dashed border-[#e8e2d9] dark:border-gray-800 rounded-[2.5rem] bg-[#fbfaf8] dark:bg-black/20">
-                  <img src={form.logoUrl} alt="Logo" className="w-32 h-32 rounded-[2rem] object-cover border-4 border-white dark:border-gray-800 shadow-2xl" />
+                  <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden border-4 border-white dark:border-gray-800 shadow-2xl">
+                    <Image src={form.logoUrl} alt="Logo" fill className="object-cover" unoptimized />
+                  </div>
                   <div className="flex-1 w-full space-y-4">
                     <input type="file" id="logo-up" className="hidden" accept="image/*" onChange={handleLogoUpload} />
                     <Label htmlFor="logo-up" className="inline-flex items-center gap-2 bg-[#1a1714] dark:bg-white text-white dark:text-black px-8 py-4 rounded-2xl cursor-pointer font-black text-[10px] uppercase tracking-widest">Subir Logo</Label>
