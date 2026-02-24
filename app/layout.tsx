@@ -85,7 +85,7 @@ export default function RootLayout({
       </head>
       <body className={cn(inter.className, "bg-[#0a0c14] text-white selection:bg-[var(--brand-primary)] selection:text-white overflow-x-hidden")}>
         <SessionProvider>
-          <ThemeProvider attribute="class" defaultTheme="dark" forceTheme="dark">
+          <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
             <ConfigProvider>
               <AuthWrapper>
                 <div className="flex min-h-screen bg-[#0a0c14]">
