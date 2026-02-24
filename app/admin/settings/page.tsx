@@ -119,18 +119,10 @@ export default function SettingsPage() {
         document.documentElement.style.setProperty('--brand-primary', form.primaryColor);
       } else {
         const errorData = await response.json();
-        toast({ 
-          title: 'Error al guardar', 
-          description: errorData.error || 'Ocurrió un problema en el servidor',
-          variant: 'destructive' 
-        });
+        toast({ title: 'Error al guardar', description: errorData.error || 'Ocurrió un problema', variant: 'destructive' });
       }
-    } catch (error: any) {
-      toast({ 
-        title: 'Error de conexión', 
-        description: 'No se pudo contactar con el servidor',
-        variant: 'destructive' 
-      });
+    } catch (error) {
+      toast({ title: 'Error de conexión', variant: 'destructive' });
     } finally { setSaving(false); }
   };
 
@@ -196,22 +188,23 @@ export default function SettingsPage() {
   if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="h-10 w-10 animate-spin text-[var(--brand-primary)]" /></div>;
 
   return (
-    <div className="max-w-6xl mx-auto pb-20 px-4 md:px-0">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-black text-[#1a1714] dark:text-white uppercase tracking-tighter italic leading-none mb-2">
+    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0">
+      <div className="mb-10 text-center md:text-left">
+        <h1 className="text-4xl md:text-5xl font-black text-[#1a1714] dark:text-white uppercase tracking-tighter italic leading-none mb-3">
           Control <span className="text-[var(--brand-primary)]">Master</span>
         </h1>
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#8c7f72]">Centro de mando oficial</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#8c7f72]">Configuración de alto nivel</p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        <aside className="w-full lg:w-64 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 no-scrollbar">
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Navegación de pestañas responsiva */}
+        <aside className="w-full lg:w-64 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 no-scrollbar sticky top-0 lg:top-8 z-30 bg-[#f7f4ef]/80 dark:bg-[#0a0c14]/80 backdrop-blur-xl p-2 rounded-[2rem] border-2 border-white/5 lg:border-none">
           {[
             { id: 'general', label: 'General', icon: Home },
             { id: 'visual', label: 'Estilo', icon: Palette },
             { id: 'users', label: 'Equipo', icon: Users },
             { id: 'reports', label: 'Papelería', icon: FileText },
-            { id: 'finance', label: 'Cajas', icon: DollarSign },
+            { id: 'finance', label: 'Finanzas', icon: DollarSign },
             { id: 'notifications', label: 'Alertas', icon: Bell },
             { id: 'security', label: 'Seguridad', icon: Shield },
           ].map((item) => (
@@ -219,32 +212,32 @@ export default function SettingsPage() {
               key={item.id}
               onClick={() => { setActiveTab(item.id as Tab); setEditingUser(null); }}
               className={cn(
-                "flex items-center gap-3 px-5 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 whitespace-nowrap",
+                "flex items-center gap-3 px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 whitespace-nowrap min-w-max lg:min-w-0",
                 activeTab === item.id 
-                  ? "bg-[var(--brand-primary)] text-white shadow-xl lg:translate-x-2" 
-                  : "text-[#8c7f72] hover:bg-[#f7f4ef] dark:hover:bg-gray-800"
+                  ? "bg-[var(--brand-primary)] text-white shadow-xl shadow-orange-500/20 scale-[1.02] lg:translate-x-2" 
+                  : "text-[#8c7f72] hover:bg-white/5 hover:text-white"
               )}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
             </button>
           ))}
-          <Button onClick={handleSave} disabled={saving} className="hidden lg:flex mt-8 bg-[#1a1714] dark:bg-white text-white dark:text-black font-black py-6 rounded-2xl shadow-2xl active:scale-95 transition-all">
+          <Button onClick={handleSave} disabled={saving} className="hidden lg:flex mt-8 bg-[#1a1714] dark:bg-white text-white dark:text-black font-black py-7 rounded-2xl shadow-2xl hover:brightness-110 active:scale-95 transition-all">
             {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5 mr-2" />}
-            GUARDAR
+            GUARDAR CAMBIOS
           </Button>
         </aside>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 w-full">
           {activeTab === 'users' && !editingUser && (
-            <Card className="rounded-[2.5rem] border-[#e8e2d9] dark:border-gray-800 shadow-sm overflow-hidden animate-in fade-in duration-500">
+            <Card className="rounded-[3rem] border-[#e8e2d9] dark:border-gray-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
               <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8">
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-6">
                   <div>
                     <CardTitle className="text-2xl font-black uppercase italic tracking-tighter">Equipo del Sistema</CardTitle>
-                    <CardDescription className="font-bold text-[10px] uppercase text-[#8c7f72]">Administra accesos y perfiles</CardDescription>
+                    <CardDescription className="font-bold text-[10px] uppercase text-[#8c7f72] tracking-widest mt-1">Administra accesos y perfiles</CardDescription>
                   </div>
-                  <div className="flex items-center gap-3 bg-white dark:bg-gray-900 px-5 py-2.5 rounded-2xl border border-[#e8e2d9] dark:border-gray-800">
+                  <div className="flex items-center gap-3 bg-white dark:bg-gray-900 px-5 py-3 rounded-2xl border border-[#e8e2d9] dark:border-gray-800">
                     <Label className="text-[10px] font-black uppercase whitespace-nowrap">Registro Público</Label>
                     <button onClick={() => setForm({...form, allowPublicRegistration: !form.allowPublicRegistration})} className={cn("w-12 h-6 rounded-full relative transition-all duration-300", form.allowPublicRegistration ? "bg-green-500" : "bg-red-500")}>
                       <div className={cn("absolute top-1 w-4 h-4 bg-white rounded-full transition-all", form.allowPublicRegistration ? "right-1" : "left-1")} />
@@ -252,32 +245,34 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-0 overflow-x-auto">
-                <table className="w-full text-left">
-                  <tbody className="divide-y divide-[#f0ece6] dark:divide-gray-800">
-                    {users.map(u => (
-                      <tr key={u.id} onClick={() => setEditingUser(u)} className="group cursor-pointer hover:bg-[#fcfbf9] dark:hover:bg-gray-800/20 transition-all">
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-4">
-                            <div className="relative w-12 h-12 rounded-2xl overflow-hidden border-2 border-[#e8e2d9] dark:border-gray-700 group-hover:border-[var(--brand-primary)] transition-colors">
-                              {u.image ? <Image src={u.image} alt="Avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center bg-[#f7f4ef] dark:bg-gray-800 text-[#8c7f72] font-black">{u.email[0].toUpperCase()}</div>}
-                            </div>
-                            <div>
-                              <p className="font-black text-[#1a1714] dark:text-white text-sm tracking-tight">{u.firstName ? `${u.firstName} ${u.lastName}` : u.email}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className={cn("text-[8px] font-black px-2 py-0.5 rounded uppercase", u.role === 'ADMIN' ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700")}>{u.role}</span>
-                                <span className="text-[8px] font-bold text-[#8c7f72] uppercase tracking-widest">{Object.keys(u.permissions || {}).filter(k => u.permissions[k]).length} permisos</span>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left min-w-[500px]">
+                    <tbody className="divide-y divide-[#f0ece6] dark:divide-gray-800">
+                      {users.map(u => (
+                        <tr key={u.id} onClick={() => setEditingUser(u)} className="group cursor-pointer hover:bg-[#fcfbf9] dark:hover:bg-white/[0.02] transition-all">
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                              <div className="relative w-12 h-12 rounded-2xl overflow-hidden border-2 border-[#e8e2d9] dark:border-gray-700 group-hover:border-[var(--brand-primary)] transition-colors">
+                                {u.image ? <Image src={u.image} alt="Avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center bg-[#f7f4ef] dark:bg-gray-800 text-[#8c7f72] font-black">{u.email[0].toUpperCase()}</div>}
+                              </div>
+                              <div>
+                                <p className="font-black text-[#1a1714] dark:text-white text-sm tracking-tight">{u.firstName ? `${u.firstName} ${u.lastName}` : u.email}</p>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <span className={cn("text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest", u.role === 'ADMIN' ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400")}>{u.role}</span>
+                                  <span className="text-[8px] font-bold text-[#8c7f72] uppercase tracking-[0.2em]">{Object.keys(u.permissions || {}).filter(k => u.permissions[k]).length} permisos</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 text-right">
-                          <MoreVertical className="h-4 w-4 text-[#8c7f72] opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          </td>
+                          <td className="px-8 py-6 text-right">
+                            <MoreVertical className="h-4 w-4 text-[#8c7f72] opacity-40 group-hover:opacity-100 transition-opacity ml-auto" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -285,39 +280,39 @@ export default function SettingsPage() {
           {editingUser && (
             <div className="space-y-6 animate-in slide-in-from-right-10 duration-300">
               <div className="flex items-center gap-4">
-                <button onClick={() => setEditingUser(null)} className="p-2 rounded-xl hover:bg-[#f7f4ef] dark:hover:bg-gray-800 transition-all"><XCircle className="h-6 w-6 text-[#8c7f72]" /></button>
-                <h2 className="text-xl font-black uppercase italic">Perfil de {editingUser.firstName || editingUser.email}</h2>
+                <button onClick={() => setEditingUser(null)} className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all"><XCircle className="h-6 w-6 text-[#8c7f72]" /></button>
+                <h2 className="text-2xl font-black uppercase italic tracking-tighter">Perfil de {editingUser.firstName || editingUser.email}</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-1 space-y-6">
-                  <Card className="rounded-[2.5rem] border-2 border-[var(--brand-primary)] p-8 text-center shadow-2xl">
-                    <div className="relative w-32 h-32 mx-auto mb-6 group">
-                      <div className="w-full h-full rounded-[2rem] overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl relative">
-                        {editingUser.image ? <Image src={editingUser.image} alt="Perfil" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-2xl font-black">{editingUser.email[0].toUpperCase()}</div>}
+                  <Card className="rounded-[3rem] border-2 border-[var(--brand-primary)] p-10 text-center shadow-2xl bg-[#13151f]">
+                    <div className="relative w-32 h-32 mx-auto mb-8 group">
+                      <div className="w-full h-full rounded-[2.5rem] overflow-hidden border-4 border-white/10 shadow-xl relative">
+                        {editingUser.image ? <Image src={editingUser.image} alt="Perfil" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center bg-gray-800 text-3xl font-black">{editingUser.email[0].toUpperCase()}</div>}
                       </div>
                       <input type="file" id="user-img" className="hidden" accept="image/*" onChange={handleUserImageUpload} />
-                      <Label htmlFor="user-img" className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-[2rem] opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-white text-[10px] font-black uppercase">Cambiar</Label>
+                      <Label htmlFor="user-img" className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-[2.5rem] opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-white text-[10px] font-black uppercase tracking-widest">Cambiar</Label>
                     </div>
-                    <button onClick={() => toggleUserRole(editingUser.id, editingUser.role)} disabled={editingUser.id === session?.user?.id} className={cn("w-full py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all", editingUser.role === 'ADMIN' ? "bg-purple-600" : "bg-[#f7f4ef] text-[#8c7f72] border border-[#e8e2d9]")}>
+                    <button onClick={() => toggleUserRole(editingUser.id, editingUser.role)} disabled={editingUser.id === session?.user?.id} className={cn("w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all", editingUser.role === 'ADMIN' ? "bg-purple-600 text-white shadow-lg" : "bg-white/5 text-[#8c7f72] border border-white/5")}>
                       {editingUser.role}
                     </button>
                   </Card>
 
-                  <Card className="rounded-[2rem] border-[#e8e2d9] dark:border-gray-800 p-6 space-y-4">
-                    <Label className="text-[10px] font-black uppercase">Nueva Clave</Label>
-                    <Input type="password" value={newPassword} onChange={e => setNewPass(e.target.value)} className="rounded-xl h-10 text-xs" />
-                    <Button onClick={() => { updateUserInDB(editingUser.id, { password: newPassword }); setNewPass(''); }} className="w-full bg-[#1a1714] dark:bg-white text-white dark:text-black font-black text-[10px] rounded-xl py-4 uppercase">Resetear</Button>
-                    <Button onClick={() => deleteUser(editingUser.id)} disabled={editingUser.id === session?.user?.id} variant="ghost" className="w-full text-red-500 font-bold text-[10px] uppercase">Eliminar</Button>
+                  <Card className="rounded-[2.5rem] border-white/5 bg-[#13151f]/40 p-8 space-y-5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Resetear Clave</Label>
+                    <Input type="password" value={newPassword} onChange={e => setNewPass(e.target.value)} className="bg-white/5 border-white/5 rounded-xl h-12 text-sm" placeholder="Nueva contraseña" />
+                    <Button onClick={() => { updateUserInDB(editingUser.id, { password: newPassword }); setNewPass(''); }} className="w-full bg-white text-black font-black text-[10px] rounded-xl py-5 uppercase tracking-[0.2em] shadow-xl">Actualizar</Button>
+                    <Button onClick={() => deleteUser(editingUser.id)} disabled={editingUser.id === session?.user?.id} variant="ghost" className="w-full text-red-500 font-black text-[9px] uppercase tracking-widest hover:bg-red-500/10">Eliminar Cuenta</Button>
                   </Card>
                 </div>
 
                 <div className="md:col-span-2">
-                  <Card className="rounded-[2.5rem] border-[#e8e2d9] dark:border-gray-800 h-full overflow-hidden shadow-sm">
-                    <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8">
-                      <CardTitle className="text-lg font-black uppercase flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-green-500" /> Permisos</CardTitle>
+                  <Card className="rounded-[3rem] border-white/5 bg-[#13151f] h-full overflow-hidden shadow-2xl">
+                    <CardHeader className="bg-white/[0.02] p-8 border-b border-white/5">
+                      <CardTitle className="text-xl font-black uppercase italic flex items-center gap-3"><ShieldCheck className="h-6 w-6 text-green-500" /> Permisos de Acceso</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <CardContent className="p-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {Object.keys(PERMISSION_LABELS).map((key) => {
                         const isActive = editingUser.permissions?.[key];
                         return (
@@ -328,14 +323,14 @@ export default function SettingsPage() {
                               updateUserInDB(editingUser.id, { permissions: newPerms });
                             }}
                             className={cn(
-                              "flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300",
+                              "flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all duration-300 text-left",
                               isActive 
-                                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/30 text-green-700 dark:text-green-400" 
-                                : "bg-[#f7f4ef] dark:bg-gray-900 border-[#e8e2d9] dark:border-gray-800 text-[#8c7f72]"
+                                ? "bg-green-500/10 border-green-500/30 text-green-400 shadow-inner" 
+                                : "bg-white/5 border-white/5 text-gray-500 hover:border-white/10"
                             )}
                           >
-                            <span className="font-black text-[10px] uppercase tracking-wider">{PERMISSION_LABELS[key]}</span>
-                            {isActive ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4 opacity-20" />}
+                            <span className="font-black text-[10px] uppercase tracking-widest">{PERMISSION_LABELS[key]}</span>
+                            {isActive ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <XCircle className="h-5 w-5 opacity-20 shrink-0" />}
                           </button>
                         );
                       })}
@@ -347,20 +342,24 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'general' && (
-            <Card className="rounded-[2.5rem] border-[#e8e2d9] dark:border-gray-800 overflow-hidden shadow-sm animate-in fade-in duration-500">
-              <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8"><CardTitle className="text-xl font-black uppercase italic">Identidad</CardTitle></CardHeader>
-              <CardContent className="p-8 space-y-8">
+            <Card className="rounded-[3rem] border-white/5 bg-[#13151f] overflow-hidden shadow-2xl animate-in fade-in duration-500">
+              <CardHeader className="bg-white/[0.02] p-8 border-b border-white/5"><CardTitle className="text-xl font-black uppercase italic tracking-tighter">Identidad Ministerial</CardTitle></CardHeader>
+              <CardContent className="p-10 space-y-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-2"><Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Nombre Ministerio</Label><Input value={form.churchName} onChange={e => setForm({...form, churchName: e.target.value})} className="rounded-2xl h-12" /></div>
-                  <div className="space-y-2"><Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Subtítulo</Label><Input value={form.churchSubtitle} onChange={e => setForm({...form, churchSubtitle: e.target.value})} className="rounded-2xl h-12" /></div>
+                  <div className="space-y-3"><Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Nombre del Ministerio</Label><Input value={form.churchName} onChange={e => setForm({...form, churchName: e.target.value})} className="bg-white/5 border-white/10 rounded-2xl h-14 font-black uppercase text-sm px-6" /></div>
+                  <div className="space-y-3"><Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Subtítulo / Lema</Label><Input value={form.churchSubtitle} onChange={e => setForm({...form, churchSubtitle: e.target.value})} className="bg-white/5 border-white/10 rounded-2xl h-14 font-black uppercase text-sm px-6" /></div>
                 </div>
-                <div className="flex flex-col md:flex-row items-center gap-10 p-8 border-2 border-dashed border-[#e8e2d9] dark:border-gray-800 rounded-[2.5rem] bg-[#fbfaf8] dark:bg-black/20">
-                  <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden border-4 border-white dark:border-gray-800 shadow-2xl">
+                <div className="flex flex-col md:flex-row items-center gap-10 p-10 border-2 border-dashed border-white/10 rounded-[3rem] bg-white/[0.01]">
+                  <div className="relative w-40 h-40 rounded-[2.5rem] overflow-hidden border-4 border-white/10 shadow-2xl shrink-0">
                     <Image src={form.logoUrl} alt="Logo" fill className="object-cover" unoptimized />
                   </div>
-                  <div className="flex-1 w-full space-y-4">
+                  <div className="flex-1 w-full space-y-6 text-center md:text-left">
+                    <div>
+                      <p className="text-xl font-black uppercase italic text-white mb-2">Escudo Oficial</p>
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Formatos recomendados: PNG, JPG o WEBP</p>
+                    </div>
                     <input type="file" id="logo-up" className="hidden" accept="image/*" onChange={handleLogoUpload} />
-                    <Label htmlFor="logo-up" className="inline-flex items-center gap-2 bg-[#1a1714] dark:bg-white text-white dark:text-black px-8 py-4 rounded-2xl cursor-pointer font-black text-[10px] uppercase tracking-widest">Subir Logo</Label>
+                    <Label htmlFor="logo-up" className="inline-flex items-center gap-3 bg-white text-black px-10 py-5 rounded-2xl cursor-pointer font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-[var(--brand-primary)] hover:text-white transition-all">{uploading ? <Loader2 className="animate-spin h-4 w-4" /> : <Upload className="h-4 w-4" />} Subir Archivo</Label>
                   </div>
                 </div>
               </CardContent>
@@ -368,30 +367,31 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'visual' && (
-            <Card className="rounded-[2.5rem] border-[#e8e2d9] dark:border-gray-800 shadow-sm animate-in fade-in duration-500">
-              <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8"><CardTitle className="text-xl font-black uppercase italic">Apariencia</CardTitle></CardHeader>
-              <CardContent className="p-8 space-y-10">
-                <div className="space-y-6">
-                  <Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Color Primario</Label>
-                  <div className="flex flex-wrap items-center gap-6">
-                    <input type="color" value={form.primaryColor} onChange={e => setForm({...form, primaryColor: e.target.value})} className="w-20 h-20 rounded-3xl cursor-pointer border-none bg-transparent" />
-                    <Button variant="outline" onClick={() => setForm({...form, primaryColor: DEFAULT_ORANGE})} className="rounded-2xl border-[#e8e2d9] text-[#8c7f72] font-black text-[10px] uppercase h-12 px-6">Restablecer</Button>
+            <Card className="rounded-[3rem] border-white/5 bg-[#13151f] shadow-2xl animate-in fade-in duration-500">
+              <CardHeader className="bg-white/[0.02] p-8 border-b border-white/5"><CardTitle className="text-xl font-black uppercase italic tracking-tighter">Apariencia y Estilo</CardTitle></CardHeader>
+              <CardContent className="p-10 space-y-12">
+                <div className="space-y-8">
+                  <Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Color de Identidad</Label>
+                  <div className="flex flex-wrap items-center gap-10">
+                    <div className="relative">
+                      <input type="color" value={form.primaryColor} onChange={e => setForm({...form, primaryColor: e.target.value})} className="w-24 h-24 rounded-[2rem] cursor-pointer border-4 border-white/10 bg-transparent p-0 overflow-hidden" />
+                      <div className="absolute -top-3 -right-3 w-8 h-8 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center border border-white/10 shadow-lg pointer-events-none"><Palette size={14} className="text-gray-500" /></div>
+                    </div>
+                    <div className="flex-1 space-y-4">
+                      <p className="font-black text-white uppercase italic text-lg">{form.primaryColor.toUpperCase()}</p>
+                      <Button variant="outline" onClick={() => setForm({...form, primaryColor: DEFAULT_ORANGE})} className="rounded-xl border-white/10 text-gray-500 font-black text-[9px] uppercase tracking-widest h-10 px-6 hover:bg-white/5 hover:text-white">Usar Naranja Original</Button>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-gray-800">
-                  <Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Nombre de la Calculadora</Label>
-                  <Input 
-                    value={form.calculatorName} 
-                    onChange={e => setForm({...form, calculatorName: e.target.value})} 
-                    className="max-w-md rounded-xl h-12 font-black uppercase italic"
-                    placeholder="EJ: CALCULADORA BENDECIDA"
-                  />
+                <div className="space-y-4 pt-10 border-t border-white/5">
+                  <Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Nombre Herramienta de Presupuesto</Label>
+                  <Input value={form.calculatorName} onChange={e => setForm({...form, calculatorName: e.target.value})} className="bg-white/5 border-white/10 rounded-2xl h-14 font-black uppercase text-sm px-6 italic" placeholder="EJ: CALCULADORA BENDECIDA" />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100 dark:border-gray-800">
+                <div className="grid grid-cols-3 gap-4 pt-10 border-t border-white/5">
                   {['system', 'light', 'dark'].map(m => (
-                    <button key={m} onClick={() => { setForm({...form, themeMode: m}); setTheme(m); }} className={cn("py-5 rounded-[1.5rem] font-black text-[10px] uppercase border-2", form.themeMode === m ? "bg-[#1a1714] dark:bg-white text-white dark:text-black" : "text-[#8c7f72]")}>{m}</button>
+                    <button key={m} onClick={() => { setForm({...form, themeMode: m}); setTheme(m); }} className={cn("py-6 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] border-2 transition-all", form.themeMode === m ? "bg-white text-black border-white shadow-2xl" : "text-gray-500 border-white/5 hover:border-white/10")}>{m}</button>
                   ))}
                 </div>
               </CardContent>
@@ -399,97 +399,97 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'reports' && (
-            <Card className="rounded-[2.5rem] border-[#e8e2d9] dark:border-gray-800 shadow-sm animate-in fade-in duration-500">
-              <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8"><CardTitle className="text-xl font-black uppercase italic">Reportes</CardTitle></CardHeader>
-              <CardContent className="p-8 space-y-6">
-                <div className="space-y-2"><Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Nombre Firma</Label><Input value={form.reportSignatureName} onChange={e => setForm({...form, reportSignatureName: e.target.value})} className="rounded-xl" /></div>
-                <div className="space-y-2"><Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Texto Pie</Label><textarea value={form.reportFooterText} onChange={e => setForm({...form, reportFooterText: e.target.value})} className="w-full h-24 p-4 rounded-2xl bg-[#f7f4ef] dark:bg-gray-900 border-none text-sm" /></div>
+            <Card className="rounded-[3rem] border-white/5 bg-[#13151f] shadow-2xl animate-in fade-in duration-500">
+              <CardHeader className="bg-white/[0.02] p-8 border-b border-white/5"><CardTitle className="text-xl font-black uppercase italic tracking-tighter">Documentación y Reportes</CardTitle></CardHeader>
+              <CardContent className="p-10 space-y-8">
+                <div className="space-y-3"><Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Nombre Responsable Firma</Label><Input value={form.reportSignatureName} onChange={e => setForm({...form, reportSignatureName: e.target.value})} className="bg-white/5 border-white/10 rounded-2xl h-14 font-black uppercase text-sm px-6" /></div>
+                <div className="space-y-3"><Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Pie de Página (Mensaje)</Label><textarea value={form.reportFooterText} onChange={e => setForm({...form, reportFooterText: e.target.value})} className="w-full h-32 p-6 rounded-[2rem] bg-white/5 border-2 border-transparent focus:border-[var(--brand-primary)] outline-none text-sm font-bold text-white transition-all" /></div>
               </CardContent>
             </Card>
           )}
 
           {activeTab === 'finance' && (
-            <Card className="rounded-[2.5rem] border-[#e8e2d9] dark:border-gray-800 shadow-sm animate-in fade-in duration-500">
-              <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8"><CardTitle className="text-xl font-black uppercase italic">Finanzas</CardTitle></CardHeader>
-              <CardContent className="p-8 space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2"><Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Fondo General</Label><Input value={form.generalFundName} onChange={e => setForm({...form, generalFundName: e.target.value})} className="rounded-xl" /></div>
-                  <div className="space-y-2"><Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Moneda</Label><Input value={form.currencySymbol} onChange={e => setForm({...form, currencySymbol: e.target.value})} className="rounded-xl" /></div>
-                  <div className="space-y-2"><Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Meta Mensual</Label><Input type="number" value={form.monthlyGoal} onChange={e => setForm({...form, monthlyGoal: e.target.value})} className="rounded-xl" /></div>
-                  <div className="space-y-2"><Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Alerta Saldo</Label><Input type="number" value={form.lowBalanceAlert} onChange={e => setForm({...form, lowBalanceAlert: e.target.value})} className="rounded-xl" /></div>
+            <Card className="rounded-[3rem] border-white/5 bg-[#13151f] shadow-2xl animate-in fade-in duration-500">
+              <CardHeader className="bg-white/[0.02] p-8 border-b border-white/5"><CardTitle className="text-xl font-black uppercase italic tracking-tighter">Configuración Financiera</CardTitle></CardHeader>
+              <CardContent className="p-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3"><Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Nombre Fondo General</Label><Input value={form.generalFundName} onChange={e => setForm({...form, generalFundName: e.target.value})} className="bg-white/5 border-white/10 rounded-2xl h-14 font-black uppercase text-sm px-6" /></div>
+                  <div className="space-y-3"><Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Símbolo Divisa</Label><Input value={form.currencySymbol} onChange={e => setForm({...form, currencySymbol: e.target.value})} className="bg-white/5 border-white/10 rounded-2xl h-14 font-black uppercase text-sm px-6" /></div>
+                  <div className="space-y-3"><Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Meta de Ingresos Mensual</Label><Input type="number" value={form.monthlyGoal} onChange={e => setForm({...form, monthlyGoal: e.target.value})} className="bg-white/5 border-white/10 rounded-2xl h-14 font-black text-sm px-6" /></div>
+                  <div className="space-y-3"><Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Umbral de Alerta Saldo Bajo</Label><Input type="number" value={form.lowBalanceAlert} onChange={e => setForm({...form, lowBalanceAlert: e.target.value})} className="bg-white/5 border-white/10 rounded-2xl h-14 font-black text-sm px-6" /></div>
                 </div>
               </CardContent>
             </Card>
           )}
 
           {activeTab === 'notifications' && (
-            <Card className="rounded-[2.5rem] border-[#e8e2d9] dark:border-gray-800 shadow-sm animate-in fade-in duration-500">
-              <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8"><CardTitle className="text-xl font-black uppercase italic">Alertas y Mensajes</CardTitle></CardHeader>
-              <CardContent className="p-8 space-y-8">
+            <Card className="rounded-[3rem] border-white/5 bg-[#13151f] shadow-2xl animate-in fade-in duration-500">
+              <CardHeader className="bg-white/[0.02] p-8 border-b border-white/5"><CardTitle className="text-xl font-black uppercase italic tracking-tighter">Alertas y Notificaciones</CardTitle></CardHeader>
+              <CardContent className="p-10 space-y-10">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 rounded-3xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-4">
+                    <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-400"><Bell size={24} /></div>
+                    <div><p className="font-black text-white uppercase text-sm tracking-tight">Notificaciones Push</p><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Recibe alertas en tu navegador</p></div>
+                  </div>
+                  <Button onClick={() => Notification.requestPermission()} className="w-full md:w-auto bg-blue-600 text-white font-black text-[10px] uppercase px-8 py-6 rounded-2xl shadow-xl hover:bg-blue-700 transition-all tracking-[0.2em]">Solicitar Acceso</Button>
+                </div>
+
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Bell className="h-4 w-4 text-blue-500" />
-                      <Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Notificaciones Navegador</Label>
-                    </div>
-                    <Button onClick={() => Notification.requestPermission()} className="h-8 px-4 text-[8px] font-black uppercase rounded-lg bg-blue-600">Activar</Button>
-                  </div>
+                  <Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest ml-2">Webhook de Integración (Telegram/Slack)</Label>
+                  <Input value={form.webhookUrl} onChange={e => setForm({...form, webhookUrl: e.target.value})} className="bg-white/5 border-white/10 rounded-2xl h-14 font-black text-xs px-6" placeholder="https://api.telegram.org/..." />
                 </div>
 
-                <div className="space-y-2 pt-4 border-t border-white/5">
-                  <Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Webhook URL</Label>
-                  <Input value={form.webhookUrl} onChange={e => setForm({...form, webhookUrl: e.target.value})} className="rounded-xl" placeholder="https://api.telegram.org/..." />
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-white/5">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2 ml-2">
                     <MessageCircle className="h-4 w-4 text-[#25D366]" />
-                    <Label className="font-bold text-[10px] uppercase text-[#8c7f72]">Mensaje WhatsApp</Label>
+                    <Label className="font-black text-[10px] uppercase text-gray-500 tracking-widest">Plantilla Mensaje WhatsApp</Label>
                   </div>
-                  <textarea value={form.whatsappMessageTemplate} onChange={e => setForm({...form, whatsappMessageTemplate: e.target.value})} className="w-full h-32 p-4 rounded-2xl bg-[#f7f4ef] dark:bg-gray-900 border-2 border-transparent focus:border-[var(--brand-primary)] outline-none text-xs" />
+                  <textarea value={form.whatsappMessageTemplate} onChange={e => setForm({...form, whatsappMessageTemplate: e.target.value})} className="w-full h-40 p-6 rounded-[2.5rem] bg-white/5 border-2 border-transparent focus:border-[var(--brand-primary)] outline-none text-xs font-bold text-white transition-all leading-relaxed" placeholder="Hola {nombre}..." />
+                  <p className="text-[8px] font-bold text-gray-600 uppercase tracking-widest ml-4">Tags disponibles: {'{nombre}'}, {'{mes}'}, {'{monto}'}</p>
                 </div>
               </CardContent>
             </Card>
           )}
 
           {activeTab === 'security' && (
-            <Card className="rounded-[2.5rem] border-[#e8e2d9] dark:border-gray-800 shadow-sm overflow-hidden animate-in fade-in duration-500">
-              <CardHeader className="bg-[#f7f4ef] dark:bg-gray-800/50 p-8">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Shield className="h-6 w-6 text-red-500" />
-                    <div><CardTitle className="text-xl font-black uppercase italic">Auditoría</CardTitle></div>
+            <Card className="rounded-[3rem] border-white/5 bg-[#13151f] shadow-2xl overflow-hidden animate-in fade-in duration-500">
+              <CardHeader className="bg-white/[0.02] p-8 border-b border-white/5">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                  <div className="flex items-center gap-4 text-center md:text-left">
+                    <div className="p-4 rounded-2xl bg-red-500/10 text-red-500"><Shield size={24} /></div>
+                    <div><CardTitle className="text-xl font-black uppercase italic tracking-tighter">Auditoría de Seguridad</CardTitle><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Historial de acciones críticas</p></div>
                   </div>
                   <Button onClick={async () => {
                     const res = await fetch('/api/admin/backup');
                     const data = await res.json();
                     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                     const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a'); a.href = url; a.download = `Backup_${new Date().getTime()}.json`; a.click();
-                  }} className="bg-black text-white font-black text-[9px] uppercase px-4 rounded-xl h-9">Respaldo</Button>
+                    const a = document.createElement('a'); a.href = url; a.download = `ChurchFlow_Backup_${format(new Date(), 'ddMMyy')}.json`; a.click();
+                  }} className="w-full md:w-auto bg-white text-black font-black text-[10px] uppercase px-8 py-6 rounded-2xl shadow-xl hover:bg-red-500 hover:text-white transition-all tracking-[0.2em]">Descargar Respaldo</Button>
                 </div>
               </CardHeader>
-              <CardContent className="p-0 overflow-x-auto">
-                <table className="w-full text-left">
-                  <tbody className="divide-y divide-[#f0ece6] dark:divide-gray-800">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left min-w-[600px]">
+                  <tbody className="divide-y divide-white/5">
                     {auditLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-[#fcfbf9] dark:hover:bg-gray-800/20 transition-all">
-                        <td className="px-8 py-4 text-[10px] font-bold text-gray-500">{format(new Date(log.createdAt), 'dd/MM/yy HH:mm')}</td>
-                        <td className="px-8 py-4 text-xs font-black">{log.userEmail}</td>
-                        <td className="px-8 py-4"><span className={cn("text-[8px] font-black px-2 py-0.5 rounded uppercase", log.action === 'DELETE' ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")}>{log.action}</span></td>
-                        <td className="px-8 py-4 text-xs italic opacity-70">{log.details}</td>
+                      <tr key={log.id} className="hover:bg-white/[0.02] transition-all">
+                        <td className="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{format(new Date(log.createdAt), 'dd/MM/yy HH:mm')}</td>
+                        <td className="px-8 py-5 text-xs font-black text-white">{log.userEmail}</td>
+                        <td className="px-8 py-5"><span className={cn("text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest", log.action === 'DELETE' ? "bg-red-500/10 text-red-500" : log.action === 'UPDATE' ? "bg-blue-500/10 text-blue-400" : "bg-green-500/10 text-green-500")}>{log.action}</span></td>
+                        <td className="px-8 py-5 text-xs italic opacity-60 text-gray-400 font-medium truncate max-w-[300px]">{log.details}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </CardContent>
+              </div>
             </Card>
           )}
         </div>
       </div>
 
-      <div className="lg:hidden fixed bottom-6 right-6 z-50">
-        <Button onClick={handleSave} disabled={saving} className="bg-[var(--brand-primary)] text-white font-black p-5 rounded-full shadow-2xl active:scale-95 transition-all">
+      {/* Botón Guardar Flotante para Móvil */}
+      <div className="lg:hidden fixed bottom-8 right-8 z-50">
+        <Button onClick={handleSave} disabled={saving} className="bg-[var(--brand-primary)] text-white font-black w-16 h-16 rounded-3xl shadow-[0_10px_40px_rgba(232,93,38,0.4)] active:scale-90 transition-all flex items-center justify-center p-0">
           {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Save className="h-6 w-6" />}
         </Button>
       </div>

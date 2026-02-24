@@ -11,7 +11,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/AlertDialog";
-import { PlusCircle, Edit, Trash2, ArrowUpRight, ArrowDownRight, Search, Download, FileText, Eye, EyeOff } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, ArrowUpRight, ArrowDownRight, Search, Download, FileText, Eye, EyeOff, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -38,7 +38,7 @@ export default function TransactionsPage() {
   const [filter, setFilter] = useState<'all' | TransactionType>('all');
   const [search, setSearch] = useState('');
   const [isCompact, setIsCompact] = useState(false);
-  const [dateRange, setDateRange] = useState({ from: '', to: '' }); // Nuevas fechas
+  const [dateRange, setDateRange] = useState({ from: '', to: '' });
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -184,99 +184,157 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8">
-      <style>{`
+    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8 min-h-screen bg-[#0a0c14] pb-20">
+      <style jsx global>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .tx-row { animation: slideUp 0.25s ease both; }
-        .btn-filter-active { background: var(--brand-primary) !important; border-color: var(--brand-primary) !important; color: #fff !important; }
-        .btn-nueva-tx { background: var(--brand-primary); box-shadow: 0 4px 20px color-mix(in srgb, var(--brand-primary) 40%, transparent); }
-        .grid-bg { background-image: linear-gradient(color-mix(in srgb, var(--brand-primary) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--brand-primary) 5%, transparent) 1px, transparent 1px); background-size: 40px 40px; }
+        .grid-bg { background-image: linear-gradient(rgba(232,93,38,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(232,93,38,0.05) 1px, transparent 1px); background-size: 40px 40px; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; cursor: pointer; }
       `}</style>
 
-      <div style={{ background: 'linear-gradient(160deg, #0f1117 0%, #1a1d2e 60%, #0f1117 100%)', padding: '40px 40px 56px', position: 'relative', overflow: 'hidden' }}>
-        <div className="grid-bg" style={{ position: 'absolute', inset: 0 }} />
-        <div className="relative z-10">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-            <h1 style={{ fontSize: '36px', fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>Transacciones</h1>
-            <div className="flex gap-3">
-              <button onClick={exportToExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all"><Download size={14} /> Excel</button>
-              <Link href="/transactions/new"><button className="btn-nueva-tx flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-black text-[10px] uppercase tracking-widest"><PlusCircle size={14} /> Nueva</button></Link>
+      {/* Hero Header Responsivo */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#0f1117] via-[#1a1d2e] to-[#0f1117] px-6 py-12 md:px-12 md:py-16">
+        <div className="grid-bg absolute inset-0 pointer-events-none" />
+        <div className="relative z-10 max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div className="text-center md:text-left">
+              <h1 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter leading-none mb-4">Transacciones</h1>
+              <div className="flex flex-wrap justify-center md:justify-start gap-6 mt-6">
+                <div className="border-l-4 border-green-500 pl-4 py-1">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Ingresos</p>
+                  <p className="text-xl md:text-3xl font-black text-green-500 tracking-tighter">{fmt(totalIncome)}</p>
+                </div>
+                <div className="border-l-4 border-red-500 pl-4 py-1">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Gastos</p>
+                  <p className="text-xl md:text-3xl font-black text-red-500 tracking-tighter">{fmt(totalExpense)}</p>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-6 mt-8">
-            <div className="border-l-2 border-[#4ade80] pl-4"><p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Ingresos</p><p className="text-xl font-black text-[#4ade80]">{fmt(totalIncome)}</p></div>
-            <div className="border-l-2 border-[#f87171] pl-4"><p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Gastos</p><p className="text-xl font-black text-[#f87171]">{fmt(totalExpense)}</p></div>
+            <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
+              <button onClick={exportToExcel} className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all shadow-xl"><Download size={16} /> Excel</button>
+              <Link href="/transactions/new" className="w-full">
+                <button className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-[var(--brand-primary)] text-white font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-orange-500/20"><PlusCircle size={16} /> Nueva</button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="px-4 md:px-8 py-6">
-        <div className="flex flex-wrap items-center gap-4 mb-6 bg-[#1a1d2e] p-3 rounded-2xl border border-white/5 shadow-2xl">
-          <div className="flex gap-1">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-10">
+        {/* Barra de Filtros Pro y Responsiva */}
+        <div className="flex flex-col lg:flex-row gap-4 mb-8 bg-[#13151f] p-4 md:p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
+          <div className="flex flex-wrap items-center gap-2">
             {['all', 'income', 'expense'].map(f => (
-              <button key={f} onClick={() => setFilter(f as any)} className={cn("px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filter === f ? "bg-[var(--brand-primary)] text-white" : "text-gray-500 hover:text-white")}>{f === 'all' ? 'Todo' : f === 'income' ? 'Ingresos' : 'Gastos'}</button>
+              <button key={f} onClick={() => setFilter(f as any)} className={cn("px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filter === f ? "bg-[var(--brand-primary)] text-white shadow-lg shadow-orange-500/20" : "text-gray-500 hover:bg-white/5")}>{f === 'all' ? 'Todo' : f === 'income' ? 'Ingresos' : 'Gastos'}</button>
             ))}
-          </div>
-          
-          <button 
-            onClick={() => setIsCompact(!isCompact)}
-            className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2", isCompact ? "bg-white text-black border-white" : "text-gray-500 border-gray-800")}
-          >
-            {isCompact ? <EyeOff size={14} /> : <Eye size={14} />} {isCompact ? "Normal" : "Rápida"}
-          </button>
-
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1">
-            <span className="text-[8px] font-black text-gray-500 uppercase">Desde</span>
-            <input type="date" value={dateRange.from} onChange={e => setDateRange({...dateRange, from: e.target.value})} className="bg-transparent border-none outline-none text-white text-[9px] font-bold uppercase color-scheme-dark" />
-            <span className="text-[8px] font-black text-gray-500 uppercase ml-2">Hasta</span>
-            <input type="date" value={dateRange.to} onChange={e => setDateRange({...dateRange, to: e.target.value})} className="bg-transparent border-none outline-none text-white text-[9px] font-bold uppercase color-scheme-dark" />
+            <button 
+              onClick={() => setIsCompact(!isCompact)}
+              className={cn("hidden md:flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2", isCompact ? "bg-white text-black border-white" : "text-gray-500 border-gray-800")}
+            >
+              {isCompact ? <EyeOff size={14} /> : <Eye size={14} />} {isCompact ? "Normal" : "Rápida"}
+            </button>
           </div>
 
-          <div className="ml-auto flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-            <Search size={14} className="text-gray-500" />
-            <input type="text" placeholder="BUSCAR..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-white text-[10px] font-black uppercase w-32" />
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-white/5 border border-white/5 rounded-2xl p-2 flex-1">
+            <div className="flex items-center gap-2 px-3 w-full sm:w-auto">
+              <span className="text-[8px] font-black text-gray-500 uppercase whitespace-nowrap">De:</span>
+              <input type="date" value={dateRange.from} onChange={e => setDateRange({...dateRange, from: e.target.value})} className="bg-transparent border-none outline-none text-white text-[10px] font-black uppercase w-full color-scheme-dark" />
+            </div>
+            <div className="hidden sm:block w-px h-4 bg-white/10" />
+            <div className="flex items-center gap-2 px-3 w-full sm:w-auto">
+              <span className="text-[8px] font-black text-gray-500 uppercase whitespace-nowrap">A:</span>
+              <input type="date" value={dateRange.to} onChange={e => setDateRange({...dateRange, to: e.target.value})} className="bg-transparent border-none outline-none text-white text-[10px] font-black uppercase w-full color-scheme-dark" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-2xl px-5 py-3 lg:w-64">
+            <Search size={16} className="text-gray-500 shrink-0" />
+            <input type="text" placeholder="BUSCAR..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-white text-[10px] font-black uppercase w-full" />
           </div>
         </div>
 
-        <div className={cn("bg-[#13151f] rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl transition-all", isCompact ? "p-2" : "p-0")}>
-          <table className="w-full text-left">
-            <thead className={cn("bg-white/5", isCompact ? "hidden" : "block")}>
-              <tr className="grid grid-cols-12 px-8 py-4">
-                <th className="col-span-5 text-[9px] font-black uppercase tracking-widest text-gray-500">Descripción</th>
-                <th className="col-span-3 text-[9px] font-black uppercase tracking-widest text-gray-500 text-center">Categoría</th>
-                <th className="col-span-2 text-[9px] font-black uppercase tracking-widest text-gray-500 text-right">Monto</th>
-                <th className="col-span-2 text-[9px] font-black uppercase tracking-widest text-gray-500 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filtered.map((t) => (
-                <tr key={t.id} className={cn(
-                  "grid grid-cols-12 items-center hover:bg-white/[0.02] transition-all",
-                  isCompact ? "px-4 py-2" : "px-8 py-5"
-                )}>
-                  <td className="col-span-5 flex items-center gap-3">
-                    <div className={cn("rounded-lg flex items-center justify-center shrink-0", isCompact ? "w-6 h-6" : "w-10 h-10", t.type === 'income' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
-                      {t.type === 'income' ? <ArrowUpRight size={isCompact ? 12 : 18} /> : <ArrowDownRight size={isCompact ? 12 : 18} />}
-                    </div>
-                    <div className="truncate">
-                      <p className={cn("font-black uppercase tracking-tight text-white", isCompact ? "text-[10px]" : "text-sm")}>{t.description}</p>
-                      {!isCompact && <p className="text-[9px] font-bold text-gray-500 uppercase">{format(new Date(t.date), 'dd MMMM yyyy', { locale: es })}</p>}
-                    </div>
-                  </td>
-                  <td className="col-span-3 text-center">
-                    <span className={cn("px-3 py-1 rounded-full bg-white/5 text-gray-400 font-black uppercase tracking-tighter", isCompact ? "text-[8px]" : "text-[10px]")}>{t.category.name}</span>
-                  </td>
-                  <td className={cn("col-span-2 text-right font-black italic", isCompact ? "text-xs" : "text-lg", t.type === 'income' ? "text-green-500" : "text-red-500")}>
-                    {t.type === 'income' ? '+' : '-'}{fmt(t.amount)}
-                  </td>
-                  <td className="col-span-2 flex justify-end gap-2">
-                    <button onClick={() => generateReceipt(t)} className="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all"><FileText size={isCompact ? 12 : 14} /></button>
-                    <Link href={`/transactions/edit/${t.id}`} className="p-2 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition-all"><Edit size={isCompact ? 12 : 14} /></Link>
-                  </td>
+        {/* Tabla Adaptativa (Cards en móvil, Tabla en PC) */}
+        <div className="bg-[#13151f] rounded-[3rem] border border-white/5 overflow-hidden shadow-2xl">
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-white/5 border-b border-white/5">
+                <tr>
+                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Movimiento</th>
+                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500 text-center">Categoría</th>
+                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Monto</th>
+                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filtered.map((t) => (
+                  <tr key={t.id} className="hover:bg-white/[0.02] transition-all group">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110", t.type === 'income' ? "bg-green-500/10 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.1)]" : "bg-red-500/10 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]")}>
+                          {t.type === 'income' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-black uppercase tracking-tight text-white text-sm truncate max-w-[300px]">{t.description}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Calendar size={10} className="text-gray-600" />
+                            <p className="text-[10px] font-bold text-gray-500 uppercase">{format(new Date(t.date), 'dd MMMM yyyy', { locale: es })}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-center">
+                      <span className="px-4 py-1.5 rounded-xl bg-white/5 text-gray-400 font-black uppercase text-[10px] tracking-tighter border border-white/5 group-hover:border-white/10 transition-all">{t.category.name}</span>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <p className={cn("font-black italic text-xl tracking-tighter", t.type === 'income' ? "text-green-500" : "text-red-500")}>
+                        {t.type === 'income' ? '+' : '-'}{fmt(t.amount)}
+                      </p>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => generateReceipt(t)} className="p-3 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-lg"><FileText size={16} /></button>
+                        <Link href={`/transactions/edit/${t.id}`} className="p-3 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-all border border-white/5"><Edit size={16} /></Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Vista móvil (Cards) */}
+          <div className="md:hidden divide-y divide-white/5">
+            {filtered.map((t) => (
+              <div key={t.id} className="p-6 space-y-4 bg-white/[0.01]">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", t.type === 'income' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
+                      {t.type === 'income' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+                    </div>
+                    <div>
+                      <p className="font-black uppercase text-xs text-white leading-tight">{t.description}</p>
+                      <p className="text-[9px] font-bold text-gray-500 uppercase mt-1">{format(new Date(t.date), 'dd MMM yy', { locale: es })}</p>
+                    </div>
+                  </div>
+                  <p className={cn("font-black italic text-lg tracking-tighter", t.type === 'income' ? "text-green-500" : "text-red-500")}>{t.type === 'income' ? '+' : '-'}{fmt(t.amount)}</p>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <span className="px-3 py-1 rounded-lg bg-white/5 text-gray-500 font-black uppercase text-[8px] tracking-widest">{t.category.name}</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => generateReceipt(t)} className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400"><FileText size={14} /></button>
+                    <Link href={`/transactions/edit/${t.id}`} className="p-2.5 rounded-lg bg-white/5 text-gray-400"><Edit size={14} /></Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {filtered.length === 0 && (
+            <div className="p-20 text-center text-gray-600">
+              <Search className="mx-auto h-12 w-12 mb-4 opacity-20" />
+              <p className="font-black uppercase text-xs tracking-widest">Sin resultados encontrados</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
