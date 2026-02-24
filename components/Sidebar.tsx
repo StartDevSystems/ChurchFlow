@@ -90,8 +90,9 @@ export function Sidebar() {
     fetchData();
     const interval = setInterval(fetchData, 60000);
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', checkOnlineStatus);
+      window.removeEventListener('offline', checkOnlineStatus);
+      window.removeEventListener('storage', checkOnlineStatus);
       clearInterval(interval);
     };
   }, [session]);
