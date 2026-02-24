@@ -94,7 +94,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
-        <link rel="icon" href="/logo de los jovenes.jpeg" />
+        <link rel="icon" href="/icon-512.jpeg" />
+        <link rel="apple-touch-icon" href="/icon-512.jpeg" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
       </head>
       <body className={cn(inter.className, "bg-[#0a0c14] text-white selection:bg-[var(--brand-primary)] selection:text-white overflow-x-hidden")}>

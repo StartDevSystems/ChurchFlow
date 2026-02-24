@@ -14,7 +14,7 @@ export async function GET() {
         churchName: 'Finanzas Jóvenes',
         churchSubtitle: 'Iglesia Central',
         currencySymbol: 'RD$',
-        logoUrl: '/logo de los jovenes.jpeg',
+        logoUrl: '/icon-512.jpeg',
         monthlyGoal: 0,
         primaryColor: '#e85d26',
         themeMode: 'system',
