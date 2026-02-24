@@ -26,3 +26,20 @@ Todas las páginas deben seguir este flujo vertical:
 1. **Hero Header**: Título gigante + Descripción corta + Botones de acción rápida.
 2. **KPI Row**: 3 o 4 tarjetas con los números más importantes de la página.
 3. **Main Content**: Grid de columnas donde la principal ocupa el 60-70% del ancho.
+
+## 5. Flujo de Trabajo Git (Git Workflow)
+Para proteger la integridad del sistema en producción (rama `main`), todo desarrollo debe seguir este proceso:
+
+1. **Ramas Separadas**: 
+   - Para funcionalidades nuevas: `feature/nombre-de-la-funcionalidad`
+   - Para arreglos de bugs: `fix/nombre-del-bug`
+   - Para mejoras de rendimiento: `perf/nombre-de-la-mejora`
+2. **Pull Requests (PR)**: Una vez finalizado el trabajo en la rama, se debe crear un PR hacia `main`.
+3. **Validación Preview**: Vercel generará un entorno de Preview. El código debe probarse exhaustivamente en dispositivos móviles y de escritorio utilizando esta URL antes de realizar el "Merge".
+4. **Merge & Limpieza**: Una vez aprobado y unido a `main`, la rama de trabajo debe ser eliminada para mantener el repositorio ordenado.
+
+## 6. Rendimiento y Optimizaciones (Performance)
+Al trabajar con un Dashboard cargado de datos y librerías de UI:
+- **`useMemo` / `useCallback`**: Todo cálculo financiero complejo (recorrer arrays de transacciones, sumar ingresos/gastos, agrupar por mes) **debe** estar envuelto en `useMemo`. Esto previene *lags* durante el scroll o la interacción.
+- **Scroll Táctil vs Drag-and-Drop**: Al implementar elementos arrastrables (como `dnd-kit`), es obligatorio configurar un `TouchSensor` con un *delay* (ej. 250ms) y tolerancia. Esto asegura que el usuario pueda hacer scroll en su celular sin activar accidentalmente el evento de arrastre.
+- **Imágenes e Iconos**: Los *assets* estáticos importantes para la PWA deben estar en la raíz de `public/` y tener nombres estandarizados, en minúsculas y sin espacios (ej. `icon-512.jpeg`).
