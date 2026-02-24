@@ -69,43 +69,110 @@ export default function TransactionsPage() {
   const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
   const exportToExcel = async () => {
-    // Obtener ajustes para el logo y nombre
-    const settingsRes = await fetch('/api/settings');
-    const settings = await settingsRes.json();
-    const brandColor = (settings.primaryColor || '#e85d26').replace('#', '');
-    const brandColorARGB = `FF${brandColor.toUpperCase()}`;
+    try {
+      // Obtener ajustes para el logo y nombre
+      const settingsRes = await fetch('/api/settings');
+      const settings = await settingsRes.json();
+      const brandColor = (settings.primaryColor || '#e85d26').replace('#', '');
+      const brandColorARGB = `FF${brandColor.toUpperCase()}`;
 
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Reporte Finanzas');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Reporte Finanzas');
 
-    // ... (columnas igual)
+      // 1. Intentar cargar el logo si existe
+      if (settings.logoUrl) {
+        try {
+          const response = await fetch(settings.logoUrl);
+          const blob = await response.blob();
+          const arrayBuffer = await blob.arrayBuffer();
+          const imageId = workbook.addImage({
+            buffer: arrayBuffer,
+            extension: settings.logoUrl.endsWith('.png') ? 'png' : 'jpeg',
+          });
+          worksheet.addImage(imageId, {
+            tl: { col: 0.2, row: 0.2 },
+            ext: { width: 60, height: 60 }
+          });
+        } catch (imgError) {
+          console.error('No se pudo cargar el logo en el Excel:', imgError);
+        }
+      }
 
-    // 2. Estilo del Título de la Iglesia
-    worksheet.mergeCells('A1:G2');
-    const titleCell = worksheet.getCell('A1');
-    titleCell.value = settings.churchName.toUpperCase();
-    titleCell.font = { name: 'Arial Black', size: 18, color: { argb: brandColorARGB } };
-    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      // 2. Configurar Columnas
+      worksheet.columns = [
+        { header: 'FECHA', key: 'fecha', width: 15 },
+        { header: 'DESCRIPCIÓN', key: 'desc', width: 40 },
+        { header: 'CATEGORÍA', key: 'cat', width: 20 },
+        { header: 'TIPO', key: 'tipo', width: 12 },
+        { header: 'MONTO (RD$)', key: 'monto', width: 15 },
+        { header: 'MIEMBRO', key: 'miembro', width: 25 },
+        { header: 'EVENTO / FONDO', key: 'evento', width: 25 },
+      ];
 
-    worksheet.mergeCells('A3:G3');
-    const subtitleCell = worksheet.getCell('A3');
-    subtitleCell.value = `REPORTE DE MOVIMIENTOS - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
-    subtitleCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF8C7F72' } };
-    subtitleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      // 3. Estilo del Título de la Iglesia (Movido a la derecha del logo si hay logo)
+      worksheet.mergeCells('B1:G2');
+      const titleCell = worksheet.getCell('B1');
+      titleCell.value = settings.churchName.toUpperCase();
+      titleCell.font = { name: 'Arial Black', size: 18, color: { argb: brandColorARGB } };
+      titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // Espacio antes de la tabla
-    worksheet.addRow([]);
+      worksheet.mergeCells('B3:G3');
+      const subtitleCell = worksheet.getCell('B3');
+      subtitleCell.value = `REPORTE DE MOVIMIENTOS - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
+      subtitleCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF8C7F72' } };
+      subtitleCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // 3. Encabezados de Tabla con Estilo
-    const headerRow = worksheet.addRow(['FECHA', 'DESCRIPCIÓN', 'CATEGORÍA', 'TIPO', 'MONTO', 'MIEMBRO', 'EVENTO']);
-    headerRow.eachCell((cell) => {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A1714' } };
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
-      cell.alignment = { horizontal: 'center' };
-      cell.border = { bottom: { style: 'thick', color: { argb: brandColorARGB } } };
-    });
+      // Espacio antes de la tabla
+      worksheet.addRow([]);
+      worksheet.addRow([]);
 
-    // ... (resto del excel igual)
+      // 4. Encabezados de Tabla con Estilo
+      const headerRow = worksheet.addRow(['FECHA', 'DESCRIPCIÓN', 'CATEGORÍA', 'TIPO', 'MONTO', 'MIEMBRO', 'EVENTO']);
+      headerRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A1714' } };
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+        cell.alignment = { horizontal: 'center' };
+        cell.border = { 
+          bottom: { style: 'thick', color: { argb: brandColorARGB } },
+          top: { style: 'thin', color: { argb: 'FF333333' } }
+        };
+      });
+
+      // 5. Agregar Datos
+      filtered.forEach((t) => {
+        const row = worksheet.addRow([
+          format(new Date(t.date), 'dd/MM/yyyy'),
+          t.description,
+          t.category.name,
+          t.type === 'income' ? 'INGRESO' : 'GASTO',
+          t.amount,
+          t.member?.name || '-',
+          t.event?.name || 'Caja General'
+        ]);
+
+        const colorCell = row.getCell(4);
+        colorCell.font = { bold: true, color: { argb: t.type === 'income' ? 'FF2A8A5E' : 'FFDC3545' } };
+        row.getCell(5).numFmt = '"RD$ "#,##0';
+        
+        row.eachCell((cell) => {
+          cell.border = { bottom: { style: 'thin', color: { argb: 'FFF0ECE6' } } };
+        });
+      });
+
+      // 6. Totales al final
+      worksheet.addRow([]);
+      const totalRow = worksheet.addRow(['', '', '', 'TOTAL CONSOLIDADO', totalIncome - totalExpense]);
+      totalRow.getCell(4).font = { bold: true };
+      totalRow.getCell(5).font = { bold: true, size: 12, color: { argb: brandColorARGB } };
+      totalRow.getCell(5).numFmt = '"RD$ "#,##0';
+
+      // Generar y Guardar
+      const buffer = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `Finanzas_${settings.churchName}_${format(new Date(), 'ddMMyy')}.xlsx`);
+    } catch (error) {
+      console.error('Error al exportar Excel:', error);
+      alert('Hubo un error al generar el archivo Excel. Por favor revisa la consola.');
+    }
   };
 
   const generateReceipt = async (t: Transaction) => {
