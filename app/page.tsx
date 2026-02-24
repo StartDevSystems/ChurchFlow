@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownRight, Landmark, ArrowLeftRight, PlusCircle, TrendingUp, Activity, Zap, Calendar, Cake, GripVertical } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Landmark, ArrowLeftRight, PlusCircle, TrendingUp, Activity, Zap, Calendar, Cake, GripVertical, ChevronRight, X, DollarSign, Loader2, Save } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/components/ui/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -18,6 +18,105 @@ const fmt = (amount: number) => new Intl.NumberFormat('es-DO', { style: 'currenc
 const MONTH_MAP: Record<string, number> = {
   ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11,
 };
+
+// ─── 3D Transfer Visualization ──────────────────────
+function TransferVisual({ fromName, toName, amount }: { fromName: string; toName: string; amount: string }) {
+  return (
+    <div style={{
+      perspective: '800px',
+      width: '100%',
+      height: '140px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: '10px',
+      position: 'relative',
+    }}>
+      <style>{`
+        @keyframes floatLeft {
+          0%, 100% { transform: rotateY(25deg) rotateX(8deg) translateZ(0px) translateY(0px); }
+          50% { transform: rotateY(25deg) rotateX(8deg) translateZ(12px) translateY(-6px); }
+        }
+        @keyframes floatRight {
+          0%, 100% { transform: rotateY(-25deg) rotateX(8deg) translateZ(0px) translateY(0px); }
+          50% { transform: rotateY(-25deg) rotateX(8deg) translateZ(12px) translateY(-6px); }
+        }
+        @keyframes flowParticle {
+          0% { left: 20%; opacity: 0; transform: translateY(-50%) scale(0.5); }
+          20% { opacity: 1; transform: translateY(-50%) scale(1); }
+          80% { opacity: 1; transform: translateY(-50%) scale(1); }
+          100% { left: 80%; opacity: 0; transform: translateY(-50%) scale(0.5); }
+        }
+        @keyframes pulse3d {
+          0%, 100% { box-shadow: 0 8px 32px rgba(232,93,38,0.3), 0 0 0 0 rgba(232,93,38,0.2); }
+          50% { box-shadow: 0 12px 40px rgba(232,93,38,0.5), 0 0 0 8px rgba(232,93,38,0); }
+        }
+      `}</style>
+
+      {/* Card FROM */}
+      <div style={{
+        width: '130px',
+        height: '85px',
+        borderRadius: '12px',
+        background: 'linear-gradient(135deg, #e85d26, #f5a623)',
+        animation: 'floatLeft 3s ease-in-out infinite, pulse3d 3s ease-in-out infinite',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '12px 14px',
+        boxShadow: '0 8px 32px rgba(232,93,38,0.35)',
+        position: 'relative',
+        zIndex: 2,
+        flexShrink: 0,
+      }}>
+        <div style={{ width: '28px', height: '20px', borderRadius: '4px', background: 'linear-gradient(135deg, #ffd700, #ffaa00)', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)' }} />
+        <div>
+          <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.7)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '2px', fontWeight: 800 }}>Origen</div>
+          <div style={{ fontSize: '10px', fontWeight: 900, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px', textTransform: 'uppercase', fontStyle: 'italic' }}>{fromName}</div>
+        </div>
+      </div>
+
+      {/* Flow arrow + particles */}
+      <div style={{ position: 'relative', width: '90px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+        <div style={{ position: 'relative', width: '100%', height: '20px' }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} style={{ position: 'absolute', top: '50%', width: '6px', height: '6px', borderRadius: '50%', background: '#e85d26', animation: `flowParticle 1.5s ease-in-out infinite`, animationDelay: `${i * 0.5}s` }} />
+          ))}
+          <div style={{ position: 'absolute', top: '50%', left: '10%', right: '10%', height: '1.5px', background: 'linear-gradient(90deg, rgba(232,93,38,0.2), rgba(232,93,38,0.8), rgba(232,93,38,0.2))', transform: 'translateY(-50%)' }} />
+        </div>
+        {amount && parseFloat(amount) > 0 && (
+          <div style={{ background: 'rgba(232,93,38,0.15)', border: '1px solid rgba(232,93,38,0.3)', borderRadius: '20px', padding: '3px 10px', fontSize: '9px', fontWeight: 900, color: '#e85d26', whiteSpace: 'nowrap' }}>
+            {fmt(parseFloat(amount))}
+          </div>
+        )}
+      </div>
+
+      {/* Card TO */}
+      <div style={{
+        width: '130px',
+        height: '85px',
+        borderRadius: '12px',
+        background: 'linear-gradient(135deg, #1a4d8f, #2a8a5e)',
+        animation: 'floatRight 3s ease-in-out infinite',
+        animationDelay: '0.3s',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '12px 14px',
+        boxShadow: '0 8px 32px rgba(26,77,143,0.3)',
+        position: 'relative',
+        zIndex: 2,
+        flexShrink: 0,
+      }}>
+        <div style={{ width: '28px', height: '20px', borderRadius: '4px', background: 'linear-gradient(135deg, #ffd700, #ffaa00)', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)' }} />
+        <div>
+          <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.7)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '2px', fontWeight: 800 }}>Destino</div>
+          <div style={{ fontSize: '10px', fontWeight: 900, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px', textTransform: 'uppercase', fontStyle: 'italic' }}>{toName}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function SortableWidget({ id, children }: { id: string, children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -41,7 +140,13 @@ export default function DashboardPage() {
   const [birthdays, setBirthdays] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTransfer, setShowTransfer] = useState(false);
-  const [tfForm, setTfForm] = useState({ fromEventId: '', toEventId: '', amount: '', description: '', date: format(new Date(), 'yyyy-MM-dd') });
+  const [tfForm, setTfForm] = useState({ 
+    fromEventId: 'caja', 
+    toEventId: '', 
+    amount: '', 
+    description: '', 
+    date: format(new Date(), 'yyyy-MM-dd') 
+  });
   const [saving, setSaving] = useState(false);
 
   const [widgetOrder, setWidgetOrder] = useState<string[]>(['banner', 'cards-row', 'middle-row', 'bottom-row']);
@@ -119,11 +224,44 @@ export default function DashboardPage() {
     }
   };
 
+  const fundName = (eventId?: string | null) => {
+    if (!eventId || eventId === 'caja') return 'Caja General';
+    return events.find((e) => e.id === eventId)?.name ?? 'Evento';
+  };
+
+  const getOriginBalance = () => {
+    if (tfForm.fromEventId === 'caja' || !tfForm.fromEventId) return cajaBalance;
+    const ev = eventsWithStats.find(e => e.id === tfForm.fromEventId);
+    return ev ? ev.balance : 0;
+  };
+
+  const originBalance = getOriginBalance();
+  const amountNum = parseFloat(tfForm.amount) || 0;
+  const afterTransfer = originBalance - amountNum;
+
   const handleSaveTransfer = async () => {
+    if (!tfForm.amount || !tfForm.toEventId || !tfForm.fromEventId) {
+      toast({ title: 'Completa todos los campos', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
     try {
-      const res = await fetch('/api/transfers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: tfForm.amount, description: tfForm.description, date: tfForm.date, fromEventId: null, toEventId: null }) });
-      if (res.ok) { toast({ title: 'Transferencia registrada' }); setShowTransfer(false); fetchAll(); }
+      const res = await fetch('/api/transfers', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          amount: parseFloat(tfForm.amount), 
+          description: tfForm.description, 
+          date: tfForm.date, 
+          fromEventId: tfForm.fromEventId === 'caja' ? null : tfForm.fromEventId, 
+          toEventId: tfForm.toEventId === 'caja' ? null : tfForm.toEventId 
+        }) 
+      });
+      if (res.ok) { 
+        toast({ title: 'Transferencia realizada con éxito ✓' }); 
+        setShowTransfer(false); 
+        fetchAll(); 
+      }
     } finally { setSaving(false); }
   };
 
@@ -238,24 +376,70 @@ export default function DashboardPage() {
       case 'bottom-row':
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="dash-card glass p-6 min-h-[350px] flex flex-col">
-              <div className="flex items-center gap-3 mb-8"><TrendingUp size={18} className="text-[#60a5fa]" /><h3 className="font-black uppercase text-sm text-white italic">Análisis de Tendencia</h3></div>
-              <div className="flex-1 w-full overflow-hidden">
+            <div className="dash-card glass p-6 min-h-[380px] flex flex-col relative overflow-hidden group/chart">
+              <div className="flex items-center justify-between mb-8 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 animate-pulse"><TrendingUp size={18} /></div>
+                  <h3 className="font-black uppercase text-sm text-white italic tracking-widest">Flujo de Inteligencia</h3>
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#2a8a5e] shadow-[0_0_8px_#2a8a5e]" /><span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Entradas</span></div>
+                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#dc3545] shadow-[0_0_8px_#dc3545]" /><span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Salidas</span></div>
+                </div>
+              </div>
+              
+              <div className="flex-1 w-full overflow-hidden relative z-10">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={monthlyTrends} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="colorIn" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#2a8a5e" stopOpacity={0.3}/><stop offset="95%" stopColor="#2a8a5e" stopOpacity={0}/></linearGradient>
-                      <linearGradient id="colorOut" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#dc3545" stopOpacity={0.3}/><stop offset="95%" stopColor="#dc3545" stopOpacity={0}/></linearGradient>
+                      <linearGradient id="colorIn" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2a8a5e" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#2a8a5e" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorOut" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#dc3545" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#dc3545" stopOpacity={0}/>
+                      </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 10, fontWeight: 'bold' }} dy={10} />
+                    <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                    <XAxis 
+                      dataKey="month" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#4b5563', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' }} 
+                      dy={10} 
+                    />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 9, fontWeight: 'bold' }} tickFormatter={(v) => `$${v/1000}k`} />
-                    <Tooltip contentStyle={{ backgroundColor: '#13151f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }} itemStyle={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }} labelStyle={{ color: '#9ca3af', fontSize: '10px' }} formatter={(value: any) => [fmt(Number(value || 0)), '']} />
-                    <Area type="monotone" dataKey="Ingresos" stroke="#2a8a5e" strokeWidth={3} fillOpacity={1} fill="url(#colorIn)" animationDuration={2000} />
-                    <Area type="monotone" dataKey="Gastos" stroke="#dc3545" strokeWidth={3} fillOpacity={1} fill="url(#colorOut)" animationDuration={2500} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0a0c14', border: '2px solid rgba(255,255,255,0.05)', borderRadius: '20px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} 
+                      itemStyle={{ fontSize: '12px', fontWeight: '900', textTransform: 'uppercase' }} 
+                      labelStyle={{ color: '#9ca3af', fontSize: '10px', fontWeight: 'black', marginBottom: '4px' }} 
+                      formatter={(value: any) => [fmt(Number(value || 0)), '']} 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="Ingresos" 
+                      stroke="#2a8a5e" 
+                      strokeWidth={4} 
+                      fillOpacity={1} 
+                      fill="url(#colorIn)" 
+                      animationDuration={2500}
+                      strokeLinecap="round"
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="Gastos" 
+                      stroke="#dc3545" 
+                      strokeWidth={4} 
+                      fillOpacity={1} 
+                      fill="url(#colorOut)" 
+                      animationDuration={3000}
+                      strokeLinecap="round"
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl pointer-events-none group-hover/chart:bg-blue-500/10 transition-all duration-700" />
             </div>
             <div className="dash-card glass p-6">
               <div className="flex items-center justify-between mb-8">
@@ -316,17 +500,42 @@ export default function DashboardPage() {
 
       <AnimatePresence>
         {showTransfer && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setShowTransfer(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-[#13151f] border-2 border-white/10 rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-10 w-full max-w-md shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-[var(--brand-primary)]" />
-              <h3 className="text-2xl md:text-3xl font-black uppercase italic text-white mb-2 tracking-tighter">Mover Capital</h3>
-              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-8 text-center">Transferencia interna</p>
-              <div className="space-y-4">
-                <div className="space-y-1"><label className="text-[9px] font-black text-gray-500 uppercase ml-2 tracking-widest">Monto RD$</label><input type="number" className="w-full bg-white/5 border-2 border-white/5 p-4 md:p-5 rounded-2xl text-white font-black text-xl outline-none focus:border-[var(--brand-primary)] transition-all" value={tfForm.amount} onChange={e => setTfForm({...tfForm, amount: e.target.value})} /></div>
-                <div className="space-y-1"><label className="text-[9px] font-black text-gray-500 uppercase ml-2 tracking-widest">Descripción</label><input type="text" className="w-full bg-white/5 border-2 border-white/5 p-4 md:p-5 rounded-2xl text-white font-black text-xs outline-none focus:border-[var(--brand-primary)] transition-all uppercase" value={tfForm.description} onChange={e => setTfForm({...tfForm, description: e.target.value})} /></div>
-                <button onClick={handleSaveTransfer} disabled={saving} className="w-full bg-[var(--brand-primary)] p-5 md:p-6 rounded-[1.5rem] text-white font-black uppercase text-[10px] md:text-xs tracking-[0.2em] shadow-2xl mt-4 active:scale-95 transition-all">{saving ? 'Procesando...' : 'Confirmar'}</button>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowTransfer(false); }}>
+            <div className="w-full max-w-md shadow-2xl overflow-hidden" style={{ borderRadius: '24px', border: '2px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ background: 'linear-gradient(160deg, #0f1117 0%, #1a1d2e 50%, #0f1117 100%)', padding: '32px 28px 20px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(232,93,38,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(232,93,38,0.06) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+                <div className="flex items-center justify-between mb-4 relative z-10">
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase', color: 'rgba(232,93,38,0.8)', marginBottom: '4px' }}>FLUJO DE CAPITAL</p>
+                    <h3 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', textTransform: 'uppercase', fontStyle: 'italic' }}>Nueva Transferencia</h3>
+                  </div>
+                  <button onClick={() => setShowTransfer(false)} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-white/50 flex items-center justify-center text-xl hover:text-white transition-all">×</button>
+                </div>
+                <div className="relative z-10">
+                  <TransferVisual fromName={fundName(tfForm.fromEventId)} toName={fundName(tfForm.toEventId)} amount={tfForm.amount} />
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 10, marginTop: '10px' }}>
+                  <div><p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '3px', fontWeight: 800 }}>Saldo en Origen</p><p style={{ fontSize: '20px', fontWeight: 900, color: originBalance >= 0 ? '#4ade80' : '#f87171', letterSpacing: '-0.03em' }}>{fmt(originBalance)}</p></div>
+                  {amountNum > 0 && (
+                    <div style={{ textAlign: 'right' }}><p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '3px', fontWeight: 800 }}>Resultado</p><p style={{ fontSize: '20px', fontWeight: 900, color: afterTransfer >= 0 ? '#94a3b8' : '#f87171', letterSpacing: '-0.03em' }}>{fmt(afterTransfer)}</p></div>
+                  )}
+                </div>
               </div>
-            </motion.div>
+              <div style={{ background: '#13151f', padding: '28px' }}>
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="block text-[10px] font-black tracking-widest uppercase text-gray-500 ml-2">Desde Origen</label><select className="w-full px-4 py-3.5 bg-white/5 border-2 border-white/5 rounded-2xl text-xs font-black uppercase text-white outline-none focus:border-[var(--brand-primary)] appearance-none transition-all" value={tfForm.fromEventId} onChange={(e) => setTfForm(f => ({ ...f, fromEventId: e.target.value }))}><option value="caja" className="bg-[#13151f] text-white">Caja General</option>{events.map(ev => <option key={ev.id} value={ev.id} className="bg-[#13151f] text-white">{ev.name.toUpperCase()}</option>)}</select></div>
+                    <div className="space-y-1.5"><label className="block text-[10px] font-black tracking-widest uppercase text-gray-500 ml-2">Hacia Destino</label><select className="w-full px-4 py-3.5 bg-white/5 border-2 border-white/5 rounded-2xl text-xs font-black uppercase text-white outline-none focus:border-[var(--brand-primary)] appearance-none transition-all" value={tfForm.toEventId} onChange={(e) => setTfForm(f => ({ ...f, toEventId: e.target.value }))}><option value="" className="bg-[#13151f] text-white">Seleccionar...</option><option value="caja" className="bg-[#13151f] text-white">Caja General</option>{events.map(ev => <option key={ev.id} value={ev.id} className="bg-[#13151f] text-white">{ev.name.toUpperCase()}</option>)}</select></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="block text-[10px] font-black tracking-widest uppercase text-gray-500 ml-2">Monto RD$</label><div className="relative"><DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={14} /><input type="number" placeholder="0" className="w-full px-4 py-3.5 pl-10 bg-white/5 border-2 border-white/5 rounded-2xl text-lg font-black text-white outline-none focus:border-[var(--brand-primary)] transition-all" value={tfForm.amount} onChange={(e) => setTfForm(f => ({ ...f, amount: e.target.value }))} /></div>{amountNum > originBalance && amountNum > 0 && (<p className="text-[9px] text-red-500 mt-1 font-black uppercase italic tracking-tighter">Fondos insuficientes</p>)}</div>
+                    <div className="space-y-1.5"><label className="block text-[10px] font-black tracking-widest uppercase text-gray-500 ml-2">Fecha</label><input type="date" className="w-full px-4 py-3.5 bg-white/5 border-2 border-white/5 rounded-2xl text-xs font-black text-white outline-none focus:border-[var(--brand-primary)] color-scheme-dark transition-all" value={tfForm.date} onChange={(e) => setTfForm(f => ({ ...f, date: e.target.value }))} /></div>
+                  </div>
+                  <div className="space-y-1.5"><label className="block text-[10px] font-black tracking-widest uppercase text-gray-500 ml-2">Descripción</label><input type="text" placeholder="EJ: GANANCIA DEL EVENTO A CAJA" className="w-full px-4 py-3.5 bg-white/5 border-2 border-white/5 rounded-2xl text-xs font-black uppercase text-white outline-none focus:border-[var(--brand-primary)] transition-all" value={tfForm.description} onChange={(e) => setTfForm(f => ({ ...f, description: e.target.value }))} /></div>
+                  <button onClick={handleSaveTransfer} disabled={saving || amountNum > originBalance || !tfForm.toEventId} className="w-full py-5 rounded-[1.5rem] bg-white text-black font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-primary)] hover:text-white shadow-2xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 mt-4">{saving ? <Loader2 className="animate-spin" /> : <Save size={16} />} Procesar Movimiento</button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </AnimatePresence>

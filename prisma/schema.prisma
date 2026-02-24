@@ -118,6 +118,7 @@ model Settings {
   // Personalización Visual
   primaryColor            String   @default("#e85d26")
   themeMode               String   @default("system") // system, light, dark
+  buttonStyle             String   @default("solid")  // solid, outline
   
   // Detalles para Reportes
   reportSignatureName     String   @default("")

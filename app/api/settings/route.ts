@@ -48,7 +48,7 @@ export async function PATCH(request: Request) {
     // Extraer solo los campos válidos para el modelo Settings
     const { 
       churchName, churchSubtitle, currencySymbol, logoUrl, 
-      monthlyGoal, primaryColor, themeMode, reportSignatureName, 
+      monthlyGoal, primaryColor, themeMode, buttonStyle, reportSignatureName, 
       reportFooterText, allowPublicRegistration, generalFundName, 
       lowBalanceAlert, webhookUrl, whatsappMessageTemplate, calculatorName
     } = body;
@@ -61,6 +61,7 @@ export async function PATCH(request: Request) {
       monthlyGoal: parseFloat(monthlyGoal) || 0,
       primaryColor,
       themeMode,
+      buttonStyle,
       reportSignatureName,
       reportFooterText,
       allowPublicRegistration: Boolean(allowPublicRegistration),
