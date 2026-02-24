@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -9,7 +9,7 @@ import { ArrowUpRight, ArrowDownRight, Landmark, ArrowLeftRight, PlusCircle, Tre
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/components/ui/use-toast';
 import { cn, formatCurrency } from '@/lib/utils';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, TouchSensor, MouseSensor } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -151,7 +151,22 @@ export default function DashboardPage() {
 
   const [widgetOrder, setWidgetOrder] = useState<string[]>(['banner', 'cards-row', 'middle-row', 'bottom-row']);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 10,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     const savedOrder = localStorage.getItem('churchflow-dashboard-order-v2');
@@ -174,44 +189,93 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const cajaTransactions = transactions.filter(t => !t.eventId);
-  const cajaIncome = cajaTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const cajaExpense = cajaTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const netCajaTransfers = transfers.reduce((acc, tr) => { if (!tr.fromEventId) return acc - tr.amount; if (!tr.toEventId) return acc + tr.amount; return acc; }, 0);
-  const cajaBalance = cajaIncome - cajaExpense + netCajaTransfers;
-  
-  const now = new Date();
-  const thisMonthCaja = cajaTransactions.filter(t => { const d = new Date(t.date); return d >= startOfMonth(now) && d <= endOfMonth(now); });
-  const monthIncome = thisMonthCaja.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const monthExpense = thisMonthCaja.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const financialData = useMemo(() => {
+    const cajaTransactions = transactions.filter(t => !t.eventId);
+    const cajaIncome = cajaTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const cajaExpense = cajaTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const netCajaTransfers = transfers.reduce((acc, tr) => { 
+      if (!tr.fromEventId) return acc - tr.amount; 
+      if (!tr.toEventId) return acc + tr.amount; 
+      return acc; 
+    }, 0);
+    const cajaBalance = cajaIncome - cajaExpense + netCajaTransfers;
+    
+    const now = new Date();
+    const start = startOfMonth(now);
+    const end = endOfMonth(now);
+    
+    const thisMonthCaja = cajaTransactions.filter(t => { 
+      const d = new Date(t.date); 
+      return d >= start && d <= end; 
+    });
+    
+    const monthIncome = thisMonthCaja.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const monthExpense = thisMonthCaja.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-  const eventsWithStats = events.map(ev => {
-    const related = transactions.filter(t => t.eventId === ev.id);
-    const in_ = related.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const out_ = related.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const net = transfers.reduce((acc, tr) => { if (tr.fromEventId === ev.id) return acc - tr.amount; if (tr.toEventId === ev.id) return acc + tr.amount; return acc; }, 0);
-    return { ...ev, balance: (in_ - out_) + net, txCount: related.length, totalIncome: in_, totalExpense: out_ };
-  });
+    const eventsWithStats = events.map(ev => {
+      const related = transactions.filter(t => t.eventId === ev.id);
+      const in_ = related.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+      const out_ = related.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+      const net = transfers.reduce((acc, tr) => { 
+        if (tr.fromEventId === ev.id) return acc - tr.amount; 
+        if (tr.toEventId === ev.id) return acc + tr.amount; 
+        return acc; 
+      }, 0);
+      return { 
+        ...ev, 
+        balance: (in_ - out_) + net, 
+        txCount: related.length, 
+        totalIncome: in_, 
+        totalExpense: out_ 
+      };
+    });
 
-  const totalBalance = cajaBalance + eventsWithStats.reduce((s, e) => s + e.balance, 0);
-  
-  const upcomingEvent = eventsWithStats
-    .filter(e => new Date(e.startDate) >= new Date())
-    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
-  
-  const daysToEvent = upcomingEvent ? Math.ceil((new Date(upcomingEvent.startDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+    const totalBalance = cajaBalance + eventsWithStats.reduce((s, e) => s + e.balance, 0);
+    
+    const upcomingEvent = eventsWithStats
+      .filter(e => new Date(e.startDate) >= new Date())
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
+    
+    const daysToEvent = upcomingEvent ? Math.ceil((new Date(upcomingEvent.startDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
 
-  const monthlyMap = new Map<string, any>();
-  cajaTransactions.forEach(t => {
-    const key = format(parseISO(t.date), 'MMM yy', { locale: es });
-    if (!monthlyMap.has(key)) monthlyMap.set(key, { month: key, Ingresos: 0, Gastos: 0 });
-    const m = monthlyMap.get(key)!;
-    if (t.type === 'income') m.Ingresos += t.amount; else m.Gastos += t.amount;
-  });
-  const monthlyTrends = Array.from(monthlyMap.values()).sort((a, b) => {
-    const parse = (s: string) => { const [mon, yr] = s.split(' '); return new Date(2000 + parseInt(yr), MONTH_MAP[mon.toLowerCase().replace('.', '')] ?? 0, 1).getTime(); };
-    return parse(a.month) - parse(b.month);
-  });
+    const monthlyMap = new Map<string, any>();
+    cajaTransactions.forEach(t => {
+      const key = format(parseISO(t.date), 'MMM yy', { locale: es });
+      if (!monthlyMap.has(key)) monthlyMap.set(key, { month: key, Ingresos: 0, Gastos: 0 });
+      const m = monthlyMap.get(key)!;
+      if (t.type === 'income') m.Ingresos += t.amount; else m.Gastos += t.amount;
+    });
+    
+    const monthlyTrends = Array.from(monthlyMap.values()).sort((a, b) => {
+      const parse = (s: string) => { 
+        const [mon, yr] = s.split(' '); 
+        return new Date(2000 + parseInt(yr), MONTH_MAP[mon.toLowerCase().replace('.', '')] ?? 0, 1).getTime(); 
+      };
+      return parse(a.month) - parse(b.month);
+    });
+
+    return {
+      cajaBalance,
+      monthIncome,
+      monthExpense,
+      eventsWithStats,
+      totalBalance,
+      upcomingEvent,
+      daysToEvent,
+      monthlyTrends
+    };
+  }, [transactions, events, transfers]);
+
+  const {
+    cajaBalance,
+    monthIncome,
+    monthExpense,
+    eventsWithStats,
+    totalBalance,
+    upcomingEvent,
+    daysToEvent,
+    monthlyTrends
+  } = financialData;
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
