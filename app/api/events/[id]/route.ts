@@ -62,32 +62,44 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 // DELETE /api/events/[id]
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  
+  // 🛡️ Seguridad: Solo ADMIN puede realizar borrados profundos
+  if (!session || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'No autorizado. Solo administradores pueden borrar eventos con historial.' }, { status: 403 });
   }
 
   try {
     const { id } = params;
 
-    // Safety check: ensure the event is not being used by any transactions
-    const transactionCount = await prisma.transaction.count({
-      where: { eventId: id },
-    });
-
-    if (transactionCount > 0) {
-      return NextResponse.json(
-        { error: `Cannot delete an event that is currently linked to ${transactionCount} transaction(s).` },
-        { status: 409 } // 409 Conflict
-      );
-    }
-
-    await prisma.event.delete({
-      where: { id },
-    });
+    // 🌪️ Borrado en Cascada: Limpiamos todo lo relacionado con el evento
+    // para evitar errores de integridad referencial.
+    await prisma.$transaction([
+      // 1. Borrar transacciones vinculadas
+      prisma.transaction.deleteMany({
+        where: { eventId: id },
+      }),
+      // 2. Borrar asistencias vinculadas
+      prisma.attendance.deleteMany({
+        where: { eventId: id },
+      }),
+      // 3. Borrar transferencias donde el evento sea origen o destino
+      prisma.transfer.deleteMany({
+        where: {
+          OR: [
+            { fromEventId: id },
+            { toEventId: id }
+          ]
+        }
+      }),
+      // 4. Finalmente borrar el evento
+      prisma.event.delete({
+        where: { id },
+      }),
+    ]);
 
     return new NextResponse(null, { status: 204 }); // 204 No Content
   } catch (error) {
     console.error(`Error deleting event ${params.id}:`, error);
-    return NextResponse.json({ error: 'Failed to delete event' }, { status: 500 });
+    return NextResponse.json({ error: 'Fallo al eliminar el evento y sus dependencias.' }, { status: 500 });
   }
 }
