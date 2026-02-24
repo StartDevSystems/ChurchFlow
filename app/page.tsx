@@ -406,7 +406,7 @@ export default function DashboardPage() {
                       dataKey="month" 
                       axisLine={false} 
                       tickLine={false} 
-                      tick={{ fill: '#4b5563', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' }} 
+                      tick={{ fill: '#4b5563', fontSize: 10, fontWeight: '900' }} 
                       dy={10} 
                     />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 9, fontWeight: 'bold' }} tickFormatter={(v) => `$${v/1000}k`} />
