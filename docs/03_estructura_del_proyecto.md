@@ -61,7 +61,7 @@ Contiene scripts de TypeScript independientes para realizar tareas de automatiza
 - **`updateBalance.ts`**: Script para realizar cálculos de balance.
 
 ### `public/`
-Carpeta para servir archivos estáticos públicamente. Cualquier archivo aquí es accesible directamente desde la URL raíz. Ideal para imágenes (`logo de los jovenes.jpeg`), favicons, fuentes, etc.
+Carpeta para servir archivos estáticos públicamente. Cualquier archivo aquí es accesible directamente desde la URL raíz. Ideal para imágenes (`icon-512.jpeg`), favicons, fuentes, etc.
 
 ### `styles/`
 Contiene los archivos de estilos globales.

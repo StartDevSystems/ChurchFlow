@@ -39,7 +39,7 @@ export function Sidebar() {
   const [churchInfo, setChurchInfo] = useState({
     name: 'Finanzas Jóvenes',
     subtitle: 'Iglesia Central',
-    logo: '/logo de los jovenes.jpeg'
+    logo: '/icon-512.jpeg'
   });
 
   // Cerrar notificaciones al hacer clic fuera

@@ -112,7 +112,7 @@ model Settings {
   churchName              String   @default("Finanzas Jóvenes")
   churchSubtitle          String   @default("Iglesia Central")
   currencySymbol          String   @default("RD$")
-  logoUrl                 String   @default("/logo de los jovenes.jpeg")
+  logoUrl                 String   @default("/icon-512.jpeg")
   monthlyGoal             Float    @default(0)
   
   // Personalización Visual
