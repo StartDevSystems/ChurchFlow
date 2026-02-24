@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -259,7 +260,13 @@ export default function DashboardPage() {
         </div>
 
         {/* ── KPI Hero Banner ── */}
-        <div className="dash-card glass" style={{ padding: '28px 32px', marginBottom: '20px', animationDelay: '0.05s', background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))', overflow: 'hidden', position: 'relative' }}>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="dash-card glass" 
+          style={{ padding: '28px 32px', marginBottom: '20px', background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))', overflow: 'hidden', position: 'relative' }}
+        >
           {/* Top accent */}
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, var(--brand-primary), transparent)' }} />
           {/* Corner decoration */}
@@ -280,7 +287,13 @@ export default function DashboardPage() {
                 { label: 'Ingresos mes', value: monthIncome, color: '#4ade80', Icon: ArrowUpRight },
                 { label: 'Gastos mes', value: monthExpense, color: '#f87171', Icon: ArrowDownRight },
               ].map(({ label, value, color, Icon }, i) => (
-                <div key={i} style={{ animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`, paddingLeft: '20px', borderLeft: `2px solid ${color}25` }}>
+                <motion.div 
+                  key={i} 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 + (i * 0.1) }}
+                  style={{ paddingLeft: '20px', borderLeft: `2px solid ${color}25` }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px', opacity: 0.6 }}>
                     <Icon size={11} color={color} />
                     <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color }}>
@@ -288,11 +301,11 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <p style={{ fontSize: '20px', fontWeight: 900, color, letterSpacing: '-0.03em' }}>{fmt(value)}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* ── Row 2: Eventos + Movimientos ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>

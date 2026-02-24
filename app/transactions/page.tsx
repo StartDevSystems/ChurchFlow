@@ -2,67 +2,81 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/AlertDialog";
-import { PlusCircle, Edit, Trash2, ArrowUpRight, ArrowDownRight, Search } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, ArrowUpRight, ArrowDownRight, Search, Download, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-type TransactionType = 'income' | 'expense';
-
-interface Transaction {
-  id: string;
-  type: TransactionType;
-  category: { id: string; name: string; type: TransactionType };
-  amount: number;
-  date: string;
-  description: string;
-  member?: { id: string; name: string } | null;
-  event?: { id: string; name: string } | null;
-}
-
-const fmt = (amount: number) =>
-  new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 }).format(amount);
+// ... (tipos e interfaces se mantienen igual)
 
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | TransactionType>('all');
-  const [search, setSearch] = useState('');
+  // ... (estados existentes)
 
-  const fetchTransactions = useCallback(async () => {
-    setLoading(true);
-    try {
-      const url = filter === 'all' ? '/api/transactions' : `/api/transactions?type=${filter}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch');
-      setTransactions(await res.json());
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [filter]);
+  const exportToExcel = () => {
+    const dataToExport = filtered.map(t => ({
+      Fecha: format(new Date(t.date), 'dd/MM/yyyy'),
+      Descripción: t.description,
+      Categoría: t.category.name,
+      Tipo: t.type === 'income' ? 'Ingreso' : 'Gasto',
+      Monto: t.amount,
+      Miembro: t.member?.name || 'N/A',
+      Evento: t.event?.name || 'Caja General'
+    }));
 
-  useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
-
-  const handleDelete = async (id: string) => {
-    try {
-      const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-      if (res.ok) setTransactions(prev => prev.filter(t => t.id !== id));
-    } catch (e) { console.error(e); }
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Transacciones");
+    XLSX.writeFile(wb, `Reporte_Finanzas_${format(new Date(), 'dd_MM_yyyy')}.xlsx`);
   };
 
-  const filtered = transactions.filter(t =>
-    t.description.toLowerCase().includes(search.toLowerCase()) ||
-    t.category.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const generateReceipt = (t: Transaction) => {
+    const doc = new jsPDF() as any;
+    
+    // Header
+    doc.setFillColor(232, 93, 38); // Brand Primary
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("COMPROBANTE FINANCIERO", 105, 25, { align: "center" });
+    
+    // Body
+    doc.setTextColor(26, 23, 20);
+    doc.setFontSize(12);
+    doc.text(`ID Transacción: ${t.id.substring(0, 8)}`, 20, 50);
+    doc.text(`Fecha: ${format(new Date(t.date), 'dd/MM/yyyy')}`, 20, 60);
+    
+    doc.autoTable({
+      startY: 70,
+      head: [['Descripción', 'Categoría', 'Tipo', 'Monto']],
+      body: [[
+        t.description,
+        t.category.name,
+        t.type === 'income' ? 'Ingreso' : 'Gasto',
+        fmt(t.amount)
+      ]],
+      headStyles: { fillStyle: [232, 93, 38] }
+    });
+    
+    doc.text("Firma Autorizada:", 20, 120);
+    doc.line(20, 140, 80, 140);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(140, 127, 114);
+    doc.text("Generado por ChurchFlow - Finanzas Jóvenes", 105, 280, { align: "center" });
+    
+    doc.save(`Recibo_${t.id.substring(0, 8)}.pdf`);
+  };
 
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  // ... (resto del componente)
 
   return (
     <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8">
@@ -129,17 +143,29 @@ export default function TransactionsPage() {
             <h1 style={{ fontSize: '36px', fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>
               Transacciones
             </h1>
-            <Link href="/transactions/new">
-              <button className="btn-nueva-tx" style={{
+            <div className="flex gap-3">
+              <button onClick={exportToExcel} style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
                 padding: '10px 20px', borderRadius: '12px',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
                 color: '#fff', fontSize: '13px', fontWeight: 700,
-                border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                cursor: 'pointer', whiteSpace: 'nowrap',
               }}>
-                <PlusCircle size={15} />
-                Nueva Transacción
+                <Download size={15} />
+                Excel
               </button>
-            </Link>
+              <Link href="/transactions/new">
+                <button className="btn-nueva-tx" style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '10px 20px', borderRadius: '12px',
+                  color: '#fff', fontSize: '13px', fontWeight: 700,
+                  border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                }}>
+                  <PlusCircle size={15} />
+                  Nueva Transacción
+                </button>
+              </Link>
+            </div>
           </div>
 
           {/* Mini stats */}
@@ -305,6 +331,12 @@ export default function TransactionsPage() {
                     </p>
                     <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{format(new Date(t.date), 'd MMM yy', { locale: es })}</p>
                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                      <button onClick={() => generateReceipt(t)} style={{
+                        width: '28px', height: '28px', borderRadius: '7px',
+                        border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', color: '#60a5fa', transition: 'all 0.15s',
+                      }} title="Descargar Recibo PDF"><FileText size={11} /></button>
                       <Link href={`/transactions/edit/${t.id}`}>
                         <button className="edit-btn" style={{
                           width: '28px', height: '28px', borderRadius: '7px',

@@ -27,9 +27,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
-    "framer-motion": "^11.2.10",
-    "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.2",
+    "framer-motion": "^11.18.2",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4",
     "lucide-react": "^0.563.0",
     "next": "14.2.3",
     "next-auth": "^4.24.13",
@@ -40,7 +40,8 @@
     "recharts": "^3.7.0",
     "sqlite3": "^5.1.7",
     "tailwind-merge": "^3.4.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^20",
