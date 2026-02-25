@@ -96,6 +96,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/icon-512.jpeg" />
         <link rel="apple-touch-icon" href="/icon-512.jpeg" />
+        <link rel="manifest" href="/manifest.json" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
       </head>
       <body className={cn(inter.className, "bg-[#0a0c14] text-white selection:bg-[var(--brand-primary)] selection:text-white overflow-x-hidden")}>
