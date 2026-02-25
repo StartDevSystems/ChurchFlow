@@ -142,25 +142,43 @@ export default function MembersPage() {
           </h1>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8c7f72] mt-2">Base de datos ministerial</p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <input type="file" id="excel-upload" className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} disabled={importing} />
-          <button 
-            onClick={() => document.getElementById('excel-upload')?.click()} 
-            disabled={importing}
-            className="px-6 py-4 bg-green-600 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-xl flex items-center gap-2 hover:bg-green-700 transition-all disabled:opacity-50"
-          >
-            {importing ? <Loader2 className="animate-spin h-4 w-4" /> : <FileSpreadsheet size={16} />} 
-            Importar
-          </button>
-          <button 
-            onClick={downloadTemplate}
-            className="px-4 py-4 bg-white/5 text-gray-400 font-black uppercase text-[10px] tracking-widest rounded-2xl border border-white/5 hover:bg-white/10 transition-all flex items-center gap-2"
-            title="Bajar Plantilla Excel"
-          >
-            <Download size={16} />
-          </button>
-          <Link href="/members/scan"><button className="px-6 py-4 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-xl flex items-center gap-2"><QrCode size={16} /> Escanear</button></Link>
-          <Link href="/members/new"><button className="px-8 py-4 bg-[var(--brand-primary)] text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-2xl shadow-orange-500/20 hover:-translate-y-1 transition-all flex items-center gap-2"><PlusCircle size={16} /> Nuevo</button></Link>
+          
+          {/* Grupo de Gestión de Datos */}
+          <div className="flex items-center bg-white/5 p-1.5 rounded-2xl border border-white/5">
+            <button 
+              onClick={downloadTemplate}
+              className="px-4 py-2.5 text-gray-400 font-black uppercase text-[9px] tracking-widest rounded-xl hover:bg-white/5 hover:text-white transition-all flex items-center gap-2"
+            >
+              <Download size={14} />
+              Plantilla
+            </button>
+            <div className="w-px h-4 bg-white/10 mx-1" />
+            <button 
+              onClick={() => document.getElementById('excel-upload')?.click()} 
+              disabled={importing}
+              className="px-4 py-2.5 text-green-500 font-black uppercase text-[9px] tracking-widest rounded-xl hover:bg-green-500/10 transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              {importing ? <Loader2 className="animate-spin h-3.5 w-3.5" /> : <FileSpreadsheet size={14} />} 
+              Importar
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 ml-2">
+            <Link href="/members/scan">
+              <button className="px-5 py-4 bg-blue-600/10 text-blue-400 border border-blue-600/20 font-black uppercase text-[10px] tracking-widest rounded-2xl hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2">
+                <QrCode size={16} /> 
+                Escanear
+              </button>
+            </Link>
+            <Link href="/members/new">
+              <button className="px-8 py-4 bg-[var(--brand-primary)] text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-2xl shadow-orange-500/40 hover:-translate-y-1 active:scale-95 transition-all flex items-center gap-2">
+                <PlusCircle size={16} /> 
+                Nuevo Miembro
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
 
