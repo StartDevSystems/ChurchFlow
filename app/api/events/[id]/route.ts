@@ -36,7 +36,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   try {
     const { id } = params;
-    const { name, description, startDate, endDate } = await request.json();
+    const { name, description, startDate, endDate, status } = await request.json();
 
     if (!name || !startDate) {
       return NextResponse.json({ error: 'Name and Start Date are required' }, { status: 400 });
@@ -49,6 +49,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         description,
         startDate: new Date(startDate),
         endDate: endDate ? new Date(endDate) : null,
+        status: status || undefined,
       },
     });
 
