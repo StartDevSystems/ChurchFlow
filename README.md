@@ -1,27 +1,31 @@
-# ⛪ ChurchFlow v1.3 Beta - Edición Pro
+# ⛪ ChurchFlow v1.3.3 - Edición Pro
 
 **ChurchFlow** es un ecosistema de gestión financiera y ministerial de alto rendimiento, diseñado específicamente para ministerios de jóvenes que buscan excelencia, transparencia y un impacto visual de élite.
 
-## 🚀 Lo Nuevo en la Versión 1.3 Beta
-Esta versión transforma el sistema de una simple base de datos a una **Plataforma de Inteligencia Ministerial**.
+## 🚀 Lo Nuevo en la Versión 1.3.3 (Sport-Brutalist Update)
+Esta versión consolida el sistema con un enfoque en rendimiento extremo y una experiencia de usuario de nivel "Fintech".
 
-### 🏀 Ficha Técnica "ESPN Style" (Perfil Pro)
-- **Visualización de Élite**: Inspirado en las fichas de atletas profesionales, cada miembro tiene un perfil dinámico con fondos de fibra de carbono y gradientes de alta intensidad.
-- **KPIs de Rendimiento**: Seguimiento en tiempo real de:
-  - **Aportación Total**: Dinero invertido en el ministerio.
-  - **Score de Fidelidad**: Algoritmo que calcula la asistencia de los últimos 30 días.
-  - **Rango Dinámico**: Basado en el cargo ministerial (Músico, Líder, Ujier, etc.).
-- **Estado de Actividad**: Indicador tipo "semáforo" (Activo, Inactivo, Observación) con brillo LED.
-- **Marquesina de Cumpleaños**: Tarjeta con movimiento (Marquee) integrada en el perfil.
+### 🎥 Modo Presentación "En Vivo" (Cine Contable)
+- **Visualización Futurista**: Nueva pantalla completa diseñada para proyectar en asambleas con fondo negro profundo y rejilla neón.
+- **Números Animados**: El balance total y los KPIs cuentan con animación de "Count Up" al cargar.
+- **Flujo en Tiempo Real**: Reloj digital integrado y lista de movimientos recientes con transiciones suaves.
 
-### 🧮 Calculadora Bendecida
-- **Personalización Total**: El administrador puede cambiar el nombre de la herramienta desde ajustes (ej: "Calculadora Santa", "Cuentas Claras").
-- **Presupuesto Inteligente**: Herramienta responsiva para calcular cuotas por persona basadas en costos de eventos.
+### 📜 Reportes de Élite
+- **PDF Profesional**: Generación de documentos oficiales con bloques de diseño, tablas minimalistas y sello digital de seguridad.
+- **WhatsApp Infographic**: Generador de infografías visuales optimizadas para "captures" y botón de envío de texto directo con resumen del mes.
 
-### 📊 Inteligencia de Datos (Estadísticas & Reportes)
-- **Ranking de Impacto**: Top de aportantes con barras de progreso visuales.
-- **Gráficas de Flujo**: Gráficos circulares tipo "Trading" para analizar la distribución de gastos.
-- **Centro de Reportes Ejecutivo**: Generación de reportes financieros con KPIs gigantes y exportación a PDF/Excel.
+### 🏎️ Rendimiento y UX Pro
+- **Lag-Free Dashboard**: Implementación de `useMemo` para cálculos financieros masivos y optimización de renderizado.
+- **Móvil Primero**: Login 100% responsivo y scroll inteligente en móviles (delay de 250ms en Drag-and-Drop para liberar el desplazamiento vertical).
+- **Fix Visual**: Eliminación total del parpadeo del Sidebar al entrar o salir del sistema.
+
+### 🛠️ Control Administrativo Total
+- **Borrón y Cuenta Nueva**: Poder de borrado en cascada para eventos (limpia transacciones, asistencias y transferencias automáticamente).
+- **Corrección de Errores**: Botón de eliminación individual para transacciones y transferencias con doble confirmación.
+- **Importación Masiva**: Sistema recuperado de carga de miembros vía Excel con plantilla oficial descargable.
+
+### 🍏 Optimización Apple (iOS)
+- **PWA Pro**: Integración de `apple-touch-icon` y estandarización de assets para que el logo de la iglesia se vea nítido en el Home de cualquier iPhone.
 
 ### 🤖 Automatización y Notificaciones
 - **Telegram Bot v2**: Comandos interactivos `/saldo`, `/gastos` y `/miembros` con alertas en tiempo real.
