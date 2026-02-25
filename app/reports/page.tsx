@@ -124,9 +124,22 @@ export default function ReportsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-8 text-center">
-                    <p className="text-[9px] font-bold text-gray-400 uppercase mb-4 tracking-widest flex items-center justify-center gap-2">
-                      <ImageIcon size={12} /> Toma un Capture para enviar
+                  <div className="mt-8 text-center space-y-4">
+                    <Button 
+                      onClick={() => {
+                        const msg = `📊 *REPORTE FINANCIERO - ${format(new Date(), 'MMMM yyyy', { locale: es }).toUpperCase()}*\n\n` +
+                                    `💰 *Recaudado:* ${formatCurrency(data.summary.totalIncome)}\n` +
+                                    `🛑 *Invertido:* ${formatCurrency(data.summary.totalExpense)}\n` +
+                                    `🏦 *Balance en Caja:* ${formatCurrency(data.summary.netBalance)}\n\n` +
+                                    `_"Fieles en lo poco, sobre mucho te pondré."_`;
+                        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                      }}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] tracking-widest py-6 rounded-2xl shadow-xl flex items-center justify-center gap-2"
+                    >
+                      <MessageCircle size={18} /> Enviar Mensaje de Texto
+                    </Button>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                      <ImageIcon size={12} /> O toma un Capture para enviar la imagen
                     </p>
                   </div>
                 </motion.div>
