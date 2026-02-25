@@ -118,7 +118,7 @@ export default function ReportsPage() {
                     </div>
 
                     <div className="mt-8 pt-6 border-t border-dashed border-gray-200">
-                      <p className="text-[8px] font-black uppercase tracking-[0.3em] text-gray-400 italic">"Fieles en lo poco, sobre mucho te pondré"</p>
+                      <p className="text-[8px] font-black uppercase tracking-[0.3em] text-gray-400 italic">&quot;Fieles en lo poco, sobre mucho te pondré&quot;</p>
                     </div>
                   </div>
 
