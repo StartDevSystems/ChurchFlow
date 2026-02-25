@@ -251,10 +251,10 @@ export default function PresentationPage() {
       {/* ════════════════════════════════
           MAIN CONTENT
       ════════════════════════════════ */}
-      <main className="relative z-10 flex-1 flex flex-col lg:flex-row gap-0 overflow-hidden px-6 md:px-12 py-6 md:py-8">
+      <main className="relative z-10 flex-1 flex flex-col lg:flex-row gap-8 lg:gap-0 overflow-y-auto lg:overflow-hidden px-6 md:px-12 py-6 md:py-8 no-scrollbar">
 
         {/* ── LEFT: Balance hero ── */}
-        <div className="flex-1 flex flex-col justify-center lg:pr-12 gap-6">
+        <div className="flex-1 flex flex-col justify-center lg:pr-12 gap-4 md:gap-6 min-h-fit">
 
           {/* Eyebrow */}
           <motion.div
@@ -263,14 +263,14 @@ export default function PresentationPage() {
             transition={{ delay: 0.2, duration: 0.5 }}
             className="flex items-center gap-3"
           >
-            <span className="w-10 h-px bg-[var(--brand-primary)]" />
-            <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-white/30">
+            <span className="w-8 md:w-10 h-px bg-[var(--brand-primary)]" />
+            <span className="text-[9px] md:text-xs font-black uppercase tracking-[0.4em] text-white/30">
               Patrimonio Actual
             </span>
           </motion.div>
 
           {/* Giant balance */}
-          <div className="overflow-hidden">
+          <div className="overflow-visible">
             <motion.div
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -281,7 +281,7 @@ export default function PresentationPage() {
                   'block font-black italic tracking-tighter leading-none',
                   isPositive ? 'text-white' : 'text-red-400'
                 )}
-                style={{ fontSize: 'clamp(3rem, 9vw, 8.5rem)' }}
+                style={{ fontSize: 'clamp(2.5rem, 12vw, 8.5rem)' }}
               >
                 {formatCurrency(animBalance)}
               </span>
@@ -400,10 +400,10 @@ export default function PresentationPage() {
           initial={{ opacity: 0, x: 32 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.6, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="lg:w-[360px] xl:w-[420px] flex flex-col mt-6 lg:mt-0"
+          className="lg:w-[360px] xl:w-[420px] flex flex-col mt-8 lg:mt-0 pb-10 lg:pb-0"
         >
           {/* Section header */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 bg-[#0a0c14] lg:bg-transparent sticky top-0 py-2 lg:relative z-20">
             <div className="flex items-center gap-2">
               <Radio size={13} className="text-[var(--brand-primary)]" />
               <span className="text-white font-black text-xs uppercase tracking-[0.25em]">
@@ -416,7 +416,7 @@ export default function PresentationPage() {
           </div>
 
           {/* Transactions */}
-          <div className="flex-1 overflow-y-auto scrollbar-none">
+          <div className="flex-1 overflow-y-visible lg:overflow-y-auto scrollbar-none">
             {data.recentTx.map((t: any, i: number) => (
               <TxRow key={t.id} t={t} i={i} />
             ))}
