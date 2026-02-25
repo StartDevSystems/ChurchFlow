@@ -58,7 +58,12 @@ export default function PresentationPage() {
         totalExpense,
         balance: totalIncome - totalExpense,
         activeEvents: ev.filter((e: any) => e.status !== 'FINALIZADO').length,
-        recentTx: tx.slice(0, 5)
+        recentTx: tx.slice(0, 5),
+        eventDetails: ev.filter((e: any) => e.status !== 'FINALIZADO').map((e: any) => {
+          const related = tx.filter((t: any) => t.eventId === e.id);
+          const bal = related.reduce((s: number, t: any) => t.type === 'income' ? s + t.amount : s - t.amount, 0);
+          return { name: e.name, balance: bal };
+        })
       });
     } finally {
       setLoading(false);
@@ -152,14 +157,29 @@ export default function PresentationPage() {
                initial={{ opacity: 0, scale: 0.9 }}
                animate={{ opacity: 1, scale: 1 }}
                transition={{ delay: 0.2 }}
-               className="bg-[#13151f]/50 backdrop-blur-md rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 border border-white/5 flex items-center gap-6 md:gap-8"
+               className="bg-[#13151f]/50 backdrop-blur-md rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 border border-white/5 flex flex-col gap-6"
              >
-                <div className="w-14 h-14 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-400 shadow-inner">
-                  <Activity size={28} />
+                <div className="flex items-center gap-6">
+                  <div className="w-14 h-14 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-400 shadow-inner">
+                    <Activity size={28} />
+                  </div>
+                  <div>
+                    <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-gray-500">Actividades</p>
+                    <h4 className="text-3xl md:text-5xl font-black italic text-white">{data.activeEvents}</h4>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-gray-500">Actividades</p>
-                  <h4 className="text-3xl md:text-5xl font-black italic text-white">{data.activeEvents}</h4>
+                
+                {/* Lista de Actividades Mini */}
+                <div className="space-y-3 mt-2 border-t border-white/5 pt-6">
+                  {data.eventDetails.slice(0, 3).map((ev: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <p className="text-[10px] font-black uppercase text-white/60 truncate max-w-[150px]">{ev.name}</p>
+                      <p className={cn("text-[10px] font-black italic", ev.balance >= 0 ? "text-green-500" : "text-red-500")}>
+                        {formatCurrency(ev.balance)}
+                      </p>
+                    </div>
+                  ))}
+                  {data.eventDetails.length === 0 && <p className="text-[10px] font-black text-gray-700 uppercase italic">Sin proyectos activos</p>}
                 </div>
              </motion.div>
 
