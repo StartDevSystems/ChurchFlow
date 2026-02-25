@@ -93,6 +93,7 @@ model Event {
   description  String?
   startDate    DateTime
   endDate      DateTime?
+  status       String        @default("ACTIVO") // ACTIVO, FINALIZADO
   createdAt    DateTime      @default(now())
   transactions Transaction[]
 }

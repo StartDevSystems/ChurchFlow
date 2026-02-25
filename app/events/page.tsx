@@ -4,13 +4,15 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { PlusCircle, Calendar, Users, TrendingUp, ArrowRight, Loader2, Calculator, X, Clock } from 'lucide-react';
+import { PlusCircle, Calendar, Users, TrendingUp, ArrowRight, Loader2, Calculator, X, Clock, CheckCircle2, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function EventsPage() {
+  const { toast } = useToast();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCalc, setShowCalc] = useState(false);
@@ -38,6 +40,25 @@ export default function EventsPage() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleFinalize = async (id: string) => {
+    try {
+      const res = await fetch(`/api/events/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'FINALIZADO' })
+      });
+      if (res.ok) {
+        toast({ title: 'Evento finalizado con éxito ✓' });
+        fetchData();
+      }
+    } catch (error) {
+      toast({ title: 'Error al finalizar evento', variant: 'destructive' });
+    }
+  };
+
+  const activeEvents = events.filter(e => e.status !== 'FINALIZADO');
+  const finishedEvents = events.filter(e => e.status === 'FINALIZADO');
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
@@ -70,42 +91,83 @@ export default function EventsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {events.map((event) => (
-          <Link key={event.id} href={`/events/${event.id}`}>
-            <Card className="rounded-[3rem] bg-[#13151f] border-2 border-white/5 overflow-hidden group hover:border-[var(--brand-primary)] transition-all shadow-xl h-full flex flex-col">
-              <div className="bg-gradient-to-r from-[var(--brand-primary)] to-orange-600 p-6 relative overflow-hidden shrink-0">
-                <Calendar className="absolute top-[-10px] right-[-10px] h-24 w-24 opacity-20 -rotate-12" />
-                <p className="text-[8px] font-black uppercase tracking-widest text-white/60 mb-1">Actividad Próxima</p>
-                <CardTitle className="text-2xl font-black uppercase italic text-white truncate">{event.name}</CardTitle>
-              </div>
-              
-              <CardContent className="p-8 flex-1 flex flex-col">
-                <div className="flex items-center gap-3 mb-6 text-gray-400">
-                  <Clock size={14} className="text-[var(--brand-primary)]" />
-                  <p className="text-[10px] font-black uppercase tracking-widest">
-                    {format(new Date(event.startDate), "d 'de' MMMM", { locale: es })}
+        {activeEvents.map((event) => (
+          <div key={event.id} className="relative group">
+            <Link href={`/events/${event.id}`}>
+              <Card className="rounded-[3rem] bg-[#13151f] border-2 border-white/5 overflow-hidden group hover:border-[var(--brand-primary)] transition-all shadow-xl h-full flex flex-col">
+                <div className="bg-gradient-to-r from-[var(--brand-primary)] to-orange-600 p-6 relative overflow-hidden shrink-0">
+                  <Calendar className="absolute top-[-10px] right-[-10px] h-24 w-24 opacity-20 -rotate-12" />
+                  <p className="text-[8px] font-black uppercase tracking-widest text-white/60 mb-1">Actividad en Curso</p>
+                  <CardTitle className="text-2xl font-black uppercase italic text-white truncate">{event.name}</CardTitle>
+                </div>
+                
+                <CardContent className="p-8 flex-1 flex flex-col">
+                  <div className="flex items-center gap-3 mb-6 text-gray-400">
+                    <Clock size={14} className="text-[var(--brand-primary)]" />
+                    <p className="text-[10px] font-black uppercase tracking-widest">
+                      {format(new Date(event.startDate), "d 'de' MMMM", { locale: es })}
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-gray-500 font-medium line-clamp-2 mb-8 flex-1 uppercase tracking-tight italic leading-relaxed">
+                    {event.description || 'Sin descripción detallada.'}
                   </p>
-                </div>
 
-                <p className="text-xs text-gray-500 font-medium line-clamp-2 mb-8 flex-1 uppercase tracking-tight italic leading-relaxed">
-                  {event.description || 'Sin descripción detallada.'}
-                </p>
-
-                <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-auto">
-                  <div>
-                    <p className="text-[8px] font-black uppercase text-gray-600 mb-1">Ver Detalles</p>
-                    <ArrowRight size={16} className="text-[var(--brand-primary)] transition-transform group-hover:translate-x-2" />
+                  <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-auto">
+                    <div>
+                      <p className="text-[8px] font-black uppercase text-gray-600 mb-1">Ver Detalles</p>
+                      <ArrowRight size={16} className="text-[var(--brand-primary)] transition-transform group-hover:translate-x-2" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[8px] font-black uppercase text-gray-600 mb-1">Estado</p>
+                      <span className="px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest">Abierto</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[8px] font-black uppercase text-gray-600 mb-1">Estado</p>
-                    <span className="px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest">Abierto</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+                </CardContent>
+              </Card>
+            </Link>
+            <button 
+              onClick={(e) => { e.preventDefault(); handleFinalize(event.id); }}
+              className="absolute top-4 right-4 z-20 p-3 bg-black/40 hover:bg-black/60 text-white rounded-2xl backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all shadow-xl flex items-center gap-2"
+              title="Finalizar Evento"
+            >
+              <CheckCircle2 size={16} className="text-green-400" />
+              <span className="text-[8px] font-black uppercase tracking-widest">Finalizar</span>
+            </button>
+          </div>
         ))}
       </div>
+
+      {finishedEvents.length > 0 && (
+        <div className="mt-20">
+          <div className="flex items-center gap-4 mb-10">
+            <div className="h-px flex-1 bg-white/5" />
+            <h2 className="text-xl font-black uppercase italic text-gray-600 tracking-widest flex items-center gap-3">
+              <Lock size={18} /> Historial de Finalizados
+            </h2>
+            <div className="h-px flex-1 bg-white/5" />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-60 grayscale hover:opacity-100 hover:grayscale-0 transition-all">
+            {finishedEvents.map((event) => (
+              <Link key={event.id} href={`/events/${event.id}`}>
+                <Card className="rounded-[2.5rem] bg-[#0a0c14] border-2 border-white/5 overflow-hidden hover:border-gray-700 transition-all h-full flex flex-col">
+                  <div className="bg-gray-800 p-5 relative overflow-hidden shrink-0">
+                    <CardTitle className="text-lg font-black uppercase italic text-gray-400 truncate">{event.name}</CardTitle>
+                  </div>
+                  <CardContent className="p-6 flex-1 flex flex-col">
+                    <p className="text-[10px] font-black text-gray-600 uppercase mb-4">Finalizado el {format(new Date(event.startDate), 'dd/MM/yyyy')}</p>
+                    <div className="flex justify-between items-center mt-auto pt-4 border-t border-white/5">
+                      <span className="text-[8px] font-black uppercase text-gray-500">Consultar Histórico</span>
+                      <Lock size={12} className="text-gray-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* CALCULADORA MODAL RESPONSIVA */}
       <AnimatePresence>

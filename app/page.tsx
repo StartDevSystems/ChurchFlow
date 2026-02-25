@@ -409,18 +409,21 @@ export default function DashboardPage() {
                 <Link href="/events" className="px-3 py-1 bg-white/5 rounded-full text-[8px] font-black uppercase text-[var(--brand-primary)] border border-[var(--brand-primary)]/20 hover:bg-[var(--brand-primary)] hover:text-white transition-all">Ver todos</Link>
               </div>
               <div className="space-y-4">
-                {eventsWithStats.slice(0, 4).map(ev => {
-                  const pct = ev.totalIncome > 0 ? Math.min(100, (ev.balance / ev.totalIncome) * 100) : 0;
-                  return (
-                    <div key={ev.id} className="group/item">
-                      <div className="flex items-center justify-between mb-2 px-1">
-                        <p className="text-xs font-black text-gray-300 uppercase tracking-tight truncate max-w-[150px]">{ev.name}</p>
-                        <p className={cn("text-xs font-black", ev.balance >= 0 ? "text-[#4ade80]" : "text-[#f87171]")}>{fmt(ev.balance)}</p>
+                {eventsWithStats
+                  .filter(ev => ev.status !== 'FINALIZADO')
+                  .slice(0, 4)
+                  .map(ev => {
+                    const pct = ev.totalIncome > 0 ? Math.min(100, (ev.balance / ev.totalIncome) * 100) : 0;
+                    return (
+                      <div key={ev.id} className="group/item">
+                        <div className="flex items-center justify-between mb-2 px-1">
+                          <p className="text-xs font-black text-gray-300 uppercase tracking-tight truncate max-w-[150px]">{ev.name}</p>
+                          <p className={cn("text-xs font-black", ev.balance >= 0 ? "text-[#4ade80]" : "text-[#f87171]")}>{fmt(ev.balance)}</p>
+                        </div>
+                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(5, pct)}%` }} className={cn("h-full rounded-full", ev.balance >= 0 ? "bg-[#4ade80]" : "bg-[#f87171]")} /></div>
                       </div>
-                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(5, pct)}%` }} className={cn("h-full rounded-full", ev.balance >= 0 ? "bg-[#4ade80]" : "bg-[#f87171]")} /></div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
             <div className="dash-card glass p-6">
