@@ -107,59 +107,59 @@ export default function PresentationPage() {
       </header>
 
       {/* Main Grid */}
-      <main className="flex-1 relative z-10 p-10 grid grid-cols-12 gap-8 items-stretch">
+      <main className="flex-1 relative z-10 p-6 md:p-10 grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 items-stretch overflow-y-auto">
         
         {/* Lado Izquierdo: Grandes Números */}
-        <div className="col-span-8 flex flex-col gap-8">
+        <div className="col-span-1 lg:col-span-8 flex flex-col gap-6 md:gap-8">
           
           {/* Main Balance Hero */}
           <motion.div 
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex-1 bg-gradient-to-br from-[#13151f] to-[#0a0c14] rounded-[4rem] border-2 border-white/5 p-16 flex flex-col justify-center relative overflow-hidden shadow-2xl"
+            className="flex-1 bg-gradient-to-br from-[#13151f] to-[#0a0c14] rounded-[2.5rem] md:rounded-[4rem] border-2 border-white/5 p-8 md:p-16 flex flex-col justify-center relative overflow-hidden shadow-2xl"
           >
-            <div className="absolute top-0 right-0 p-10 opacity-5">
+            <div className="absolute top-0 right-0 p-10 opacity-5 hidden md:block">
               <DollarSign size={300} />
             </div>
             
-            <p className="text-xs font-black uppercase tracking-[0.6em] text-gray-500 mb-6 flex items-center gap-4">
-              <span className="w-12 h-px bg-[var(--brand-primary)]" />
-              Patrimonio Actual de la Sociedad
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] md:tracking-[0.6em] text-gray-500 mb-4 md:mb-6 flex items-center gap-4">
+              <span className="w-8 md:w-12 h-px bg-[var(--brand-primary)]" />
+              Patrimonio Actual
             </p>
             
             <h2 className={cn(
-              "text-[10rem] font-black italic tracking-tighter leading-none mb-8",
+              "text-5xl md:text-8xl lg:text-[10rem] font-black italic tracking-tighter leading-none mb-6 md:mb-8",
               data.balance >= 0 ? "text-white" : "text-red-500"
             )}>
               <CountUp value={data.balance} />
             </h2>
 
-            <div className="flex gap-12">
+            <div className="flex flex-col md:flex-row gap-6 md:gap-12">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-green-500/60 mb-2">Ingresos Totales</p>
-                <p className="text-4xl font-black italic text-green-500">+{formatCurrency(data.totalIncome)}</p>
+                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-green-500/60 mb-1 md:mb-2">Ingresos Totales</p>
+                <p className="text-2xl md:text-4xl font-black italic text-green-500">+{formatCurrency(data.totalIncome)}</p>
               </div>
-              <div className="w-px h-16 bg-white/5" />
+              <div className="hidden md:block w-px h-16 bg-white/5" />
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-red-500/60 mb-2">Gastos Realizados</p>
-                <p className="text-4xl font-black italic text-red-500">-{formatCurrency(data.totalExpense)}</p>
+                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-red-500/60 mb-1 md:mb-2">Gastos Realizados</p>
+                <p className="text-2xl md:text-4xl font-black italic text-red-500">-{formatCurrency(data.totalExpense)}</p>
               </div>
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
              <motion.div 
                initial={{ opacity: 0, scale: 0.9 }}
                animate={{ opacity: 1, scale: 1 }}
                transition={{ delay: 0.2 }}
-               className="bg-[#13151f]/50 backdrop-blur-md rounded-[3rem] p-10 border border-white/5 flex items-center gap-8"
+               className="bg-[#13151f]/50 backdrop-blur-md rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 border border-white/5 flex items-center gap-6 md:gap-8"
              >
-                <div className="w-20 h-20 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-400 shadow-inner">
-                  <Activity size={40} />
+                <div className="w-14 h-14 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-400 shadow-inner">
+                  <Activity size={28} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Actividades Activas</p>
-                  <h4 className="text-5xl font-black italic text-white">{data.activeEvents}</h4>
+                  <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-gray-500">Actividades</p>
+                  <h4 className="text-3xl md:text-5xl font-black italic text-white">{data.activeEvents}</h4>
                 </div>
              </motion.div>
 
@@ -167,14 +167,14 @@ export default function PresentationPage() {
                initial={{ opacity: 0, scale: 0.9 }}
                animate={{ opacity: 1, scale: 1 }}
                transition={{ delay: 0.3 }}
-               className="bg-[#13151f]/50 backdrop-blur-md rounded-[3rem] p-10 border border-white/5 flex items-center gap-8"
+               className="bg-[#13151f]/50 backdrop-blur-md rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 border border-white/5 flex items-center gap-6 md:gap-8"
              >
-                <div className="w-20 h-20 rounded-3xl bg-[var(--brand-primary)]/10 flex items-center justify-center text-[var(--brand-primary)] shadow-inner">
-                  <TrendingUp size={40} />
+                <div className="w-14 h-14 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-[var(--brand-primary)]/10 flex items-center justify-center text-[var(--brand-primary)] shadow-inner">
+                  <TrendingUp size={28} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Rendimiento Mensual</p>
-                  <h4 className="text-5xl font-black italic text-white">+12%</h4>
+                  <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-gray-500">Rendimiento</p>
+                  <h4 className="text-3xl md:text-5xl font-black italic text-white">+12%</h4>
                 </div>
              </motion.div>
           </div>
@@ -185,14 +185,14 @@ export default function PresentationPage() {
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4 }}
-          className="col-span-4 bg-[#13151f] rounded-[4rem] border-2 border-white/5 p-12 flex flex-col shadow-2xl"
+          className="col-span-1 lg:col-span-4 bg-[#13151f] rounded-[2.5rem] md:rounded-[4rem] border-2 border-white/5 p-8 md:p-12 flex flex-col shadow-2xl"
         >
-          <h3 className="text-xl font-black uppercase italic tracking-widest text-white mb-10 flex items-center gap-4">
+          <h3 className="text-lg md:text-xl font-black uppercase italic tracking-widest text-white mb-6 md:mb-10 flex items-center gap-4">
             <Clock size={20} className="text-[var(--brand-primary)]" />
             Flujo Reciente
           </h3>
 
-          <div className="flex-1 space-y-8">
+          <div className="flex-1 space-y-6 md:space-y-8">
             {data.recentTx.map((t: any, i: number) => (
               <motion.div 
                 key={t.id}
@@ -202,12 +202,12 @@ export default function PresentationPage() {
                 className="flex justify-between items-center group"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-[9px] font-black text-gray-600 uppercase mb-1">{format(new Date(t.date), 'dd MMMM', { locale: es })}</p>
-                  <p className="text-lg font-black text-white uppercase truncate group-hover:text-[var(--brand-primary)] transition-colors">{t.description}</p>
+                  <p className="text-[8px] md:text-[9px] font-black text-gray-600 uppercase mb-1">{format(new Date(t.date), 'dd MMM', { locale: es })}</p>
+                  <p className="text-base md:text-lg font-black text-white uppercase truncate group-hover:text-[var(--brand-primary)] transition-colors">{t.description}</p>
                 </div>
                 <div className="text-right ml-4">
                   <p className={cn(
-                    "text-xl font-black italic tracking-tighter",
+                    "text-lg md:text-xl font-black italic tracking-tighter",
                     t.type === 'income' ? "text-green-500" : "text-red-500"
                   )}>
                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
@@ -217,8 +217,8 @@ export default function PresentationPage() {
             ))}
           </div>
 
-          <div className="mt-auto pt-10 border-t border-white/5 text-center">
-            <p className="text-[9px] font-black uppercase tracking-[0.5em] text-gray-700">ChurchFlow v1.3.3 \u2022 Sociedad de Jóvenes</p>
+          <div className="mt-8 md:mt-auto pt-6 md:pt-10 border-t border-white/5 text-center">
+            <p className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] text-gray-700 italic">ChurchFlow Pro v1.3.3</p>
           </div>
         </motion.div>
 

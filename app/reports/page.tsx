@@ -49,27 +49,29 @@ export default function ReportsPage() {
           <p className="text-xs font-bold uppercase tracking-[0.4em] text-[#8c7f72] mt-4">Auditoría y control de flujo de caja</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-4 bg-[#13151f] p-4 rounded-[2.5rem] border-2 border-white/5 shadow-2xl">
-          <div className="flex flex-col gap-1">
-            <span className="text-[8px] font-black text-gray-500 uppercase ml-2">Desde</span>
-            <input type="date" value={range.from} onChange={e => setRange({...range, from: e.target.value})} className="bg-white/5 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[8px] font-black text-gray-500 uppercase ml-2">Hasta</span>
-            <input type="date" value={range.to} onChange={e => setRange({...range, to: e.target.value})} className="bg-white/5 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark" />
+        <div className="flex flex-col md:flex-row flex-wrap items-center gap-4 bg-[#13151f] p-4 rounded-[2.5rem] md:rounded-[3rem] border-2 border-white/5 shadow-2xl w-full lg:w-auto">
+          <div className="flex gap-4 w-full md:w-auto">
+            <div className="flex flex-col gap-1 flex-1">
+              <span className="text-[8px] font-black text-gray-500 uppercase ml-2">Desde</span>
+              <input type="date" value={range.from} onChange={e => setRange({...range, from: e.target.value})} className="bg-white/5 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark w-full" />
+            </div>
+            <div className="flex flex-col gap-1 flex-1">
+              <span className="text-[8px] font-black text-gray-500 uppercase ml-2">Hasta</span>
+              <input type="date" value={range.to} onChange={e => setRange({...range, to: e.target.value})} className="bg-white/5 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark w-full" />
+            </div>
           </div>
           
-          <div className="flex items-center gap-2 h-14 bg-white/5 p-1.5 rounded-2xl border border-white/5 ml-2">
-            <Button onClick={() => setShowWhatsAppModal(true)} className="bg-green-600/10 text-green-500 hover:bg-green-600 hover:text-white px-4 h-full rounded-xl font-black uppercase text-[10px] tracking-widest transition-all border border-green-600/20">
-              <MessageCircle size={16} className="mr-2" /> WhatsApp
+          <div className="flex items-center gap-2 h-auto md:h-14 bg-white/5 p-1.5 rounded-2xl border border-white/5 w-full md:w-auto overflow-x-auto no-scrollbar">
+            <Button onClick={() => setShowWhatsAppModal(true)} className="bg-green-600/10 text-green-500 hover:bg-green-600 hover:text-white px-4 py-3 md:h-full rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest transition-all border border-green-600/20 whitespace-nowrap flex-1 md:flex-none">
+              <MessageCircle size={14} className="mr-1.5 md:mr-2" /> WhatsApp
             </Button>
-            <Link href="/presentation" target="_blank" className="h-full">
-              <Button className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-4 h-full rounded-xl font-black uppercase text-[10px] tracking-widest transition-all border border-blue-600/20">
-                <Presentation size={16} className="mr-2" /> En Vivo
+            <Link href="/presentation" target="_blank" className="md:h-full flex-1 md:flex-none">
+              <Button className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-4 py-3 w-full md:h-full rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest transition-all border border-blue-600/20 whitespace-nowrap">
+                <Presentation size={14} className="mr-1.5 md:mr-2" /> En Vivo
               </Button>
             </Link>
-            <Button onClick={() => window.print()} className="bg-[var(--brand-primary)] text-white px-6 h-full rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-all">
-              <Download size={16} className="mr-2" /> PDF
+            <Button onClick={() => window.print()} className="bg-[var(--brand-primary)] text-white px-4 py-3 md:px-6 md:h-full rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest shadow-xl hover:scale-105 transition-all flex-1 md:flex-none whitespace-nowrap">
+              <Download size={14} className="mr-1.5 md:mr-2" /> PDF
             </Button>
           </div>
         </div>
@@ -85,7 +87,7 @@ export default function ReportsPage() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="bg-white rounded-[3rem] p-8 w-full max-w-sm shadow-2xl text-[#0a0c14] overflow-hidden relative"
+                  className="bg-white rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-8 w-full max-w-[95vw] md:max-w-sm shadow-2xl text-[#0a0c14] overflow-hidden relative"
                   onClick={e => e.stopPropagation()}
                 >
                   <button onClick={() => setShowWhatsAppModal(false)} className="absolute top-6 right-6 text-black/20 hover:text-black transition-all"><X size={24} /></button>
