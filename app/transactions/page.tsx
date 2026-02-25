@@ -147,18 +147,35 @@ export default function TransactionsPage() {
   const afterTransfer = originBalance - amountNum;
 
   const handleSaveTransfer = async () => {
-    if (!tfForm.amount || !tfForm.toEventId) return;
+    if (!tfForm.amount || !tfForm.toEventId) {
+      toast({ title: 'Completa monto y destino', variant: 'destructive' });
+      return;
+    }
+
+    const finalDescription = tfForm.description || `Transferencia de ${fundName(tfForm.fromEventId)} a ${fundName(tfForm.toEventId)}`;
+
     setSaving(true);
     try {
       const res = await fetch('/api/transfers', { 
         method: 'POST', headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
-          amount: parseFloat(tfForm.amount), description: tfForm.description, date: tfForm.date, 
+          amount: parseFloat(tfForm.amount), 
+          description: finalDescription, 
+          date: tfForm.date, 
           fromEventId: tfForm.fromEventId === 'caja' ? null : tfForm.fromEventId, 
           toEventId: tfForm.toEventId === 'caja' ? null : tfForm.toEventId 
         }) 
       });
-      if (res.ok) { toast({ title: 'Transferencia Exitosa ✓' }); setShowTransfer(false); fetchData(); }
+      if (res.ok) { 
+        toast({ title: 'Transferencia Exitosa ✓' }); 
+        setShowTransfer(false); 
+        fetchData(); 
+      } else {
+        const err = await res.json();
+        toast({ title: 'Error al procesar', description: err.error, variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Error de red', variant: 'destructive' });
     } finally { setSaving(false); }
   };
 
