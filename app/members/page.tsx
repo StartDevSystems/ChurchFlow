@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { QRCodeSVG } from 'qrcode.react';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Member {
   id: string;
@@ -36,12 +37,58 @@ interface Member {
 
 export default function MembersPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<'all' | 'Joven' | 'Directiva'>('all');
   const [search, setSearch] = useState('');
   const [selectedMemberQR, setSelectedMemberQR] = useState<Member | null>(null);
   const [importing, setImporting] = useState(false);
+
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.json_to_sheet([
+      { Nombre: 'Juan Perez', Telefono: '8091234567', Rol: 'Joven', Cuota: 500, Cumpleanos: '1995-05-20' }
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
+    XLSX.writeFile(wb, "plantilla_miembros.xlsx");
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        const res = await fetch('/api/members/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ members: data })
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          toast({ title: `¡Éxito! Se importaron ${result.count} miembros.` });
+          fetchMembers();
+        } else {
+          toast({ title: 'Error al importar', variant: 'destructive' });
+        }
+      } catch (err) {
+        toast({ title: 'Archivo inválido', variant: 'destructive' });
+      } finally {
+        setImporting(false);
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -96,6 +143,22 @@ export default function MembersPage() {
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8c7f72] mt-2">Base de datos ministerial</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <input type="file" id="excel-upload" className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} disabled={importing} />
+          <button 
+            onClick={() => document.getElementById('excel-upload')?.click()} 
+            disabled={importing}
+            className="px-6 py-4 bg-green-600 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-xl flex items-center gap-2 hover:bg-green-700 transition-all disabled:opacity-50"
+          >
+            {importing ? <Loader2 className="animate-spin h-4 w-4" /> : <FileSpreadsheet size={16} />} 
+            Importar
+          </button>
+          <button 
+            onClick={downloadTemplate}
+            className="px-4 py-4 bg-white/5 text-gray-400 font-black uppercase text-[10px] tracking-widest rounded-2xl border border-white/5 hover:bg-white/10 transition-all flex items-center gap-2"
+            title="Bajar Plantilla Excel"
+          >
+            <Download size={16} />
+          </button>
           <Link href="/members/scan"><button className="px-6 py-4 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-xl flex items-center gap-2"><QrCode size={16} /> Escanear</button></Link>
           <Link href="/members/new"><button className="px-8 py-4 bg-[var(--brand-primary)] text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-2xl shadow-orange-500/20 hover:-translate-y-1 transition-all flex items-center gap-2"><PlusCircle size={16} /> Nuevo</button></Link>
         </div>
