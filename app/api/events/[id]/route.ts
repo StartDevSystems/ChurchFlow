@@ -36,8 +36,20 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   try {
     const { id } = params;
-    const { name, description, startDate, endDate, status } = await request.json();
+    const body = await request.json();
+    const { name, description, startDate, endDate, status } = body;
 
+    // Si no vienen name/startDate (porque es un update parcial como status), 
+    // buscamos el evento actual.
+    if (!name && !startDate && status) {
+      const updatedEvent = await prisma.event.update({
+        where: { id },
+        data: { status },
+      });
+      return NextResponse.json(updatedEvent);
+    }
+
+    // Validación normal para edición completa
     if (!name || !startDate) {
       return NextResponse.json({ error: 'Name and Start Date are required' }, { status: 400 });
     }
