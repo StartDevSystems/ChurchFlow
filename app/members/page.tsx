@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { QRCodeSVG } from 'qrcode.react';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Member {
   id: string;
@@ -36,6 +37,7 @@ interface Member {
 
 export default function MembersPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<'all' | 'Joven' | 'Directiva'>('all');
