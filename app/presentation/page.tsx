@@ -1,38 +1,40 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
-  ArrowLeft, TrendingUp, TrendingDown, DollarSign,
-  Activity, Loader2, Clock, Zap, ArrowUpRight, ArrowDownRight,
-  Radio
+  ArrowLeft, TrendingUp, TrendingDown, Activity,
+  Clock, Zap, ArrowUpRight, ArrowDownRight,
+  Radio, Maximize, Minimize
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn, formatCurrency } from '@/lib/utils';
 
 /* ══════════════════════════════════════════════════════════
-   COUNT-UP HOOK
-   Eased, frame-accurate, no interval drift
+   COUNT-UP HOOK — frame-accurate, ease-out quart
+   Handles negative numbers correctly
 ══════════════════════════════════════════════════════════ */
 function useCountUp(target: number, duration = 2000, delay = 500) {
   const [value, setValue] = useState(0);
-  const startRef  = useRef<number | null>(null);
-  const rafRef    = useRef<number>();
+  const startRef = useRef<number | null>(null);
+  const rafRef   = useRef<number>();
 
   useEffect(() => {
     setValue(0);
     startRef.current = null;
 
     const timeout = setTimeout(() => {
+      const absTarget = Math.abs(target);
+      const sign      = target < 0 ? -1 : 1;
+
       const tick = (now: number) => {
         if (!startRef.current) startRef.current = now;
         const elapsed  = now - startRef.current;
         const progress = Math.min(elapsed / duration, 1);
-        // Ease out quart
-        const eased = 1 - Math.pow(1 - progress, 4);
-        setValue(Math.round(eased * target));
+        const eased    = 1 - Math.pow(1 - progress, 4);
+        setValue(Math.round(eased * absTarget) * sign);
         if (progress < 1) rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -53,12 +55,37 @@ function useCountUp(target: number, duration = 2000, delay = 500) {
 function LiveClock() {
   const [time, setTime] = useState('');
   useEffect(() => {
-    const tick = () => setTime(new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    const tick = () => setTime(
+      new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    );
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
-  return <span>{time}</span>;
+  return <span className="tabular-nums">{time}</span>;
+}
+
+/* ══════════════════════════════════════════════════════════
+   FULLSCREEN HOOK
+══════════════════════════════════════════════════════════ */
+function useFullscreen() {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggle = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  return { isFullscreen, toggle };
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -68,23 +95,23 @@ function TxRow({ t, i }: { t: any; i: number }) {
   const isIncome = t.type === 'income';
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
+      initial={{ opacity: 0, x: 16 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 1.2 + i * 0.07, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="group flex items-center justify-between py-4 border-b border-white/5 last:border-0"
+      transition={{ delay: 1.1 + i * 0.07, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className="flex items-center justify-between py-3.5 border-b border-white/5 last:border-0"
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className={cn(
-          'flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center',
-          isIncome ? 'bg-green-500/10' : 'bg-red-500/10'
+          'flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center',
+          isIncome ? 'bg-green-500/12' : 'bg-red-500/12'
         )}>
           {isIncome
-            ? <ArrowUpRight size={13} className="text-green-400" />
-            : <ArrowDownRight size={13} className="text-red-400" />
+            ? <ArrowUpRight size={12} className="text-green-400" />
+            : <ArrowDownRight size={12} className="text-red-400" />
           }
         </div>
         <div className="min-w-0">
-          <p className="text-white font-black text-xs uppercase truncate tracking-tight leading-tight">
+          <p className="text-white font-black text-[11px] uppercase truncate tracking-tight leading-tight">
             {t.description}
           </p>
           <p className="text-white/25 text-[9px] font-bold uppercase tracking-widest mt-0.5">
@@ -96,7 +123,7 @@ function TxRow({ t, i }: { t: any; i: number }) {
         'flex-shrink-0 ml-3 font-black text-sm tracking-tight',
         isIncome ? 'text-green-400' : 'text-red-400'
       )}>
-        {isIncome ? '+' : '-'}{formatCurrency(t.amount)}
+        {isIncome ? '+' : ''}{formatCurrency(t.amount)}
       </span>
     </motion.div>
   );
@@ -106,7 +133,8 @@ function TxRow({ t, i }: { t: any; i: number }) {
    MAIN PAGE
 ══════════════════════════════════════════════════════════ */
 export default function PresentationPage() {
-  const router  = useRouter();
+  const router = useRouter();
+  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
   const [data, setData]     = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -142,48 +170,67 @@ export default function PresentationPage() {
     }
   }, []);
 
-  // Auto-refresh every 60s
   useEffect(() => {
     fetchData();
-    const id = setInterval(() => { fetchData(); }, 60_000);
+    const id = setInterval(() => fetchData(), 60_000);
     return () => clearInterval(id);
   }, [fetchData]);
 
-  /* Animated balance values */
-  const animBalance  = useCountUp(data?.balance      ?? 0, 2200, 700);
-  const animIncome   = useCountUp(data?.totalIncome  ?? 0, 1800, 1000);
-  const animExpense  = useCountUp(data?.totalExpense ?? 0, 1800, 1100);
-  const netRatio     = data ? Math.round((data.balance / Math.max(data.totalIncome, 1)) * 100) : 0;
-  const isPositive   = (data?.balance ?? 0) >= 0;
+  /* Animated values — handle negative balance */
+  const animBalance = useCountUp(data?.balance      ?? 0, 2200, 700);
+  const animIncome  = useCountUp(data?.totalIncome  ?? 0, 1800, 1000);
+  const animExpense = useCountUp(data?.totalExpense ?? 0, 1800, 1100);
 
-  /* ── Loading screen ── */
+  const isPositive   = (data?.balance ?? 0) >= 0;
+  /* Coverage ratio: what % of expenses are covered by income.
+     If positive: surplus %. If negative: deficit %. */
+  const coverageRatio = data
+    ? data.totalIncome > 0
+      ? Math.round((data.balance / data.totalIncome) * 100)
+      : -100
+    : 0;
+  const absRatio     = Math.abs(coverageRatio);
+  /* Bar width: always 0-100 based on expense coverage */
+  const barWidth = data
+    ? Math.min(100, Math.round((data.totalIncome / Math.max(data.totalExpense, 1)) * 100))
+    : 0;
+
+  /* Loading */
   if (loading) return (
     <div className="fixed inset-0 bg-[#0a0c14] flex flex-col items-center justify-center gap-5">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
-      >
+      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}>
         <Zap size={40} className="text-[var(--brand-primary)]" fill="currentColor" />
       </motion.div>
-      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">
-        Cargando datos...
-      </p>
+      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Cargando datos...</p>
     </div>
   );
 
   return (
-    <div className="fixed inset-0 bg-[#0a0c14] overflow-hidden flex flex-col select-none">
+    /*
+      KEY FIX — Sidebar problem:
+      The presentation page opens via Link target="_blank" so it has NO sidebar.
+      But if it ever renders inside the layout, we use:
+        - fixed inset-0 z-[9999]  → covers everything including sidebar
+        - In fullscreen mode, sidebar is completely hidden by the browser
+    */
+    <div className="fixed inset-0 z-[9999] bg-[#0a0c14] overflow-hidden flex flex-col select-none">
 
       {/* ── Ambient glows ── */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-[var(--brand-primary)]/7 blur-[140px]" />
-        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-blue-600/5 blur-[140px]" />
+        <div className={cn(
+          'absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-[140px] transition-colors duration-1000',
+          isPositive ? 'bg-[var(--brand-primary)]/7' : 'bg-red-500/6'
+        )} />
+        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-blue-600/4 blur-[140px]" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-[900px] h-[500px] rounded-full bg-[var(--brand-primary)]/3 blur-[180px]" />
+          <div className={cn(
+            'w-[900px] h-[500px] rounded-full blur-[200px] transition-colors duration-1000',
+            isPositive ? 'bg-[var(--brand-primary)]/3' : 'bg-red-500/3'
+          )} />
         </div>
       </div>
 
-      {/* ── Grid texture ── */}
+      {/* ── Grid ── */}
       <div className="pointer-events-none absolute inset-0" style={{
         backgroundImage: 'linear-gradient(rgba(255,107,26,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,107,26,0.025) 1px,transparent 1px)',
         backgroundSize: '55px 55px',
@@ -193,191 +240,222 @@ export default function PresentationPage() {
           HEADER
       ════════════════════════════════ */}
       <motion.header
-        initial={{ opacity: 0, y: -24 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 flex items-center justify-between px-6 md:px-12 pt-6 pb-4 border-b border-white/5"
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 flex items-center justify-between px-5 md:px-10 pt-5 pb-4 border-b border-white/5"
       >
         {/* Brand + back */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-all text-white/30 hover:text-white"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all text-white/30 hover:text-white"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center shadow-lg">
-              <Zap size={17} className="text-white" fill="white" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <Zap size={15} className="text-white" fill="white" />
             </div>
-            <div>
-              <p className="text-white font-black text-sm uppercase tracking-[0.15em] leading-none">
-                ChurchFlow
-              </p>
-              <p className="text-white/25 text-[8px] uppercase tracking-[0.3em] mt-0.5">
-                Sistema Financiero
-              </p>
+            <div className="hidden sm:block">
+              <p className="text-white font-black text-xs uppercase tracking-[0.18em] leading-none">ChurchFlow</p>
+              <p className="text-white/20 text-[8px] uppercase tracking-[0.3em] mt-0.5">Finanzas Jóvenes</p>
             </div>
           </div>
         </div>
 
         {/* Center — date */}
-        <div className="hidden md:flex flex-col items-center">
-          <p className="text-white/20 text-[8px] uppercase tracking-[0.35em]">
+        <div className="hidden md:flex flex-col items-center gap-0.5">
+          <p className="text-white/15 text-[8px] uppercase tracking-[0.35em] font-bold">
             {format(new Date(), "eeee, d 'de' MMMM yyyy", { locale: es })}
           </p>
         </div>
 
-        {/* Right — live + clock */}
-        <div className="flex items-center gap-4">
+        {/* Right controls */}
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* Clock */}
           <div className="hidden sm:flex items-center gap-1.5 text-white/20">
             <Clock size={11} />
-            <span className="text-[10px] font-black uppercase tracking-widest tabular-nums">
+            <span className="text-[10px] font-black uppercase tracking-widest">
               <LiveClock />
             </span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+
+          {/* Fullscreen button */}
+          <button
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa (proyección)'}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 transition-all text-white/40 hover:text-white group"
+          >
+            {isFullscreen
+              ? <Minimize size={14} />
+              : <Maximize size={14} />
+            }
+            <span className="hidden md:block text-[9px] font-black uppercase tracking-widest">
+              {isFullscreen ? 'Salir' : 'Proyectar'}
+            </span>
+          </button>
+
+          {/* Live pill */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
             </span>
-            <span className="text-[9px] font-black uppercase tracking-widest text-green-400">
-              En Vivo
-            </span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-green-400">En Vivo</span>
           </div>
         </div>
       </motion.header>
 
       {/* ════════════════════════════════
           MAIN CONTENT
+          FIX: pl-0 always — this page is fixed z-[9999] so sidebar never overlaps
+          In fullscreen mode sidebar is fully gone anyway
       ════════════════════════════════ */}
-      <main className="relative z-10 flex-1 flex flex-col lg:flex-row gap-8 lg:gap-0 overflow-y-auto lg:overflow-hidden px-6 md:px-12 py-6 md:py-8 no-scrollbar">
+      <main className="relative z-10 flex-1 flex flex-col lg:flex-row overflow-hidden px-5 md:px-10 py-5 md:py-8 gap-6 lg:gap-0">
 
         {/* ── LEFT: Balance hero ── */}
-        <div className="flex-1 flex flex-col justify-center lg:pr-12 gap-4 md:gap-6 min-h-fit">
+        <div className="flex-1 flex flex-col justify-center lg:pr-10 gap-5 min-w-0">
 
           {/* Eyebrow */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
             className="flex items-center gap-3"
           >
-            <span className="w-8 md:w-10 h-px bg-[var(--brand-primary)]" />
-            <span className="text-[9px] md:text-xs font-black uppercase tracking-[0.4em] text-white/30">
+            <span className={cn(
+              'w-8 h-px transition-colors duration-700',
+              isPositive ? 'bg-[var(--brand-primary)]' : 'bg-red-400'
+            )} />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">
               Patrimonio Actual
             </span>
           </motion.div>
 
-          {/* Giant balance */}
-          <div className="overflow-visible">
+          {/* ── GIANT BALANCE NUMBER ──
+              FIX: uses w-full + truncate so it never clips on any screen.
+              clamp() ensures it scales correctly from mobile → 4K projector */}
+          <div className="overflow-hidden w-full">
             <motion.div
-              initial={{ y: 100, opacity: 0 }}
+              initial={{ y: 80, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.35, duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ delay: 0.3, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             >
               <span
                 className={cn(
-                  'block font-black italic tracking-tighter leading-none',
+                  'block font-black italic tracking-tighter leading-none break-all',
                   isPositive ? 'text-white' : 'text-red-400'
                 )}
-                style={{ fontSize: 'clamp(2.5rem, 12vw, 8.5rem)' }}
+                style={{ fontSize: 'clamp(2.8rem, 8vw, 8rem)' }}
               >
                 {formatCurrency(animBalance)}
               </span>
             </motion.div>
           </div>
 
-          {/* Health bar */}
+          {/* ── FINANCIAL HEALTH BAR ──
+              FIX: replaces the confusing "%-97% neto" with clear human language.
+              Shows: "Ingresos cubren X% de los gastos" with color logic.  */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.9 }}
+            transition={{ delay: 0.85 }}
+            className="space-y-2"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-white/20 text-[9px] uppercase tracking-widest font-bold">
-                Salud financiera
+            <div className="flex items-center justify-between">
+              <span className="text-white/25 text-[9px] uppercase tracking-widest font-bold">
+                {isPositive ? 'Cobertura financiera' : 'Déficit activo'}
               </span>
-              <span className="text-[var(--brand-primary)] text-[9px] font-black uppercase tracking-widest">
-                {netRatio}% neto
-              </span>
+              <div className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wide',
+                isPositive
+                  ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+              )}>
+                {isPositive
+                  ? `▲ Superávit ${absRatio}%`
+                  : `▼ Déficit ${absRatio}% — Gastos superan ingresos`
+                }
+              </div>
             </div>
-            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+
+            {/* Bar: orange fill = income coverage of expenses */}
+            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.max(0, Math.min(100, netRatio))}%` }}
-                transition={{ delay: 1.1, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                className="h-full rounded-full bg-gradient-to-r from-[var(--brand-primary)] to-orange-300"
+                animate={{ width: `${barWidth}%` }}
+                transition={{ delay: 1.0, duration: 1.3, ease: [0.22, 1, 0.36, 1] }}
+                className={cn(
+                  'h-full rounded-full',
+                  isPositive
+                    ? 'bg-gradient-to-r from-[var(--brand-primary)] to-orange-300'
+                    : 'bg-gradient-to-r from-red-500 to-red-400'
+                )}
               />
             </div>
+
+            {/* Context line */}
+            <p className="text-white/15 text-[9px] font-bold">
+              {isPositive
+                ? `Los ingresos superan los gastos en ${formatCurrency(data.balance)}`
+                : `Faltan ${formatCurrency(Math.abs(data.balance))} para cubrir todos los gastos`
+              }
+            </p>
           </motion.div>
 
-          {/* Income / Expense cards */}
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
+          {/* ── INCOME / EXPENSE CARDS ── */}
+          <div className="grid grid-cols-2 gap-3">
             <motion.div
-              initial={{ opacity: 0, y: 28 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="relative rounded-2xl border border-green-500/20 bg-green-500/5 p-4 md:p-6 overflow-hidden"
+              transition={{ delay: 0.65, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="relative rounded-2xl border border-green-500/20 bg-green-500/5 p-4 md:p-5 overflow-hidden"
             >
-              <div className="absolute -top-4 -right-4 w-20 h-20 bg-green-500/8 rounded-full blur-xl" />
+              <div className="absolute -top-3 -right-3 w-16 h-16 bg-green-500/8 rounded-full blur-xl" />
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[8px] font-black uppercase tracking-[0.25em] text-green-400/60">
-                  Ingresos
-                </span>
-                <TrendingUp size={13} className="text-green-400" />
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-green-400/60">Ingresos</span>
+                <TrendingUp size={12} className="text-green-400" />
               </div>
-              <p
-                className="text-green-400 font-black italic tracking-tight leading-none"
-                style={{ fontSize: 'clamp(1rem, 2.5vw, 1.75rem)' }}
-              >
+              <p className="text-green-400 font-black italic tracking-tight leading-none"
+                style={{ fontSize: 'clamp(1rem, 2.2vw, 1.6rem)' }}>
                 +{formatCurrency(animIncome)}
               </p>
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 28 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="relative rounded-2xl border border-red-500/20 bg-red-500/5 p-4 md:p-6 overflow-hidden"
+              transition={{ delay: 0.75, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="relative rounded-2xl border border-red-500/20 bg-red-500/5 p-4 md:p-5 overflow-hidden"
             >
-              <div className="absolute -top-4 -right-4 w-20 h-20 bg-red-500/8 rounded-full blur-xl" />
+              <div className="absolute -top-3 -right-3 w-16 h-16 bg-red-500/8 rounded-full blur-xl" />
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[8px] font-black uppercase tracking-[0.25em] text-red-400/60">
-                  Gastos
-                </span>
-                <TrendingDown size={13} className="text-red-400" />
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-red-400/60">Gastos</span>
+                <TrendingDown size={12} className="text-red-400" />
               </div>
-              <p
-                className="text-red-400 font-black italic tracking-tight leading-none"
-                style={{ fontSize: 'clamp(1rem, 2.5vw, 1.75rem)' }}
-              >
+              <p className="text-red-400 font-black italic tracking-tight leading-none"
+                style={{ fontSize: 'clamp(1rem, 2.2vw, 1.6rem)' }}>
                 -{formatCurrency(animExpense)}
               </p>
             </motion.div>
           </div>
 
-          {/* Active events pill row */}
+          {/* Active event pills */}
           {data.eventDetails.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.0, duration: 0.5 }}
+              transition={{ delay: 0.95, duration: 0.45 }}
               className="flex flex-wrap gap-2"
             >
               {data.eventDetails.slice(0, 4).map((ev: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 bg-white/5 border border-white/8 rounded-full px-3 py-1.5"
-                >
-                  <Activity size={10} className="text-[var(--brand-primary)] flex-shrink-0" />
-                  <span className="text-[9px] font-black uppercase tracking-wide text-white/60 max-w-[120px] truncate">
+                <div key={i} className="flex items-center gap-2 bg-white/5 border border-white/8 rounded-full px-3 py-1.5">
+                  <Activity size={9} className="text-[var(--brand-primary)] flex-shrink-0" />
+                  <span className="text-[9px] font-black uppercase tracking-wide text-white/50 max-w-[110px] truncate">
                     {ev.name}
                   </span>
-                  <span className={cn(
-                    'text-[9px] font-black',
-                    ev.balance >= 0 ? 'text-green-400' : 'text-red-400'
-                  )}>
+                  <span className={cn('text-[9px] font-black', ev.balance >= 0 ? 'text-green-400' : 'text-red-400')}>
                     {formatCurrency(ev.balance)}
                   </span>
                 </div>
@@ -386,53 +464,46 @@ export default function PresentationPage() {
           )}
         </div>
 
-        {/* ── Vertical divider (desktop only) ── */}
+        {/* ── Vertical divider ── */}
         <motion.div
           initial={{ scaleY: 0, opacity: 0 }}
           animate={{ scaleY: 1, opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ delay: 0.5, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           style={{ transformOrigin: 'top' }}
-          className="hidden lg:block w-px bg-gradient-to-b from-transparent via-white/8 to-transparent self-stretch mx-4"
+          className="hidden lg:block w-px bg-gradient-to-b from-transparent via-white/8 to-transparent self-stretch mx-6"
         />
 
-        {/* ── RIGHT: Recent activity ── */}
+        {/* ── RIGHT: Recent transactions ── */}
         <motion.div
-          initial={{ opacity: 0, x: 32 }}
+          initial={{ opacity: 0, x: 28 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.6, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="lg:w-[360px] xl:w-[420px] flex flex-col mt-8 lg:mt-0 pb-10 lg:pb-0"
+          transition={{ delay: 0.55, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className="lg:w-[340px] xl:w-[400px] flex flex-col"
         >
-          {/* Section header */}
-          <div className="flex items-center justify-between mb-4 bg-[#0a0c14] lg:bg-transparent sticky top-0 py-2 lg:relative z-20">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Radio size={13} className="text-[var(--brand-primary)]" />
-              <span className="text-white font-black text-xs uppercase tracking-[0.25em]">
-                Flujo Reciente
-              </span>
+              <Radio size={12} className="text-[var(--brand-primary)]" />
+              <span className="text-white font-black text-xs uppercase tracking-[0.25em]">Flujo Reciente</span>
             </div>
-            <span className="text-white/20 text-[9px] uppercase tracking-widest">
-              {data.recentTx.length} mov.
-            </span>
+            <span className="text-white/20 text-[9px] uppercase tracking-widest">{data.recentTx.length} mov.</span>
           </div>
 
-          {/* Transactions */}
-          <div className="flex-1 overflow-y-visible lg:overflow-y-auto scrollbar-none">
+          <div className="flex-1 overflow-y-auto scrollbar-none">
             {data.recentTx.map((t: any, i: number) => (
               <TxRow key={t.id} t={t} i={i} />
             ))}
           </div>
 
-          {/* Bottom stat */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1.8 }}
-            className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between"
+            transition={{ delay: 1.7 }}
+            className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between"
           >
-            <span className="text-white/15 text-[9px] uppercase tracking-widest">
+            <span className="text-white/15 text-[8px] uppercase tracking-widest">
               {data.activeEvents} actividad{data.activeEvents !== 1 ? 'es' : ''} activa{data.activeEvents !== 1 ? 's' : ''}
             </span>
-            <span className="text-[var(--brand-primary)] font-black text-[9px] uppercase tracking-widest">
+            <span className="text-[var(--brand-primary)] font-black text-[8px] uppercase tracking-widest">
               {format(new Date(), 'MMM yyyy', { locale: es })}
             </span>
           </motion.div>
@@ -443,15 +514,11 @@ export default function PresentationPage() {
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.6 }}
-        className="relative z-10 border-t border-white/5 px-6 md:px-12 py-3 flex items-center justify-between"
+        transition={{ delay: 1.5 }}
+        className="relative z-10 border-t border-white/5 px-5 md:px-10 py-3 flex items-center justify-between"
       >
-        <p className="text-white/10 text-[8px] uppercase tracking-[0.35em] italic font-bold">
-          Soli Deo Gloria
-        </p>
-        <p className="text-white/10 text-[8px] uppercase tracking-[0.35em] font-bold">
-          ChurchFlow Pro v1.3.3
-        </p>
+        <p className="text-white/8 text-[8px] uppercase tracking-[0.4em] italic font-bold">Soli Deo Gloria</p>
+        <p className="text-white/8 text-[8px] uppercase tracking-[0.4em] font-bold">ChurchFlow Pro v1.3.3</p>
       </motion.footer>
     </div>
   );
