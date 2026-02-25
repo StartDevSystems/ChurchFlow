@@ -32,6 +32,16 @@ El cerebro del sistema se divide en pestañas estratégicas:
 *   **Alertas Externas:** Configura un Webhook de Discord o Telegram para recibir avisos cuando se registren gastos grandes o el saldo de la caja sea bajo.
 
 ## 7.4. Gestión Financiera
-*   **Transacciones:** Registro de ingresos y gastos con categorías.
-*   **Transferencias:** Movimiento de capital entre la Caja General y Eventos.
+*   **Transacciones:** Registro de ingresos y gastos con categorías. Puedes eliminar transacciones mal registradas usando el botón de la papelera (🗑️) al final de la fila. El sistema te pedirá confirmación antes de proceder.
+*   **Transferencias:** Movimiento de capital entre la Caja General y Eventos. También se pueden eliminar individualmente desde la lista de movimientos.
+*   **Eventos:** Creación de fondos específicos para actividades. Como administrador, puedes eliminar un evento completo; ten en cuenta que esto también borrará todas las transacciones vinculadas a ese evento.
 *   **Reportes:** Generación de PDF profesionales con tu firma y logo configurados.
+
+## 7.5. Directorio de Miembros
+El sistema permite gestionar la base de datos de los jóvenes de forma ágil:
+1.  **Carga Individual:** Botón "+ Nuevo Miembro" para registros únicos.
+2.  **Importación Masiva (Pro):** 
+    - Haz clic en "Bajar Plantilla" para obtener el formato de Excel correcto.
+    - Llena los datos de los jóvenes en el archivo.
+    - Haz clic en "Importar" y sube el archivo para registrar a todos de un golpe.
+3.  **QR Único:** Cada miembro tiene un código QR generado automáticamente para control de asistencia rápida.
