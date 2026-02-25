@@ -1,4 +1,3 @@
-
 'use client';
 
 import '../styles/globals.css';
@@ -92,11 +91,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
+    <html lang="es" suppressHydrationWarning className="dark">
       <head>
-        <link rel="icon" href="/icon-512.jpeg" />
-        <link rel="apple-touch-icon" href="/icon-512.jpeg" />
+        {/* ── Favicon ── */}
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+
+        {/* ── iOS / Apple ── */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Finanzas Jóvenes" />
+
+        {/* ── PWA Manifest ── */}
         <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#e85d26" />
+
+        {/* ── Viewport ── */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
       </head>
       <body className={cn(inter.className, "bg-[#0a0c14] text-white selection:bg-[var(--brand-primary)] selection:text-white overflow-x-hidden")}>
