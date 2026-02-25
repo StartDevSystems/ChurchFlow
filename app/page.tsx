@@ -304,10 +304,13 @@ export default function DashboardPage() {
   const afterTransfer = originBalance - amountNum;
 
   const handleSaveTransfer = async () => {
-    if (!tfForm.amount || !tfForm.toEventId || !tfForm.fromEventId) {
-      toast({ title: 'Completa todos los campos', variant: 'destructive' });
+    if (!tfForm.amount || !tfForm.toEventId) {
+      toast({ title: 'Completa el monto y el destino', variant: 'destructive' });
       return;
     }
+
+    const finalDescription = tfForm.description || `Transferencia de ${fundName(tfForm.fromEventId)} a ${fundName(tfForm.toEventId)}`;
+
     setSaving(true);
     try {
       const res = await fetch('/api/transfers', { 
@@ -315,7 +318,7 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
           amount: parseFloat(tfForm.amount), 
-          description: tfForm.description, 
+          description: finalDescription, 
           date: tfForm.date, 
           fromEventId: tfForm.fromEventId === 'caja' ? null : tfForm.fromEventId, 
           toEventId: tfForm.toEventId === 'caja' ? null : tfForm.toEventId 
@@ -325,7 +328,12 @@ export default function DashboardPage() {
         toast({ title: 'Transferencia realizada con éxito ✓' }); 
         setShowTransfer(false); 
         fetchAll(); 
+      } else {
+        const err = await res.json();
+        toast({ title: 'Error al procesar', description: err.error, variant: 'destructive' });
       }
+    } catch (e) {
+      toast({ title: 'Error de red', variant: 'destructive' });
     } finally { setSaving(false); }
   };
 
