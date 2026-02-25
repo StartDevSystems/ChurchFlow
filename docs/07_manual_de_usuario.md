@@ -45,3 +45,21 @@ El sistema permite gestionar la base de datos de los jóvenes de forma ágil:
     - Llena los datos de los jóvenes en el archivo.
     - Haz clic en "Importar" y sube el archivo para registrar a todos de un golpe.
 3.  **QR Único:** Cada miembro tiene un código QR generado automáticamente para control de asistencia rápida.
+
+## 7.6. Instalación como App (PWA)
+ChurchFlow no necesita descargarse de una tienda de aplicaciones. Puedes instalarla directamente en tu celular o PC:
+
+### En iPhone (Safari)
+1. Abre la web en Safari.
+2. Toca el botón **"Compartir"** (cuadrado con flecha arriba).
+3. Busca y selecciona **"Agregar a la pantalla de inicio"**.
+
+### En Android (Chrome)
+1. Abre la web en Chrome.
+2. Toca los **tres puntos (⋮)** arriba a la derecha.
+3. Selecciona **"Instalar aplicación"**.
+
+### En Computadora (Chrome / Edge)
+1. Abre la web en tu navegador.
+2. Busca el icono de **"Instalar"** (una pantalla con flecha) al final de la barra de direcciones (URL).
+3. Haz clic en **Instalar**.

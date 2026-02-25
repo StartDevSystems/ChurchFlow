@@ -29,9 +29,13 @@ Este documento registra los cambios, mejoras y correcciones importantes aplicado
 
 ---
 
-## 🍏 [PWA/iOS Fix] - Optimización de Iconos
-**Fecha:** 24 de febrero de 2026
+## 🍏 [PWA/iOS & Android Fix] - Optimización Final de Instalación
+**Fecha:** 25 de febrero de 2026
 
 ### 📱 Mejoras PWA (Progressive Web App)
 - **Compatibilidad con Apple (iOS):** Se agregó la etiqueta `<link rel="apple-touch-icon" href="/icon-512.jpeg" />` para asegurar que los dispositivos iPhone muestren correctamente el logo de la iglesia.
-- **Renombrado de Assets:** Se cambió el nombre del logo a `icon-512.jpeg` para cumplir con estándares de la industria y evitar errores de ruta en Safari.
+- **Soporte Android e Instalación en PC:** 
+  - Se habilitó la detección del manifiesto agregando `<link rel="manifest" href="/manifest.json" />` en el layout.
+  - Se cambió el formato del icono de PWA a PNG (`app-logo.png`) para cumplir con los requisitos estrictos de Google/Android.
+  - Se ajustaron las dimensiones en el `manifest.json` a **500x500px** para coincidir exactamente con el archivo físico, eliminando errores de validación en Chrome.
+- **Optimización de Caché:** Se renombró el asset principal a `app-logo.png` para forzar a los navegadores a refrescar el icono guardado.
