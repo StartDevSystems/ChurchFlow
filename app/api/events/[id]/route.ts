@@ -36,10 +36,29 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   try {
     const { id } = params;
-    const { name, description, startDate, endDate, status } = await request.json();
+    const body = await request.json();
+    const { name, description, startDate, endDate, status } = body;
 
+    // Si viene el status solo o con otras cosas, lo procesamos de forma flexible
+    const dataToUpdate: any = {};
+    if (status) dataToUpdate.status = status;
+    if (name) dataToUpdate.name = name;
+    if (description !== undefined) dataToUpdate.description = description;
+    if (startDate) dataToUpdate.startDate = new Date(startDate);
+    if (endDate !== undefined) dataToUpdate.endDate = endDate ? new Date(endDate) : null;
+
+    // Si es solo cambio de status, no validamos name/startDate
+    if (Object.keys(body).length === 1 && status) {
+      const updatedEvent = await prisma.event.update({
+        where: { id },
+        data: { status },
+      });
+      return NextResponse.json(updatedEvent);
+    }
+
+    // Validación normal para edición completa manual
     if (!name || !startDate) {
-      return NextResponse.json({ error: 'Name and Start Date are required' }, { status: 400 });
+      if (!status) return NextResponse.json({ error: 'Name and Start Date are required' }, { status: 400 });
     }
 
     const updatedEvent = await prisma.event.update({

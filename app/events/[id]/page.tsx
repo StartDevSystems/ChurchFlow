@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
-import { ArrowDown, ArrowUp, DollarSign, Calendar as CalendarIcon, Trash2, Users, ArrowLeft, Save, TrendingUp, Target, Clock, Star, Loader2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, DollarSign, Calendar as CalendarIcon, Trash2, Users, ArrowLeft, Save, TrendingUp, Target, Clock, Star, Loader2, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Input } from '@/components/ui/Input';
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/AlertDialog";
 
-interface Event { id: string; name: string; description?: string | null; startDate: string; endDate?: string | null; }
+interface Event { id: string; name: string; description?: string | null; startDate: string; endDate?: string | null; status: string; }
 interface Transaction { id: string; type: 'income' | 'expense'; category: { name: string }; amount: number; date: string; description: string; member?: { id: string; name: string } | null; }
 interface MemberContribution { memberId: string; memberName: string; totalContributed: number; txCount: number; }
 
@@ -34,6 +34,7 @@ export default function EventDetailPage() {
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [status, setStatus] = useState('ACTIVO');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -50,6 +51,7 @@ export default function EventDetailPage() {
       setDescription(eventData.description || '');
       setStartDate(eventData.startDate.split('T')[0]);
       setEndDate(eventData.endDate ? eventData.endDate.split('T')[0] : '');
+      setStatus(eventData.status);
 
       const transData: Transaction[] = await transRes.json();
       setTransactions(transData);
@@ -83,9 +85,24 @@ export default function EventDetailPage() {
       const res = await fetch(`/api/events/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, startDate: new Date(startDate), endDate: endDate ? new Date(endDate) : null }),
+        body: JSON.stringify({ name, description, startDate: new Date(startDate), endDate: endDate ? new Date(endDate) : null, status }),
       });
       if (res.ok) toast({ title: "Evento Actualizado ✓" });
+    } finally { setSaving(false); }
+  };
+
+  const handleFinalize = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/events/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'FINALIZADO' }),
+      });
+      if (res.ok) {
+        toast({ title: "Evento Finalizado ✓" });
+        fetchData();
+      }
     } finally { setSaving(false); }
   };
 
@@ -120,6 +137,28 @@ export default function EventDetailPage() {
               <p className="text-xl md:text-2xl font-black uppercase text-blue-400 italic tracking-widest">{format(new Date(startDate + 'T12:00:00'), "d 'de' MMMM yyyy", { locale: es })}</p>
             </div>
             <div className="flex gap-3">
+              {status !== 'FINALIZADO' && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="px-8 py-4 bg-green-600 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-xl hover:bg-green-700 transition-all flex items-center gap-2">
+                      <CheckCircle2 size={16} /> Finalizar Evento
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="rounded-[2.5rem] border-2 border-white/10 bg-[#13151f] text-white">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="font-black text-2xl uppercase italic">¿Cerrar Actividad?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-gray-400 font-bold uppercase text-xs">
+                        Al finalizar, el evento se moverá al historial y dejará de aparecer en los resúmenes activos. El dinero se mantendrá registrado.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="rounded-xl font-black uppercase text-[10px]">No todavía</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleFinalize} className="bg-green-600 hover:bg-green-700 rounded-xl font-black uppercase text-[10px]">Sí, Finalizar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              
               <AlertDialog>
                 <AlertDialogTrigger asChild><button className="px-8 py-4 bg-red-500/10 border-2 border-red-500/20 rounded-2xl text-red-500 font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-all">Eliminar Evento</button></AlertDialogTrigger>
                 <AlertDialogContent className="rounded-[2.5rem] border-2 border-[#1a1714] bg-[#13151f] text-white">
