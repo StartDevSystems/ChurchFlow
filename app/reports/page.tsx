@@ -9,6 +9,8 @@ import { es } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export default function ReportsPage() {
   const [data, setData] = useState<any>(null);
@@ -18,6 +20,46 @@ export default function ReportsPage() {
     from: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     to: format(endOfMonth(new Date()), 'yyyy-MM-dd')
   });
+
+  const generatePDF = () => {
+    if (!data) return;
+    const doc = new jsPDF();
+    const churchName = "FINANZAS JÓVENES - IGLESIA CENTRAL";
+    
+    // Título
+    doc.setFontSize(18);
+    doc.text(churchName, 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Reporte Financiero: ${range.from} al ${range.to}`, 14, 30);
+
+    // Resumen
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text(`Ingresos: ${formatCurrency(data.summary.totalIncome)}`, 14, 45);
+    doc.text(`Gastos: ${formatCurrency(data.summary.totalExpense)}`, 14, 52);
+    doc.setFontSize(14);
+    doc.text(`BALANCE NETO: ${formatCurrency(data.summary.netBalance)}`, 14, 62);
+
+    // Tabla de transacciones
+    const tableData = data.transactions.map((t: any) => [
+      format(new Date(t.date), 'dd/MM/yyyy'),
+      t.description.toUpperCase(),
+      t.category.name.toUpperCase(),
+      t.type === 'income' ? `+${t.amount}` : `-${t.amount}`
+    ]);
+
+    (doc as any).autoTable({
+      startY: 70,
+      head: [['FECHA', 'DESCRIPCIÓN', 'CATEGORÍA', 'MONTO']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillStyle: '#e85d26' },
+      styles: { fontSize: 8, font: 'helvetica' }
+    });
+
+    doc.save(`reporte-iglesia-${range.from}.pdf`);
+  };
 
   const fetchReport = useCallback(async () => {
     setLoading(true);
@@ -70,7 +112,7 @@ export default function ReportsPage() {
                 <Presentation size={14} className="mr-1.5 md:mr-2" /> En Vivo
               </Button>
             </Link>
-            <Button onClick={() => window.print()} className="bg-[var(--brand-primary)] text-white px-4 py-3 md:px-6 md:h-full rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest shadow-xl hover:scale-105 transition-all flex-1 md:flex-none whitespace-nowrap">
+            <Button onClick={generatePDF} className="bg-[var(--brand-primary)] text-white px-4 py-3 md:px-6 md:h-full rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest shadow-xl hover:scale-105 transition-all flex-1 md:flex-none whitespace-nowrap">
               <Download size={14} className="mr-1.5 md:mr-2" /> PDF
             </Button>
           </div>
@@ -125,19 +167,20 @@ export default function ReportsPage() {
                   </div>
 
                   <div className="mt-8 text-center space-y-4">
-                    <Button 
-                      onClick={() => {
-                        const msg = `📊 *REPORTE FINANCIERO - ${format(new Date(), 'MMMM yyyy', { locale: es }).toUpperCase()}*\n\n` +
-                                    `💰 *Recaudado:* ${formatCurrency(data.summary.totalIncome)}\n` +
-                                    `🛑 *Invertido:* ${formatCurrency(data.summary.totalExpense)}\n` +
-                                    `🏦 *Balance en Caja:* ${formatCurrency(data.summary.netBalance)}\n\n` +
-                                    `_"Fieles en lo poco, sobre mucho te pondré."_`;
-                        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-                      }}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] tracking-widest py-6 rounded-2xl shadow-xl flex items-center justify-center gap-2"
+                    <a 
+                      href={`https://wa.me/?text=${encodeURIComponent(
+                        `📊 *REPORTE FINANCIERO - ${format(new Date(), 'MMMM yyyy', { locale: es }).toUpperCase()}*\n\n` +
+                        `💰 *Recaudado:* ${formatCurrency(data.summary.totalIncome)}\n` +
+                        `🛑 *Invertido:* ${formatCurrency(data.summary.totalExpense)}\n` +
+                        `🏦 *Balance en Caja:* ${formatCurrency(data.summary.netBalance)}\n\n` +
+                        `_"Fieles en lo poco, sobre mucho te pondré."_`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] tracking-widest py-6 rounded-2xl shadow-xl flex items-center justify-center gap-2 no-underline"
                     >
                       <MessageCircle size={18} /> Enviar Mensaje de Texto
-                    </Button>
+                    </a>
                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-center gap-2">
                       <ImageIcon size={12} /> O toma un Capture para enviar la imagen
                     </p>
