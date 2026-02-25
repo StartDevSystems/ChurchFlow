@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
-import { ArrowDown, ArrowUp, DollarSign, Calendar as CalendarIcon, Trash2, Users, ArrowLeft, Save, TrendingUp, Target, Clock, Star, Loader2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, DollarSign, Calendar as CalendarIcon, Trash2, Users, ArrowLeft, Save, TrendingUp, Target, Clock, Star, Loader2, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Input } from '@/components/ui/Input';
