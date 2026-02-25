@@ -9,13 +9,13 @@
   "theme_color": "#e85d26",
   "icons": [
     {
-      "src": "/icon-513.png",
+      "src": "/app-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-513.png",
+      "src": "/app-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
