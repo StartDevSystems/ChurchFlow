@@ -169,6 +169,21 @@ export default function TransactionsPage() {
     return matchesFilter && matchesSearch && (dateRange.from ? txDate >= new Date(dateRange.from) : true) && (dateRange.to ? txDate <= new Date(dateRange.to) : true);
   });
 
+  const handleDelete = async (id: string, type: MovementType) => {
+    try {
+      const endpoint = type === 'transfer' ? `/api/transfers/${id}` : `/api/transactions/${id}`;
+      const res = await fetch(endpoint, { method: 'DELETE' });
+      if (res.ok) {
+        toast({ title: 'Movimiento eliminado correctamente' });
+        fetchData();
+      } else {
+        toast({ title: 'Error al eliminar', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Error de red', variant: 'destructive' });
+    }
+  };
+
   if (loading && movements.length === 0) return <div className="flex items-center justify-center min-h-screen bg-[#0a0c14]"><Loader2 className="h-10 w-10 animate-spin text-[var(--brand-primary)]" /></div>;
 
   return (
@@ -196,7 +211,45 @@ export default function TransactionsPage() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left min-w-[800px]">
                 <thead className="bg-white/5 border-b border-white/5"><tr><th className="px-8 py-5 text-[9px] font-black uppercase text-gray-500 tracking-widest">Movimiento</th><th className="px-8 py-5 text-[9px] font-black uppercase text-gray-500 text-center tracking-widest">Detalle / Flujo</th><th className="px-8 py-5 text-[9px] font-black uppercase text-gray-500 text-right tracking-widest">Monto</th><th className="px-8 py-5 text-[9px] font-black uppercase text-gray-500 text-right tracking-widest">Acciones</th></tr></thead>
-                <tbody className="divide-y divide-white/5">{filtered.map((m) => (<tr key={m.id} className="hover:bg-white/[0.02] transition-all group"><td className="px-8 py-6 flex items-center gap-4"><div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0", m.type === 'income' ? "bg-green-500/10 text-green-500" : m.type === 'expense' ? "bg-red-500/10 text-red-500" : "bg-blue-500/10 text-blue-400")}>{m.type === 'income' ? <ArrowUpRight size={20} /> : m.type === 'expense' ? <ArrowDownRight size={20} /> : <ArrowLeftRight size={20} />}</div><div className="min-w-0"><p className="font-black uppercase text-sm truncate text-white max-w-[250px]">{m.description}</p><p className="text-[9px] font-bold text-gray-500 uppercase">{format(new Date(m.date), 'dd MMMM yyyy', { locale: es })}</p></div></td><td className="px-8 py-6 text-center">{m.type === 'transfer' ? <div className="flex items-center justify-center gap-2 text-[9px] font-black uppercase text-blue-400 italic"><span>{m.fromEventName}</span><ChevronRight size={12} /><span>{m.toEventName}</span></div> : <span className="px-4 py-1.5 rounded-xl bg-white/5 text-gray-400 font-black uppercase text-[9px] border border-white/5">{m.categoryName}</span>}</td><td className="px-8 py-6 text-right font-black italic text-xl tracking-tighter" style={{ color: m.type === 'income' ? '#22c55e' : m.type === 'expense' ? '#ef4444' : '#60a5fa' }}>{m.type === 'income' ? '+' : m.type === 'expense' ? '-' : ''}{fmt(m.amount)}</td><td className="px-8 py-6 flex justify-end gap-2 text-white">{m.type !== 'transfer' && <button className="p-3 rounded-xl bg-white/5 text-gray-400 hover:bg-blue-500 hover:text-white transition-all"><FileText size={16} /></button>}<Link href={m.type === 'transfer' ? '#' : `/transactions/edit/${m.id}`} className={cn("p-3 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-all", m.type === 'transfer' && "opacity-20")}><Edit size={16} /></Link></td></tr>))}</tbody>
+                <tbody className="divide-y divide-white/5">{filtered.map((m) => (<tr key={m.id} className="hover:bg-white/[0.02] transition-all group"><td className="px-8 py-6 flex items-center gap-4"><div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0", m.type === 'income' ? "bg-green-500/10 text-green-500" : m.type === 'expense' ? "bg-red-500/10 text-red-500" : "bg-blue-500/10 text-blue-400")}>{m.type === 'income' ? <ArrowUpRight size={20} /> : m.type === 'expense' ? <ArrowDownRight size={20} /> : <ArrowLeftRight size={20} />}</div><div className="min-w-0"><p className="font-black uppercase text-sm truncate text-white max-w-[250px]">{m.description}</p><p className="text-[9px] font-bold text-gray-500 uppercase">{format(new Date(m.date), 'dd MMMM yyyy', { locale: es })}</p></div></td><td className="px-8 py-6 text-center">{m.type === 'transfer' ? <div className="flex items-center justify-center gap-2 text-[9px] font-black uppercase text-blue-400 italic"><span>{m.fromEventName}</span><ChevronRight size={12} /><span>{m.toEventName}</span></div> : <span className="px-4 py-1.5 rounded-xl bg-white/5 text-gray-400 font-black uppercase text-[9px] border border-white/5">{m.categoryName}</span>}</td><td className="px-8 py-6 text-right font-black italic text-xl tracking-tighter" style={{ color: m.type === 'income' ? '#22c55e' : m.type === 'expense' ? '#ef4444' : '#60a5fa' }}>{m.type === 'income' ? '+' : m.type === 'expense' ? '-' : ''}{fmt(m.amount)}</td>                    <td className="px-8 py-6 flex justify-end gap-2 text-white">
+                      {m.type !== 'transfer' && (
+                        <button className="p-3 rounded-xl bg-white/5 text-gray-400 hover:bg-blue-500 hover:text-white transition-all">
+                          <FileText size={16} />
+                        </button>
+                      )}
+                      <Link 
+                        href={m.type === 'transfer' ? '#' : `/transactions/edit/${m.id}`} 
+                        className={cn("p-3 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-all", m.type === 'transfer' && "opacity-20 pointer-events-none")}
+                      >
+                        <Edit size={16} />
+                      </Link>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="p-3 rounded-xl bg-white/5 text-gray-400 hover:bg-red-500 hover:text-white transition-all">
+                            <Trash2 size={16} />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-[#13151f] border-2 border-white/10 rounded-[2rem] text-white">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-2xl font-black uppercase italic tracking-tighter">¿Eliminar Movimiento?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-gray-400 font-bold uppercase text-[10px] tracking-widest mt-2">
+                              Esta acción no se puede deshacer. El monto de {fmt(m.amount)} será {m.type === 'income' ? 'restado' : 'sumado'} al balance actual.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="mt-6">
+                            <AlertDialogCancel className="bg-white/5 border-none rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 hover:text-white">Cancelar</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDelete(m.id, m.type)}
+                              className="bg-red-500 hover:bg-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                            >
+                              Eliminar Ahora
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </td>
+</tr>))}</tbody>
               </table>
             </div>
             <div className="md:hidden divide-y divide-white/5">
