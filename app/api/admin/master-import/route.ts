@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -12,7 +11,7 @@ export async function POST(req: Request) {
 
   try {
     const { members, transactions } = await req.json();
-    const batchId = `SYNC-${uuidv4().split('-')[0].toUpperCase()}`;
+    const batchId = `SYNC-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
 
     const results = await prisma.$transaction(async (tx) => {
       let membersCreated: string[] = [];
