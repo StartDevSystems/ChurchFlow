@@ -50,6 +50,13 @@ Hemos adoptado un estilo visual único que combina la fuerza del diseño brutali
 - **Inteligencia**: Recharts (Gráficas), Lucide React (Iconografía Pro).
 - **PWA**: Soporte para instalación como aplicación nativa en móviles.
 
+## 🛣️ El Futuro: ChurchFlow Network (Roadmap)
+No nos detenemos aquí. La visión es escalar hacia un modelo federado que conecte toda la estructura eclesiástica:
+
+- **v2.0 (Multi-Tenant & Zonas)**: Soporte para múltiples iglesias en un mismo sistema y un Dashboard de supervisión para los líderes de zona.
+- **v3.0 (Digital Wallet)**: Sistema de carteras virtuales para transferencias inmediatas entre iglesias locales, zonas y sede central.
+- **v4.0 (Full SaaS Platform)**: Plataforma global de gestión financiera para asociaciones jerárquicas a nivel nacional e internacional.
+
 ---
 
 ## ⚠️ Nota Importante para Desarrolladores (Windows)

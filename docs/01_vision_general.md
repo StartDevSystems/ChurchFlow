@@ -8,14 +8,21 @@ El sistema está concebido como una herramienta híbrida, ofreciendo tanto contr
 
 ## 1.2. Objetivos Clave
 
-- **Centralización:** Unificar toda la información financiera (miembros, transacciones, eventos, cuotas) en una única base de datos accesible.
-- **Claridad y Transparencia:** Proveer visualizaciones de datos claras a través de un dashboard principal que muestra el estado financiero de un vistazo (ingresos, gastos, balance).
-- **Eficiencia Administrativa:** Simplificar la gestión de miembros y el registro de transacciones, reduciendo el tiempo y el esfuerzo manual.
-- **Generación de Reportes:** Facilitar la rendición de cuentas mediante la generación automática de reportes financieros en formato PDF, filtrados por rangos de fecha.
-- **Flexibilidad:** Permitir un manejo tanto manual como automatizado de procesos clave, adaptándose a las necesidades del equipo de tesorería.
-- **Escalabilidad:** Estar preparado técnicamente para una futura expansión que podría incluir la gestión de múltiples iglesias o ministerios (modelo SaaS).
+- **Centralización:** Unificar toda la información financiera en una única base de datos accesible.
+- **Claridad y Transparencia:** Proveer visualizaciones de datos claras para una rendición de cuentas honesta.
+- **Eficiencia Administrativa:** Reducir el tiempo manual en la gestión de miembros y transacciones.
+- **Escalabilidad (Visión v2.0+):** Evolucionar hacia un modelo **Federado Multi-Nivel (Multi-tenant)** que permita la gestión de estructuras eclesiásticas complejas (Sede Central > Zonas > Iglesias Locales).
 
-## 1.3. Funcionalidades Principales
+## 1.3. La Gran Visión: ChurchFlow Network
+
+El futuro de ChurchFlow no es solo una herramienta local, sino una **Plataforma Financiera Federada**. El objetivo es conectar todos los niveles de la organización en un ecosistema digital transparente:
+
+1.  **Nivel Local (Actual):** Autonomía total para que cada iglesia maneje sus propios eventos, cuotas y finanzas diarias.
+2.  **Nivel de Zona (Supervisión):** Un tablero de control para líderes de zona que permite monitorear el cumplimiento de cuotas anuales de las iglesias a su cargo, ver rankings de actividad y recibir transferencias digitales.
+3.  **Nivel Central (La Cúpula):** Visión global del patrimonio de la asociación, gestión de fondos nacionales y auditoría macroeconómica de todas las zonas.
+4.  **Wallet Digital Integrada:** Un sistema de "Carteras Virtuales" que permita mover capital de forma fluida y rastreable desde la iglesia local hacia la zona, y de la zona hacia la sede central, eliminando la opacidad y los errores manuales.
+
+## 1.4. Funcionalidades Principales (v1.3.3)
 
 El sistema se compone de varios módulos interconectados que cubren las áreas esenciales de la gestión financiera del ministerio:
 
