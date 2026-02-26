@@ -341,7 +341,7 @@ export default function SettingsPage() {
                         {form.signatureUrl ? (
                           <motion.img initial={{ opacity: 0 }} animate={{ opacity: 1 }} src={form.signatureUrl} alt="Firma" className="max-h-full object-contain" />
                         ) : form.reportSignatureName ? (
-                          <p className="text-4xl text-white/60" style={{ fontFamily: "'Great Vibes', cursive" }}>{form.reportSignatureName}</p>
+                          <p className="text-4xl text-white/60" style={{ fontFamily: "var(--font-great-vibes), cursive" }}>{form.reportSignatureName}</p>
                         ) : (
                           <div className="w-20 h-px bg-white/10" />
                         )}

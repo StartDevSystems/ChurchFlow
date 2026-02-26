@@ -1,7 +1,7 @@
 'use client';
 
 import '../styles/globals.css';
-import { Inter } from 'next/font/google';
+import { Inter, Great_Vibes } from 'next/font/google';
 import { Sidebar } from '@/components/Sidebar';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { SessionProvider, useSession } from 'next-auth/react';
@@ -14,6 +14,11 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const inter = Inter({ subsets: ['latin'] });
+const greatVibes = Great_Vibes({ 
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-great-vibes',
+});
 
 function AppStructure({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -125,13 +130,12 @@ export default function RootLayout({
 
         {/* ── PWA Manifest ── */}
         <link rel="manifest" href="/manifest.json" />
-        <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet" />
         <meta name="theme-color" content="#e85d26" />
 
         {/* ── Viewport ── */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
       </head>
-      <body className={cn(inter.className, "bg-[#0a0c14] text-white selection:bg-[var(--brand-primary)] selection:text-white overflow-x-hidden")}>
+      <body className={cn(inter.className, greatVibes.variable, "bg-[#0a0c14] text-white selection:bg-[var(--brand-primary)] selection:text-white overflow-x-hidden")}>
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
             <ConfigProvider>

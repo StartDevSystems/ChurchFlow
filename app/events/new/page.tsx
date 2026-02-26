@@ -293,7 +293,7 @@ export default function NewEventPage() {
             <div className="relative z-10">
               <h3 className="text-xl font-black uppercase italic text-white mb-4">¿Qué es un Proyecto?</h3>
               <p className="text-[11px] text-gray-400 leading-relaxed uppercase font-bold tracking-tight">
-                Al crear un proyecto, habilitas una "Carpeta Financiera" dedicada. Todo el dinero que se mueva dentro de esta carpeta no afectará el balance de tu caja general hasta que tú decidas traspasarlo.
+                Al crear un proyecto, habilitas una &quot;Carpeta Financiera&quot; dedicada. Todo el dinero que se mueva dentro de esta carpeta no afectará el balance de tu caja general hasta que tú decidas traspasarlo.
               </p>
               <div className="mt-6 space-y-4">
                 <div className="flex gap-3">
