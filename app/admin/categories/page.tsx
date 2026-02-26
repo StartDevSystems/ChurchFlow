@@ -92,10 +92,13 @@ export default function CategoriesPage() {
   return (
     <div className="max-w-7xl mx-auto pb-20 px-4 md:px-0">
       <div className="mb-12">
-        <h1 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter italic leading-none">
-          Gestión de <span className="text-[var(--brand-primary)]">Categorías</span>
-        </h1>
-        <p className="text-xs font-bold uppercase tracking-[0.4em] text-[#8c7f72] mt-4">Organiza el origen y destino de tus fondos</p>
+        <div className="flex items-center gap-4 mb-2">
+          <Tag className="text-[var(--brand-primary)] h-8 w-8 md:h-12 md:w-12" />
+          <h1 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter italic leading-none">
+            Gestión de <span className="text-[var(--brand-primary)]">Categorías</span>
+          </h1>
+        </div>
+        <p className="text-xs font-bold uppercase tracking-[0.4em] text-[#8c7f72] mt-4 ml-1">Organiza el origen y destino de tus fondos</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
@@ -125,7 +128,13 @@ export default function CategoriesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <button type="submit" className="w-full bg-[var(--brand-primary)] text-white p-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:brightness-110 transition-all mt-4">Registrar Categoría</button>
+              <button 
+                type="submit" 
+                className="w-full bg-[var(--brand-primary)] font-black uppercase text-xs tracking-widest hover:brightness-110 transition-all mt-4 p-5 rounded-2xl shadow-lg shadow-[var(--brand-primary)]/20"
+                style={{ color: 'var(--brand-text-on-primary)' }}
+              >
+                Registrar Categoría
+              </button>
             </form>
           </Card>
         </div>

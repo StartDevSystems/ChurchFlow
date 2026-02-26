@@ -34,8 +34,10 @@
  
     --radius: 0.5rem;
 
-    /* Color de marca dinámico (HEX) */
+    /* Colores de marca dinámicos */
     --brand-primary: #e85d26;
+    --brand-secondary: #ff6b1a;
+    --brand-text-on-primary: #ffffff;
   }
  
   .dark {

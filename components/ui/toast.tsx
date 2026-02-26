@@ -14,7 +14,7 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed top-4 z-[100] flex max-h-screen w-full flex-col items-center p-4 sm:top-6",
+      "fixed top-4 right-0 z-[100] flex max-h-screen w-full flex-col items-end gap-3 p-4 sm:top-6 sm:right-6 md:max-w-[420px]",
       className
     )}
     {...props}
@@ -23,13 +23,13 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
 export const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full max-w-[320px] items-center justify-between space-x-4 overflow-hidden rounded-full border border-white/20 bg-white/70 p-3 pl-6 shadow-xl backdrop-blur-xl transition-all dark:border-white/10 dark:bg-black/60 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:slide-in-from-top-full",
+  "group pointer-events-auto relative flex w-auto min-w-[300px] max-w-[calc(100vw-2rem)] items-center justify-between space-x-6 overflow-hidden rounded-[1.5rem] border border-white/20 bg-white/70 p-5 pr-12 shadow-2xl backdrop-blur-xl transition-all dark:border-white/10 dark:bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:slide-in-from-right-full",
   {
     variants: {
       variant: {
         default: "text-[#1a1714] dark:text-white",
-        destructive: "text-red-600 dark:text-red-400",
-        success: "text-green-600 dark:text-green-400",
+        destructive: "text-red-600 dark:text-red-400 border-red-500/20 bg-red-500/5",
+        success: "text-green-600 dark:text-green-400 border-green-500/20 bg-green-500/5",
       },
     },
     defaultVariants: {
@@ -75,13 +75,13 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 opacity-0 transition-opacity hover:bg-black/5 dark:hover:bg-white/10 group-hover:opacity-100",
+      "absolute right-3 top-3 rounded-full p-1.5 opacity-40 transition-opacity hover:opacity-100 hover:bg-white/10 text-white",
       className
     )}
     toast-close=""
     {...props}
   >
-    <X className="h-3 w-3" />
+    <X className="h-4 w-4" />
   </ToastPrimitives.Close>
 ))
 ToastClose.displayName = ToastPrimitives.Close.displayName

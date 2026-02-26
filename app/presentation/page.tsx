@@ -27,6 +27,7 @@ interface Candle {
 interface EventDetail {
   id: string; name: string;
   income: number; expense: number; balance: number;
+  status: string;
   goalAmount?: number;
 }
 interface PageData {
@@ -472,52 +473,96 @@ function DayProgressBar({ totalIncome, prevMonthIncome, lastActivityMins = 3 }: 
 }
 
 /* ══════════════════════════════════════════════════════════
-   HEALTH GAUGE (SVG)
+   HEALTH GAUGE (HUD TRADING EDITION)
 ══════════════════════════════════════════════════════════ */
 function HealthGauge({ score }: { score: number }) {
-  const color  = score < 40 ? '#f87171' : score < 70 ? '#fbbf24' : '#4ade80';
-  const status = score < 40 ? '⚠️ Déficit' : score < 70 ? '⚡ Precaución' : '✅ Saludable';
-  const statusBg = score < 40 ? 'bg-red-500/10 text-red-400 border-red-500/20' : score < 70 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20';
-
-  // Arc math: 180° half circle, left to right
-  const cx2 = 60, cy2 = 60, r = 50;
+  const isHealthy = score >= 70;
+  const isWarning = score >= 40 && score < 70;
+  
+  // Trading Palette: Sharp colors, no fuzzy glow
+  const activeColor = isHealthy ? '#00ff88' : isWarning ? '#ffaa00' : '#ff3344';
+  
   const clampedScore = Math.max(0, Math.min(100, score));
-  const endAngle = Math.PI + (clampedScore / 100) * Math.PI;
-  const x1 = cx2 + r * Math.cos(Math.PI), y1 = cy2 + r * Math.sin(Math.PI);
-  const x2 = cx2 + r * Math.cos(endAngle), y2 = cy2 + r * Math.sin(endAngle);
-  const largeArc = endAngle - Math.PI > Math.PI ? 1 : 0;
-  const needleDeg = -90 + (clampedScore / 100) * 180;
-
-  const animScore = useCountUp(score, 1400, 700);
+  const needleDeg = (clampedScore / 100) * 180 - 90;
+  const animScore = useCountUp(score, 1500, 400);
 
   return (
-    <div className="flex flex-col items-center p-3 rounded-2xl bg-white/[0.03] border border-white/5">
-      <p className="text-[7.5px] font-black uppercase tracking-[0.2em] text-white/20 mb-2">💊 Salud Financiera</p>
-      <svg viewBox="0 0 120 68" className="w-[110px] h-[60px]">
-        {/* BG arc */}
-        <path d="M10,60 A50,50 0 0,1 110,60" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" strokeLinecap="round"/>
-        {/* Zone colors */}
-        <path d="M10,60 A50,50 0 0,1 43,18"  fill="none" stroke="rgba(248,113,113,0.25)"  strokeWidth="10" strokeLinecap="round"/>
-        <path d="M43,18 A50,50 0 0,1 77,18"  fill="none" stroke="rgba(251,191,36,0.25)"   strokeWidth="10" strokeLinecap="round"/>
-        <path d="M77,18 A50,50 0 0,1 110,60" fill="none" stroke="rgba(74,222,128,0.25)"   strokeWidth="10" strokeLinecap="round"/>
-        {/* Fill */}
-        <motion.path
-          initial={{ d: `M${x1},${y1} A${r},${r} 0 0,1 ${x1},${y1}` }}
-          animate={{ d: `M${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2}` }}
-          transition={{ duration: 1.4, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          fill="none" stroke={color} strokeWidth="10" strokeLinecap="round"
-        />
-        {/* Needle */}
-        <motion.line x1="60" y1="60" x2="60" y2="18"
-          stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5"
-          initial={{ rotate: -90 }} animate={{ rotate: needleDeg }}
-          transition={{ duration: 1.4, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          style={{ transformOrigin: '60px 60px' }}
-        />
-        <circle cx="60" cy="60" r="3.5" fill="white" opacity="0.4"/>
-      </svg>
-      <p className="font-black italic leading-none mt-1" style={{ fontSize: 'clamp(1.1rem,2.5vw,1.6rem)', color }}>{animScore}</p>
-      <div className={cn('mt-1.5 text-[7.5px] font-black px-2 py-0.5 rounded-full border', statusBg)}>{status}</div>
+    <div className="flex flex-col items-center p-4 rounded-3xl bg-[#0a0c14] border border-white/10 shadow-2xl relative overflow-hidden">
+      {/* Trading Grid Overlay */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+        style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '10px 10px' }} />
+      
+      <div className="w-full flex justify-between items-center mb-4 px-1">
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: activeColor }} />
+          <span className="text-[8px] font-black uppercase tracking-widest text-white/40 text-left">Market Health</span>
+        </div>
+        <span className="text-[7px] font-bold text-white/20 tabular-nums">ID: CF-GAUGE-01</span>
+      </div>
+
+      <div className="relative w-[150px] h-[85px] flex items-center justify-center mb-2">
+        <svg viewBox="0 0 120 75" className="w-full h-full">
+          {/* Segmented Background Track */}
+          {[...Array(20)].map((_, i) => {
+            const angle = Math.PI + (i / 19) * Math.PI;
+            const x1 = 60 + 42 * Math.cos(angle);
+            const y1 = 60 + 42 * Math.sin(angle);
+            const x2 = 60 + 50 * Math.cos(angle);
+            const y2 = 60 + 50 * Math.sin(angle);
+            return (
+              <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(255,255,255,0.05)" strokeWidth="2" />
+            );
+          })}
+
+          {/* Active Segments */}
+          {[...Array(Math.floor((clampedScore / 100) * 20))].map((_, i) => {
+            const angle = Math.PI + (i / 19) * Math.PI;
+            const x1 = 60 + 42 * Math.cos(angle);
+            const y1 = 60 + 42 * Math.sin(angle);
+            const x2 = 60 + 50 * Math.cos(angle);
+            const y2 = 60 + 50 * Math.sin(angle);
+            return (
+              <motion.line 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
+                key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={activeColor} strokeWidth="2" 
+              />
+            );
+          })}
+
+          {/* HUD Target Lines */}
+          <path d="M10,60 L110,60" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
+          
+          {/* The Digital Needle */}
+          <motion.g
+            initial={{ rotate: -90, originX: "60px", originY: "60px" }}
+            animate={{ rotate: needleDeg }}
+            transition={{ type: "spring", stiffness: 60, damping: 15 }}
+            style={{ originX: "60px", originY: "60px" }}
+          >
+            <line x1="60" y1="60" x2="60" y2="15" stroke={activeColor} strokeWidth="1" />
+            <circle cx="60" cy="15" r="2" fill={activeColor} />
+          </motion.g>
+
+          {/* Center Hub */}
+          <circle cx="60" cy="60" r="4" fill="#0a0c14" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+        </svg>
+
+        {/* Digital Readout */}
+        <div className="absolute bottom-[-2px] flex flex-col items-center">
+          <p className="text-[24px] font-black italic tracking-tighter leading-none text-white tabular-nums">
+            {animScore}
+          </p>
+          <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em] mt-1">Solvency Index</p>
+        </div>
+      </div>
+
+      {/* Footer Info Bars */}
+      <div className="w-full flex gap-1 mt-4">
+        {[...Array(12)].map((_, i) => (
+          <div key={i} className="flex-1 h-1 rounded-full" 
+            style={{ backgroundColor: i < (clampedScore/8) ? activeColor : 'rgba(255,255,255,0.05)' }} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -605,8 +650,8 @@ function TopSourcesCard({ transactions }: { transactions: any[] }) {
 ══════════════════════════════════════════════════════════ */
 function EventProgressRow({ ev, i }: { ev: EventDetail; i: number }) {
   const isPos   = ev.balance >= 0;
-  const goalAmt = ev.goalAmount || ev.income * 1.4;
-  const pct     = Math.min(100, Math.round((ev.income / goalAmt) * 100));
+  const goalAmt = ev.goalAmount || (ev.income > 0 ? ev.income * 1.4 : 1);
+  const pct     = goalAmt > 0 ? Math.min(100, Math.round((ev.income / goalAmt) * 100)) : 0;
 
   return (
     <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
@@ -677,6 +722,43 @@ function TxRow({ t, i }: { t: any; i: number }) {
 /* ══════════════════════════════════════════════════════════
    STAT CARD (chart side panel)
 ══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════
+   EVENT ROW (for the central list)
+══════════════════════════════════════════════════════════ */
+function EventRow({ ev, i }: { ev: EventDetail; i: number }) {
+  const isPos = ev.balance >= 0;
+  const isFinished = ev.status === 'FINALIZADO';
+  return (
+    <motion.div initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 1.0 + i * 0.06, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="flex items-center gap-3 py-3.5 border-b border-white/5 last:border-0"
+    >
+      <div className={cn('flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-sm',
+        isFinished ? 'bg-gray-500/10 text-gray-400' : (isPos ? 'bg-blue-500/15 text-blue-400' : 'bg-orange-500/15 text-orange-400'))}>
+        {isFinished ? '🔒' : '📂'}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-black uppercase truncate tracking-tight text-white/90 leading-tight">{ev.name}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">
+            {isFinished ? 'Proyecto Finalizado' : 'Proyecto en Curso'}
+          </span>
+          <span className={cn('text-[7.5px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter',
+            isFinished ? 'bg-white/5 text-white/20' : 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]')}>
+            {ev.status}
+          </span>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className={cn('font-black text-[13px] tracking-tighter leading-none', isPos ? 'text-green-400' : 'text-red-400')}>
+          {isPos ? '+' : ''}{formatCurrency(ev.balance)}
+        </p>
+        <p className="text-[7px] text-white/10 font-bold uppercase mt-1">Balance Neto</p>
+      </div>
+    </motion.div>
+  );
+}
+
 function StatCard({ label, value, colorClass, bgClass, sparkPts, tag, selected, onClick }: {
   label: string; value: number; colorClass: string; bgClass: string;
   sparkPts: string; tag: string; selected: boolean; onClick: () => void;
@@ -747,7 +829,9 @@ export default function PresentationPage() {
       const totalIncome  = tx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
       const totalExpense = tx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
       const balance      = totalIncome - totalExpense;
-      const activeEvs    = ev.filter(e => e.status !== 'FINALIZADO');
+      
+      // Ahora procesamos TODOS los eventos para la vista de historial
+      const allEvents = ev;
 
       // Simulated prev month/week (replace with real API call)
       const prevMonthIncome  = totalIncome * 0.78;
@@ -756,15 +840,15 @@ export default function PresentationPage() {
 
       setData({
         totalIncome, totalExpense, balance,
-        activeEvents: activeEvs.length,
+        activeEvents: ev.filter(e => e.status !== 'FINALIZADO').length,
         recentTx: tx.slice(0, 8),
         allTx: tx,
         prevMonthIncome, prevWeekIncome, prevWeekExpense,
-        eventDetails: activeEvs.map(e => {
+        eventDetails: allEvents.map(e => {
           const rel = tx.filter(t => t.eventId === e.id);
           const inc = rel.filter(t => t.type === 'income') .reduce((s, t) => s + t.amount, 0);
           const exp = rel.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-          return { id: e.id, name: e.name, income: inc, expense: exp, balance: inc - exp, goalAmount: e.goalAmount };
+          return { id: e.id, name: e.name, status: e.status, income: inc, expense: exp, balance: inc - exp, goalAmount: e.goalAmount };
         }),
       });
       setCandles(buildCandles(tx));
@@ -788,6 +872,7 @@ export default function PresentationPage() {
   const barWidth     = data ? Math.min(100, Math.round((data.totalIncome / Math.max(data.totalExpense, 1)) * 100)) : 0;
   const coveragePct  = data?.totalIncome ? Math.round((data.balance / data.totalIncome) * 100) : 0;
   const healthScore  = data ? Math.min(100, Math.max(0, Math.round(barWidth * 0.7 + (isPositive ? 30 : 0)))) : 0;
+  const netRatio     = data ? Math.round((data.balance / Math.max(data.totalIncome, 1)) * 100) : 0;
 
   // TX filter
   const filteredTx = (data?.allTx ?? []).filter(t => {
@@ -834,263 +919,364 @@ export default function PresentationPage() {
       }} />
 
       {/* ══ HEADER ══ */}
-      <motion.header
-        initial={{ opacity: 0, y: -24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 flex items-center justify-between px-6 md:px-12 pt-6 pb-4 border-b border-white/5"
+      <motion.header initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 flex items-center justify-between px-3 md:px-5 pt-2.5 pb-2 border-b border-white/5 flex-shrink-0"
       >
-        {/* Brand + back */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-all text-white/30 hover:text-white"
-          >
-            <ArrowLeft size={20} />
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.back()} className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 transition-all text-white/30 hover:text-white">
+            <ArrowLeft size={14} />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <Zap size={17} className="text-white" fill="white" />
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <Zap size={12} className="text-white" fill="white" />
             </div>
-            <div>
-              <p className="text-white font-black text-sm uppercase tracking-[0.15em] leading-none">
-                ChurchFlow
-              </p>
-              <p className="text-white/25 text-[8px] uppercase tracking-[0.3em] mt-0.5">
-                Sistema Financiero
-              </p>
+            <div className="hidden sm:block">
+              <p className="text-white font-black text-[10px] uppercase tracking-[0.18em] leading-none">ChurchFlow</p>
+              <p className="text-white/20 text-[7px] uppercase tracking-[0.3em] mt-0.5">Finanzas Jóvenes</p>
             </div>
           </div>
         </div>
 
-        <p className="hidden md:block text-white/20 text-[8px] uppercase tracking-[0.35em]">
+        <p className="hidden md:block text-white/12 text-[7.5px] uppercase tracking-[0.3em] font-bold">
           {format(new Date(), "eeee, d 'de' MMMM yyyy", { locale: es })}
         </p>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-1.5 text-white/20">
-            <Clock size={11} />
-            <span className="text-[10px] font-black uppercase tracking-widest tabular-nums">
-              <LiveClock />
-            </span>
+        <div className="flex items-center gap-1.5">
+          <div className="hidden sm:flex items-center gap-1 text-white/20">
+            <Clock size={9} />
+            <span className="text-[8.5px] font-black uppercase tracking-widest"><LiveClock /></span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
-            <span className="relative flex h-2 w-2">
+          {/* Toggle Panel/Gráfico */}
+          <button onClick={() => setShowChart(v => !v)}
+            className={cn('flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all text-[7.5px] font-black uppercase tracking-wide',
+              showChart ? 'bg-[var(--brand-primary)]/15 border-[var(--brand-primary)]/40 text-[var(--brand-primary)]' : 'bg-white/5 border-white/8 text-white/40 hover:text-white hover:bg-white/10')}>
+            <BarChart2 size={12} />
+            <span className="hidden sm:block">{showChart ? 'Ver Panel' : 'Ver Gráfico'}</span>
+          </button>
+          <button onClick={toggleFullscreen}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 transition-all text-white/40 hover:text-white text-[7.5px] font-black uppercase tracking-wide">
+            {isFullscreen ? <Minimize size={12} /> : <Maximize size={12} />}
+            <span className="hidden md:block">{isFullscreen ? 'Salir' : 'Proyectar'}</span>
+          </button>
+          <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+            <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400" />
             </span>
-            <span className="text-[9px] font-black uppercase tracking-widest text-green-400">
-              En Vivo
-            </span>
+            <span className="text-[7.5px] font-black uppercase tracking-widest text-green-400 hidden xs:block">En Vivo</span>
           </div>
         </div>
       </motion.header>
 
-      {/* ════════════════════════════════
-          MAIN CONTENT
-      ════════════════════════════════ */}
-      <main className="relative z-10 flex-1 flex flex-col lg:flex-row gap-8 lg:gap-0 overflow-y-auto lg:overflow-hidden px-6 md:px-12 py-6 md:py-8 no-scrollbar">
+      {/* Day bar */}
+      <DayProgressBar
+        totalIncome={data?.totalIncome ?? 0}
+        prevMonthIncome={data?.prevMonthIncome ?? 0}
+        lastActivityMins={3}
+      />
 
-        {/* ── LEFT: Balance hero ── */}
-        <div className="flex-1 flex flex-col justify-center lg:pr-12 gap-4 md:gap-6 min-h-fit">
+      {/* ══ MAIN ══ */}
+      <main className="relative z-10 flex-1 overflow-hidden flex flex-col min-h-0">
+        <AnimatePresence mode="wait">
 
-          {/* Eyebrow */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="flex items-center gap-3"
-          >
-            <span className="w-8 md:w-10 h-px bg-[var(--brand-primary)]" />
-            <span className="text-[9px] md:text-xs font-black uppercase tracking-[0.4em] text-white/30">
-              Patrimonio Actual
-            </span>
-          </motion.div>
-
-          {/* Giant balance */}
-          <div className="overflow-visible">
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.35, duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+          {/* ─── CHART VIEW ─── */}
+          {showChart ? (
+            <motion.div key="chart"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="flex-1 flex flex-col min-h-0 overflow-hidden"
             >
-              <span
-                className={cn(
-                  'block font-black italic tracking-tighter leading-none',
-                  isPositive ? 'text-white' : 'text-red-400'
+              {/* Controls */}
+              <div className="flex items-center gap-1.5 px-3 md:px-5 py-1.5 border-b border-white/5 flex-shrink-0 flex-wrap gap-y-1">
+                <span className="text-[7px] font-black text-white/20 uppercase tracking-widest">Tipo</span>
+                {(['candle', 'area', 'bar', 'heat'] as ChartType[]).map(t => (
+                  <button key={t} onClick={() => setChartType(t)}
+                    className={cn('px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wide border transition-all',
+                      chartType === t ? 'bg-[var(--brand-primary)]/15 border-[var(--brand-primary)]/40 text-[var(--brand-primary)]' : 'border-transparent text-white/20 hover:text-white/50')}>
+                    {t === 'candle' ? '🕯 Velas' : t === 'area' ? '📈 Área' : t === 'bar' ? '📊 Barras' : '🔲 Mapa'}
+                  </button>
+                ))}
+                <div className="flex-1" />
+                <span className="hidden md:block text-[7px] text-white/12">Scroll = Zoom · Arrastra = Mover · Hover = Detalles</span>
+              </div>
+
+              <OHLCBar candle={hovCandle} />
+
+              <div className="flex-1 flex min-h-0 overflow-hidden">
+                {/* Chart */}
+                <div className="flex-1 min-w-0 flex flex-col min-h-0">
+                  <div className="flex-1 min-h-0 px-2 py-2">
+                    <CandleChart candles={candles} onHover={onHover} hovIdx={hovIdx} chartType={chartType} />
+                  </div>
+                  <GoalBar totalIncome={data?.totalIncome ?? 0} />
+                </div>
+
+                {/* Chart side panel */}
+                <div className="hidden lg:flex flex-col w-[190px] xl:w-[210px] border-l border-white/5 flex-shrink-0 overflow-y-auto">
+                  <StatCard label="Total Ingresos" value={data?.totalIncome ?? 0}
+                    colorClass="text-green-400 italic"
+                    bgClass="bg-green-500/7 border-l-2 border-l-green-500/40"
+                    sparkPts="0,26 28,17 56,22 84,7 112,11 140,3 160,6"
+                    tag="↑ Solo ingresos" selected={selStat === 'income'} onClick={() => setSelStat('income')} />
+                  <StatCard label="Total Gastos" value={data?.totalExpense ?? 0}
+                    colorClass="text-red-400 italic"
+                    bgClass="bg-red-500/7 border-l-2 border-l-red-500/40"
+                    sparkPts="0,5 28,11 56,7 84,18 112,13 140,23 160,26"
+                    tag="↓ Solo gastos" selected={selStat === 'expense'} onClick={() => setSelStat('expense')} />
+                  <StatCard label="Balance" value={data?.balance ?? 0}
+                    colorClass={isPositive ? 'text-white italic' : 'text-red-400 italic'}
+                    bgClass="bg-white/5 border-l-2 border-l-white/20"
+                    sparkPts="0,5 28,8 56,13 84,24 112,18 140,27 160,30"
+                    tag="○ Vista combinada" selected={selStat === 'balance'} onClick={() => setSelStat('balance')} />
+
+                  {/* Event breakdown */}
+                  {(data?.eventDetails.length ?? 0) > 0 && (
+                    <div className="px-3 py-2.5 border-b border-white/5">
+                      <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/20 mb-2">Desglose Eventos</p>
+                      {data!.eventDetails.slice(0, 3).map((ev, i) => {
+                        const mx = Math.max(ev.income, ev.expense, 1);
+                        return (
+                          <div key={ev.id} className="mb-2.5 last:mb-0">
+                            <p className="text-[7.5px] font-bold text-white/40 mb-1 truncate">{ev.name}</p>
+                            {[{ l: 'ING', v: ev.income, c: 'bg-green-400/70', tc: 'text-green-400' },
+                              { l: 'GAS', v: ev.expense, c: 'bg-red-400/70', tc: 'text-red-400' }].map(b => (
+                              <div key={b.l} className="flex items-center gap-1.5 mb-1">
+                                <span className="text-[6.5px] font-bold text-white/20 w-4 text-right">{b.l}</span>
+                                <div className="flex-1 h-[3px] bg-white/5 rounded-full overflow-hidden">
+                                  <motion.div initial={{ width: 0 }} animate={{ width: `${(b.v / mx) * 100}%` }}
+                                    transition={{ duration: 0.8, delay: 0.9 + i * 0.1 }}
+                                    className={cn('h-full rounded-full', b.c)} />
+                                </div>
+                                <span className={cn('text-[6.5px] font-bold w-[46px] text-right', b.tc)}>{formatCurrency(b.v)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Legend */}
+                  <div className="px-3 py-2.5 mt-auto border-t border-white/5">
+                    {[{ dot: 'bg-green-400', l: 'Día con superávit' }, { dot: 'bg-red-400', l: 'Día con déficit' }].map(lg => (
+                      <div key={lg.l} className="flex items-center gap-2 mb-1.5">
+                        <div className={cn('w-2 h-2 rounded-sm flex-shrink-0', lg.dot)} />
+                        <span className="text-[7.5px] text-white/20">{lg.l}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+          ) : (
+
+            /* ─── PANEL VIEW ─── */
+            <motion.div key="panel"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="flex-1 flex overflow-hidden min-h-0"
+            >
+              {/* ── LEFT: Balance hero ── */}
+              <div className="flex-1 flex flex-col justify-center px-4 md:px-6 py-3 gap-3 border-r border-white/5 min-w-0 overflow-y-auto">
+
+                {/* Eyebrow */}
+                <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
+                  className="flex items-center gap-2.5">
+                  <span className={cn('w-5 h-px', isPositive ? 'bg-[var(--brand-primary)]' : 'bg-red-400')} />
+                  <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/25">Patrimonio Actual</span>
+                </motion.div>
+
+                {/* Big balance */}
+                <div className="overflow-hidden">
+                  <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.25, duration: 0.65, ease: [0.16, 1, 0.3, 1] }}>
+                    <span className={cn('block font-black italic tracking-tighter leading-none break-all',
+                      isPositive ? 'text-white' : 'text-red-400')}
+                      style={{ fontSize: 'clamp(1.8rem,6.5vw,6.5rem)' }}>
+                      {formatCurrency(animBalance)}
+                    </span>
+                  </motion.div>
+                </div>
+
+                {/* Context line — NEW */}
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5 w-fit">
+                  <span className="text-base">🏦</span>
+                  <p className="text-[8px] text-white/35 leading-snug">
+                    Cubre aprox. <span className="text-white/65 font-bold">{weeksOfExpenses} semanas</span> de gastos
+                    {' · '}Reserva de <span className="text-white/65 font-bold">{monthsReserve} mes(es)</span>
+                  </p>
+                </motion.div>
+
+                {/* Coverage bar */}
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="space-y-1.5">
+                  <div className="flex items-center justify-between flex-wrap gap-1.5">
+                    <span className="text-[7.5px] font-bold text-white/20 uppercase tracking-widest">Cobertura financiera</span>
+                    <div className={cn('flex items-center gap-1 px-2 py-0.5 rounded-full text-[7.5px] font-black border',
+                      isPositive ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20')}>
+                      {isPositive ? `▲ Superávit ${Math.abs(coveragePct)}%` : `▼ Déficit ${Math.abs(coveragePct)}%`}
+                    </div>
+                  </div>
+                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${barWidth}%` }}
+                      transition={{ delay: 0.9, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                      className={cn('h-full rounded-full', isPositive ? 'bg-gradient-to-r from-[var(--brand-primary)] to-orange-300' : 'bg-gradient-to-r from-red-500 to-red-400')} />
+                  </div>
+                </motion.div>
+
+                {/* Inc/Exp cards with trend — NEW */}
+                <div className="grid grid-cols-2 gap-2 md:gap-2.5">
+                  {[
+                    {
+                      label: 'Ingresos', val: animIncome, Icon: TrendingUp,
+                      color: 'text-green-400', iconColor: 'text-green-400',
+                      bg: 'border-green-500/20 bg-green-500/5',
+                      blur: 'bg-green-500/8', sign: '+',
+                      trend: incWeekPct, trendUp: incWeekPct >= 0,
+                    },
+                    {
+                      label: 'Gastos', val: animExpense, Icon: TrendingDown,
+                      color: 'text-red-400', iconColor: 'text-red-400',
+                      bg: 'border-red-500/20 bg-red-500/5',
+                      blur: 'bg-red-500/8', sign: '-',
+                      trend: expWeekPct, trendUp: expWeekPct <= 0,
+                    },
+                  ].map((card, i) => (
+                    <motion.div key={card.label}
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 + i * 0.1, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                      className={cn('relative rounded-2xl border p-3 overflow-hidden', card.bg)}>
+                      <div className={cn('absolute -top-3 -right-3 w-12 h-12 rounded-full blur-xl', card.blur)} />
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className={cn('text-[7px] font-black uppercase tracking-[0.2em]', card.color + '/60')}>{card.label}</span>
+                        <card.Icon size={10} className={card.iconColor} />
+                      </div>
+                      <p className={cn('font-black italic tracking-tight leading-none', card.color)}
+                        style={{ fontSize: 'clamp(0.8rem,1.8vw,1.35rem)' }}>
+                        {card.sign}{formatCurrency(card.val)}
+                      </p>
+                      {/* Trend vs last week — NEW */}
+                      <div className={cn('flex items-center gap-1 mt-1.5 text-[7px] font-bold',
+                        card.trendUp ? 'text-green-400/60' : 'text-red-400/60')}>
+                        {card.trendUp ? '▲' : '▼'} {Math.abs(card.trend)}% vs semana anterior
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Events with progress — NEW */}
+                {(data?.eventDetails.filter(e => e.status !== 'FINALIZADO').length ?? 0) > 0 && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}>
+                    <p className="text-[7.5px] font-black uppercase tracking-[0.2em] text-white/20 mb-2 flex items-center gap-1.5">
+                      <Activity size={8} className="text-[var(--brand-primary)]" />
+                      Eventos Activos · Progreso hacia meta
+                    </p>
+                    {data!.eventDetails.filter(e => e.status !== 'FINALIZADO').slice(0, 3).map((ev, i) => (
+                      <EventProgressRow key={ev.id} ev={ev} i={i} />
+                    ))}
+                  </motion.div>
                 )}
-                style={{ fontSize: 'clamp(2.5rem, 12vw, 8.5rem)' }}
-              >
-                {formatCurrency(animBalance)}
-              </span>
-            </motion.div>
-          </div>
 
-          {/* Health bar */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.9 }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-white/20 text-[9px] uppercase tracking-widest font-bold">
-                Salud financiera
-              </span>
-              <span className="text-[var(--brand-primary)] text-[9px] font-black uppercase tracking-widest">
-                {netRatio}% neto
-              </span>
-            </div>
-            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.max(0, Math.min(100, netRatio))}%` }}
-                transition={{ delay: 1.1, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                className="h-full rounded-full bg-gradient-to-r from-[var(--brand-primary)] to-orange-300"
-              />
-            </div>
-          </motion.div>
-
-          {/* Income / Expense cards */}
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
-            <motion.div
-              initial={{ opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="relative rounded-2xl border border-green-500/20 bg-green-500/5 p-4 md:p-6 overflow-hidden"
-            >
-              <div className="absolute -top-4 -right-4 w-20 h-20 bg-green-500/8 rounded-full blur-xl" />
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[8px] font-black uppercase tracking-[0.25em] text-green-400/60">
-                  Ingresos
-                </span>
-                <TrendingUp size={13} className="text-green-400" />
+                {/* Goal bar */}
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+                  className="rounded-2xl p-3 bg-white/[0.03] border border-white/5">
+                  <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+                    <span className="text-[7.5px] font-black uppercase tracking-[0.2em] text-white/20 flex items-center gap-1.5">
+                      <Target size={8} className="text-[var(--brand-primary)]" /> Meta del Mes
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-green-400 font-black italic text-[11px] leading-none">{formatCurrency(animIncome)}</span>
+                      <span className="text-white/20 text-[7.5px]">/ {formatCurrency(MONTHLY_GOAL)}</span>
+                      <span className="text-[var(--brand-primary)] font-black text-[9px]">
+                        {Math.min(100, Math.round((animIncome / MONTHLY_GOAL) * 100))}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-[5px] bg-white/5 rounded-full overflow-hidden">
+                    <motion.div initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, Math.round(((data?.totalIncome ?? 0) / MONTHLY_GOAL) * 100))}%` }}
+                      transition={{ duration: 1.4, delay: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                      className="h-full rounded-full relative overflow-hidden"
+                      style={{ background: 'linear-gradient(90deg, #4ade80, #86efac)' }}>
+                      <motion.div className="absolute inset-0"
+                        style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)' }}
+                        animate={{ x: ['-100%', '200%'] }} transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }} />
+                    </motion.div>
+                  </div>
+                </motion.div>
               </div>
-              <p
-                className="text-green-400 font-black italic tracking-tight leading-none"
-                style={{ fontSize: 'clamp(1rem, 2.5vw, 1.75rem)' }}
-              >
-                +{formatCurrency(animIncome)}
-              </p>
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="relative rounded-2xl border border-red-500/20 bg-red-500/5 p-4 md:p-6 overflow-hidden"
-            >
-              <div className="absolute -top-4 -right-4 w-20 h-20 bg-red-500/8 rounded-full blur-xl" />
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[8px] font-black uppercase tracking-[0.25em] text-red-400/60">
-                  Gastos
-                </span>
-                <TrendingDown size={13} className="text-red-400" />
-              </div>
-              <p
-                className="text-red-400 font-black italic tracking-tight leading-none"
-                style={{ fontSize: 'clamp(1rem, 2.5vw, 1.75rem)' }}
-              >
-                -{formatCurrency(animExpense)}
-              </p>
-            </motion.div>
-          </div>
+              {/* ── CENTER: Transactions ── */}
+              <div className="w-[230px] md:w-[270px] xl:w-[300px] flex-shrink-0 flex flex-col border-r border-white/5">
+                <div className="flex items-center justify-between px-3 pt-3 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Radio size={10} className="text-[var(--brand-primary)]" />
+                    <span className="text-[9.5px] font-black uppercase tracking-[0.2em]">Flujo Reciente</span>
+                  </div>
+                  <span className="text-[7.5px] text-white/20">{filteredTx.length} mov.</span>
+                </div>
 
-          {/* Active events pill row */}
-          {data.eventDetails.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.0, duration: 0.5 }}
-              className="flex flex-wrap gap-2"
-            >
-              {data.eventDetails.slice(0, 4).map((ev: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 bg-white/5 border border-white/8 rounded-full px-3 py-1.5"
-                >
-                  <Activity size={10} className="text-[var(--brand-primary)] flex-shrink-0" />
-                  <span className="text-[9px] font-black uppercase tracking-wide text-white/60 max-w-[120px] truncate">
-                    {ev.name}
+                {/* Category filter — NEW */}
+                <div className="flex gap-1.5 px-3 pb-2 flex-wrap">
+                  {(['all', 'income', 'expense', 'event'] as TxFilter[]).map(f => (
+                    <button key={f} onClick={() => setTxFilter(f)}
+                      className={cn('px-2 py-0.5 rounded-md text-[7.5px] font-black uppercase tracking-wide border transition-all',
+                        txFilter === f ? 'bg-[var(--brand-primary)]/12 border-[var(--brand-primary)]/35 text-[var(--brand-primary)]' : 'border-transparent text-white/25 hover:text-white/50')}>
+                      {f === 'all' ? 'Todo' : f === 'income' ? 'Ingresos' : f === 'expense' ? 'Gastos' : 'Eventos'}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-3 scrollbar-none min-h-0">
+                  {txFilter === 'event' ? (
+                    data?.eventDetails.map((ev, i) => <EventRow key={ev.id} ev={ev} i={i} />)
+                  ) : (
+                    filteredTx.map((t: any, i: number) => <TxRow key={t.id} t={t} i={i} />)
+                  )}
+                  {(txFilter === 'event' ? (data?.eventDetails.length ?? 0) : filteredTx.length) === 0 && (
+                    <p className="text-[8px] text-white/15 text-center py-8">Sin registros encontrados</p>
+                  )}
+                </div>
+
+                <div className="px-3 py-2 border-t border-white/5 flex justify-between items-center flex-shrink-0">
+                  <span className="text-[7.5px] text-white/12 uppercase tracking-widest">
+                    {data?.activeEvents} evento{(data?.activeEvents ?? 0) !== 1 ? 's' : ''} activo{(data?.activeEvents ?? 0) !== 1 ? 's' : ''}
                   </span>
-                  <span className={cn(
-                    'text-[9px] font-black',
-                    ev.balance >= 0 ? 'text-green-400' : 'text-red-400'
-                  )}>
-                    {formatCurrency(ev.balance)}
+                  <span className="text-[var(--brand-primary)] font-black text-[7.5px] uppercase tracking-widest">
+                    {format(new Date(), 'MMM yyyy', { locale: es })}
                   </span>
                 </div>
-              ))}
+              </div>
+
+              {/* ── RIGHT: Gauges + Projections ── */}
+              <div className="w-[190px] xl:w-[210px] flex-shrink-0 hidden lg:flex flex-col gap-2.5 px-3 py-3 overflow-y-auto">
+                {/* Health Gauge — NEW */}
+                <HealthGauge score={healthScore} />
+
+                {/* Projection — NEW */}
+                <ProjectionCard totalIncome={data?.totalIncome ?? 0} today={new Date().getDate()} />
+
+                {/* Top Sources — NEW */}
+                <TopSourcesCard transactions={data?.allTx ?? []} />
+              </div>
             </motion.div>
           )}
-        </div>
-
-        {/* ── Vertical divider (desktop only) ── */}
-        <motion.div
-          initial={{ scaleY: 0, opacity: 0 }}
-          animate={{ scaleY: 1, opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          style={{ transformOrigin: 'top' }}
-          className="hidden lg:block w-px bg-gradient-to-b from-transparent via-white/8 to-transparent self-stretch mx-4"
-        />
-
-        {/* ── RIGHT: Recent activity ── */}
-        <motion.div
-          initial={{ opacity: 0, x: 32 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.6, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="lg:w-[360px] xl:w-[420px] flex flex-col mt-8 lg:mt-0 pb-10 lg:pb-0"
-        >
-          {/* Section header */}
-          <div className="flex items-center justify-between mb-4 bg-[#0a0c14] lg:bg-transparent sticky top-0 py-2 lg:relative z-20">
-            <div className="flex items-center gap-2">
-              <Radio size={13} className="text-[var(--brand-primary)]" />
-              <span className="text-white font-black text-xs uppercase tracking-[0.25em]">
-                Flujo Reciente
-              </span>
-            </div>
-            <span className="text-white/20 text-[9px] uppercase tracking-widest">
-              {data.recentTx.length} mov.
-            </span>
-          </div>
-
-          {/* Transactions */}
-          <div className="flex-1 overflow-y-visible lg:overflow-y-auto scrollbar-none">
-            {data.recentTx.map((t: any, i: number) => (
-              <TxRow key={t.id} t={t} i={i} />
-            ))}
-          </div>
-
-          {/* Bottom stat */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.8 }}
-            className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between"
-          >
-            <span className="text-white/15 text-[9px] uppercase tracking-widest">
-              {data.activeEvents} actividad{data.activeEvents !== 1 ? 'es' : ''} activa{data.activeEvents !== 1 ? 's' : ''}
-            </span>
-            <span className="text-[var(--brand-primary)] font-black text-[9px] uppercase tracking-widest">
-              {format(new Date(), 'MMM yyyy', { locale: es })}
-            </span>
-          </motion.div>
-        </motion.div>
+        </AnimatePresence>
       </main>
 
-      {/* ── Footer ── */}
-      <motion.footer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.6 }}
-        className="relative z-10 border-t border-white/5 px-6 md:px-12 py-3 flex items-center justify-between"
-      >
-        <p className="text-white/10 text-[8px] uppercase tracking-[0.35em] italic font-bold">
-          Soli Deo Gloria
-        </p>
-        <p className="text-white/10 text-[8px] uppercase tracking-[0.35em] font-bold">
-          ChurchFlow Pro v1.3.3
-        </p>
-      </motion.footer>
+      {/* Ticker */}
+      <TickerTape transactions={data?.recentTx ?? []} />
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-white/5 px-3 md:px-5 py-1.5 flex items-center justify-between flex-shrink-0">
+        <p className="text-white/6 text-[7px] uppercase tracking-[0.4em] italic font-bold">Soli Deo Gloria</p>
+        <p className="text-white/6 text-[7px] uppercase tracking-[0.4em] font-bold">ChurchFlow Pro v1.3.3</p>
+      </footer>
+
+      {/* Floating tooltip for chart */}
+      <ChartTooltip candle={hovCandle} x={tooltipPos.x} y={tooltipPos.y} />
     </div>
   );
 }

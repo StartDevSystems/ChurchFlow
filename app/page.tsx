@@ -3,9 +3,11 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+import { format, parseISO, startOfMonth, endOfMonth, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownRight, Landmark, ArrowLeftRight, PlusCircle, TrendingUp, Activity, Zap, Calendar, Cake, GripVertical, ChevronRight, X, DollarSign, Loader2, Save } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Landmark, ArrowLeftRight, PlusCircle, TrendingUp, Activity, Zap, Calendar, Cake, GripVertical, ChevronRight, X, DollarSign, Loader2, Save, FileSpreadsheet, Download, Info, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/components/ui/use-toast';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -138,7 +140,10 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [transfers, setTransfers] = useState<any[]>([]);
   const [birthdays, setBirthdays] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [churchSettings, setChurchSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [tfForm, setTfForm] = useState({ 
     fromEventId: 'caja', 
@@ -148,6 +153,10 @@ export default function DashboardPage() {
     date: format(new Date(), 'yyyy-MM-dd') 
   });
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [showImportAssistant, setShowImportAssistant] = useState(false);
+  const [importSummary, setImportSummary] = useState<any>(null);
+  const [pendingImportData, setPendingImportData] = useState<any>(null);
 
   const [widgetOrder, setWidgetOrder] = useState<string[]>(['banner', 'cards-row', 'middle-row', 'bottom-row']);
 
@@ -176,13 +185,20 @@ export default function DashboardPage() {
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
-      const [txRes, evRes, trRes, bRes] = await Promise.all([
-        fetch('/api/transactions'), fetch('/api/events'), fetch('/api/transfers'), fetch('/api/members/birthdays')
+      const [txRes, evRes, trRes, bRes, mRes, sRes] = await Promise.all([
+        fetch('/api/transactions'), 
+        fetch('/api/events'), 
+        fetch('/api/transfers'), 
+        fetch('/api/members/birthdays'),
+        fetch('/api/members'),
+        fetch('/api/settings')
       ]);
       setTransactions(txRes.ok ? await txRes.json() : []);
       setEvents(evRes.ok ? await evRes.json() : []);
       setTransfers(trRes.ok ? await trRes.json() : []);
       setBirthdays(bRes.ok ? await bRes.json() : []);
+      setMembers(mRes.ok ? await mRes.json() : []);
+      if (sRes.ok) setChurchSettings(await sRes.json());
     } catch { toast({ title: 'Error al cargar datos', variant: 'destructive' }); }
     finally { setLoading(false); }
   }, [toast]);
@@ -204,13 +220,13 @@ export default function DashboardPage() {
     const start = startOfMonth(now);
     const end = endOfMonth(now);
     
-    const thisMonthCaja = cajaTransactions.filter(t => { 
+    const thisMonthGlobal = transactions.filter(t => { 
       const d = new Date(t.date); 
       return d >= start && d <= end; 
     });
     
-    const monthIncome = thisMonthCaja.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const monthExpense = thisMonthCaja.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const monthIncome = thisMonthGlobal.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const monthExpense = thisMonthGlobal.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
     const eventsWithStats = events.map(ev => {
       const related = transactions.filter(t => t.eventId === ev.id);
@@ -304,37 +320,297 @@ export default function DashboardPage() {
   const afterTransfer = originBalance - amountNum;
 
   const handleSaveTransfer = async () => {
-    if (!tfForm.amount || !tfForm.toEventId) {
-      toast({ title: 'Completa el monto y el destino', variant: 'destructive' });
-      return;
-    }
+    // ... existante
+  };
 
-    const finalDescription = tfForm.description || `Transferencia de ${fundName(tfForm.fromEventId)} a ${fundName(tfForm.toEventId)}`;
-
-    setSaving(true);
+  const exportToExcelMaster = async () => {
+    setExporting(true);
     try {
-      const res = await fetch('/api/transfers', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ 
-          amount: parseFloat(tfForm.amount), 
-          description: finalDescription, 
-          date: tfForm.date, 
-          fromEventId: tfForm.fromEventId === 'caja' ? null : tfForm.fromEventId, 
-          toEventId: tfForm.toEventId === 'caja' ? null : tfForm.toEventId 
-        }) 
+      const workbook = new ExcelJS.Workbook();
+      const currentChurchName = churchSettings?.churchName || 'Iglesia';
+      workbook.creator = currentChurchName;
+      workbook.lastModifiedBy = 'Admin';
+      workbook.created = new Date();
+
+      const brandColor = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim() || '#e85d26';
+      const cleanBrandColor = brandColor.replace('#', '');
+
+      // ─── HOJA 1: DASHBOARD ──────────────────────
+      const dashSheet = workbook.addWorksheet('RESUMEN GENERAL');
+      dashSheet.getColumn(1).width = 35;
+      dashSheet.getColumn(2).width = 30;
+
+      // Banner de Título Superior
+      const titleRow = dashSheet.getRow(1);
+      titleRow.values = [currentChurchName.toUpperCase()];
+      titleRow.font = { bold: true, size: 20, color: { argb: 'FFFFFFFF' } };
+      titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cleanBrandColor } };
+      titleRow.height = 40;
+      titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+      dashSheet.mergeCells('A1:B1');
+      
+      dashSheet.getRow(2).values = [churchSettings?.churchSubtitle?.toUpperCase() || 'FINANZAS JÓVENES'];
+      dashSheet.getRow(2).font = { bold: true, size: 11, color: { argb: 'FF6B7280' } };
+      
+      dashSheet.getRow(3).values = [`Reporte generado el: ${format(new Date(), 'PPpp', { locale: es })}`];
+      dashSheet.getRow(3).font = { size: 9, italic: true };
+
+      dashSheet.addRow([]); // Espacio
+
+      const statsStart = 5;
+      dashSheet.getRow(statsStart).values = ['INDICADORES FINANCIEROS'];
+      dashSheet.getRow(statsStart).font = { bold: true, color: { argb: cleanBrandColor }, size: 12 };
+      dashSheet.getRow(statsStart).border = { bottom: { style: 'medium', color: { argb: cleanBrandColor } } };
+
+      const stats = [
+        ['Balance Caja General', cajaBalance],
+        ['Total Consolidado', totalBalance],
+        ['Ingresos del Mes', monthIncome],
+        ['Gastos del Mes', monthExpense]
+      ];
+
+      stats.forEach((s, i) => {
+        const row = dashSheet.addRow(s);
+        row.font = { bold: i < 2, size: 11 };
+        row.getCell(2).numFmt = '"RD$"#,##0';
+        row.height = 25;
+        row.alignment = { vertical: 'middle' };
       });
-      if (res.ok) { 
-        toast({ title: 'Transferencia realizada con éxito ✓' }); 
-        setShowTransfer(false); 
-        fetchAll(); 
+
+      // ─── HOJA 2: TRANSACCIONES ──────────────────
+      const txSheet = workbook.addWorksheet('LIBRO DIARIO');
+      
+      txSheet.getRow(1).values = [currentChurchName.toUpperCase() + ' - HISTORIAL'];
+      txSheet.getRow(1).font = { bold: true, color: { argb: cleanBrandColor } };
+      
+      txSheet.getRow(3).values = ['#', 'FECHA', 'TIPO', 'DESCRIPCIÓN', 'CATEGORÍA', 'PROYECTO', 'MONTO', 'ID_SISTEMA'];
+      txSheet.columns = [
+        { key: 'index', width: 5 },
+        { key: 'date', width: 15 },
+        { key: 'type', width: 12 },
+        { key: 'desc', width: 50 },
+        { key: 'cat', width: 18 },
+        { key: 'event', width: 25 },
+        { key: 'amount', width: 18 },
+        { key: 'id', width: 12 },
+      ];
+
+      txSheet.getRow(3).eachCell(c => {
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cleanBrandColor } };
+        c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        c.alignment = { horizontal: 'center' };
+      });
+
+      transactions.forEach((t, i) => {
+        const row = txSheet.addRow({
+          index: i + 1,
+          date: format(parseISO(t.date), 'dd/MM/yyyy'),
+          type: t.type === 'income' ? 'INGRESO' : 'GASTO',
+          desc: t.description.toUpperCase(),
+          cat: (t.category?.name || 'OTROS').toUpperCase(),
+          event: (t.event?.name || 'CAJA GENERAL').toUpperCase(),
+          amount: t.amount,
+          id: t.id.split('-')[0].toUpperCase()
+        });
+        row.getCell('amount').numFmt = '"RD$"#,##0';
+        row.getCell('type').font = { color: { argb: t.type === 'income' ? 'FF22C55E' : 'FFEF4444' }, bold: true };
+        row.getCell('id').font = { size: 8, color: { argb: 'FF9CA3AF' } };
+        row.getCell('index').alignment = { horizontal: 'center' };
+      });
+
+      // ─── HOJA 3: PROYECTOS ──────────────────────
+      const evSheet = workbook.addWorksheet('PROYECTOS');
+      evSheet.getRow(1).values = ['REPORTE DE PROYECTOS ACTIVOS'];
+      evSheet.getRow(1).font = { bold: true, size: 14, color: { argb: cleanBrandColor } };
+
+      evSheet.getRow(3).values = ['#', 'PROYECTO', 'ESTADO', 'INGRESOS', 'GASTOS', 'BALANCE NETO'];
+      evSheet.columns = [
+        { key: 'index', width: 5 },
+        { key: 'name', width: 35 },
+        { key: 'status', width: 15 },
+        { key: 'inc', width: 18 },
+        { key: 'exp', width: 18 },
+        { key: 'bal', width: 18 },
+      ];
+
+      evSheet.getRow(3).eachCell(c => {
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2937' } };
+        c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      });
+
+      eventsWithStats.forEach((e, i) => {
+        const row = evSheet.addRow({
+          index: i + 1,
+          name: e.name.toUpperCase(),
+          status: e.status,
+          inc: e.totalIncome,
+          exp: e.totalExpense,
+          bal: e.balance
+        });
+        row.getCell('inc').numFmt = '"RD$"#,##0';
+        row.getCell('exp').numFmt = '"RD$"#,##0';
+        row.getCell('bal').numFmt = '"RD$"#,##0';
+        row.getCell('bal').font = { bold: true, color: { argb: e.balance >= 0 ? 'FF22C55E' : 'FFEF4444' } };
+        row.getCell('index').alignment = { horizontal: 'center' };
+      });
+
+      // ─── HOJA 4: MIEMBROS ───────────────────────
+      const memSheet = workbook.addWorksheet('MIEMBROS');
+      memSheet.getRow(1).values = ['DIRECTORIO MINISTERIAL'];
+      memSheet.getRow(1).font = { bold: true, size: 14, color: { argb: cleanBrandColor } };
+
+      memSheet.getRow(3).values = ['#', 'NOMBRE COMPLETO', 'TELÉFONO', 'ROL', 'CUMPLEAÑOS', 'ID_SISTEMA'];
+      memSheet.columns = [
+        { key: 'index', width: 5 },
+        { key: 'name', width: 40 },
+        { key: 'phone', width: 20 },
+        { key: 'role', width: 15 },
+        { key: 'bday', width: 15 },
+        { key: 'id', width: 12 },
+      ];
+
+      memSheet.getRow(3).eachCell(c => {
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
+        c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      });
+
+      members.forEach((m, i) => {
+        const row = memSheet.addRow({
+          index: i + 1,
+          name: m.name.toUpperCase(),
+          phone: m.phone,
+          role: m.role.toUpperCase(),
+          bday: m.birthDate ? format(parseISO(m.birthDate), 'dd/MM') : 'N/A',
+          id: m.id.split('-')[0].toUpperCase()
+        });
+        row.getCell('id').font = { size: 8, color: { argb: 'FF9CA3AF' } };
+        row.getCell('index').alignment = { horizontal: 'center' };
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const fileName = `${currentChurchName.replace(/\s+/g, '_').toUpperCase()}_BOVEDA_${format(new Date(), 'yyyy_MM_dd')}.xlsx`;
+      saveAs(new Blob([buffer]), fileName);
+      toast({ title: 'Bóveda Excel Generada ✓', description: `Los datos de ${currentChurchName} están a salvo.` });
+    } catch (e) {
+      toast({ title: 'Error al exportar', variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleMasterImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(evt.target?.result as ArrayBuffer);
+
+        const txSheet = workbook.getWorksheet('LIBRO DIARIO');
+        const memSheet = workbook.getWorksheet('MIEMBROS');
+
+        const parsedTx: any[] = [];
+        const parsedMembers: any[] = [];
+        const warnings: string[] = [];
+
+        // --- Función para limpiar fechas ---
+        const safeParseDate = (val: any) => {
+          if (!val) return null;
+          if (val instanceof Date) return val;
+          const s = String(val).replace(/[-.]/g, '/');
+          const formats = ['dd/MM/yyyy', 'dd/MM/yy', 'yyyy/MM/dd', 'MM/dd/yyyy'];
+          for (const f of formats) {
+            const p = parse(s, f, new Date());
+            if (!isNaN(p.getTime())) return p;
+          }
+          return null;
+        };
+
+        if (txSheet) {
+          txSheet.eachRow((row, rowNumber) => {
+            if (rowNumber > 3) {
+              const vals = row.values as any;
+              const cleanDate = safeParseDate(vals[2]); // FECHA es col 2
+              
+              if (cleanDate && vals[4]) { // DESC es col 4
+                parsedTx.push({
+                  date: cleanDate,
+                  type: String(vals[3]).toUpperCase(),
+                  desc: vals[4],
+                  cat: vals[5],
+                  event: vals[6],
+                  amount: typeof vals[7] === 'object' ? vals[7].result : vals[7],
+                  id: vals[8] // ID_SISTEMA es col 8
+                });
+              } else if (vals[4]) {
+                warnings.push(`Fila ${rowNumber}: Fecha inválida o mal escrita.`);
+              }
+            }
+          });
+        }
+
+        if (memSheet) {
+          memSheet.eachRow((row, rowNumber) => {
+            if (rowNumber > 3) {
+              const vals = row.values as any;
+              if (vals[2] && vals[3]) { // NOMBRE es col 2, TEL es col 3
+                parsedMembers.push({
+                  name: vals[2],
+                  phone: String(vals[3]),
+                  role: vals[4],
+                  bday: safeParseDate(vals[5]),
+                  id: vals[6] // ID_SISTEMA es col 6
+                });
+              }
+            }
+          });
+        }
+
+        setImportSummary({
+          txCount: parsedTx.length,
+          memCount: parsedMembers.length,
+          warnings
+        });
+        setPendingImportData({ transactions: parsedTx, members: parsedMembers });
+        setShowImportAssistant(true);
+      } catch (err) {
+        toast({ title: 'Error al leer el archivo', variant: 'destructive' });
+      } finally {
+        setImporting(false);
+        e.target.value = ''; // Limpiar input
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const confirmMasterImport = async () => {
+    setImporting(true);
+    try {
+      const res = await fetch('/api/admin/master-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pendingImportData)
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        toast({ 
+          title: 'Sincronización Exitosa ✓', 
+          description: `Se agregaron ${result.membersCreated} miembros y ${result.txCreated} transacciones.` 
+        });
+        setShowImportAssistant(false);
+        fetchAll();
       } else {
-        const err = await res.json();
-        toast({ title: 'Error al procesar', description: err.error, variant: 'destructive' });
+        toast({ title: 'Error al sincronizar', variant: 'destructive' });
       }
     } catch (e) {
       toast({ title: 'Error de red', variant: 'destructive' });
-    } finally { setSaving(false); }
+    } finally {
+      setImporting(false);
+    }
   };
 
   if (loading) return <div className="min-h-screen bg-[#0a0c14] flex items-center justify-center"><div className="w-12 h-12 rounded-full border-4 border-white/5 border-t-[var(--brand-primary)] animate-spin" /></div>;
@@ -347,14 +623,31 @@ export default function DashboardPage() {
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--brand-primary)] to-transparent" />
             <div className="flex flex-col xl:flex-row gap-8 items-center relative z-10">
               <div className="flex-1 w-full text-center xl:text-left">
-                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 mb-2">Balance Total Consolidado</p>
-                <h2 className={cn("text-4xl md:text-6xl font-black italic tracking-tighter leading-none break-words", totalBalance >= 0 ? "text-[#4ade80]" : "text-[#f87171]")}>{fmt(totalBalance)}</h2>
-                <p className="text-[9px] md:text-[10px] text-gray-600 font-bold mt-4 uppercase tracking-widest">Caja General + {events.length} Eventos Activos</p>
+                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 mb-2">Balance Caja General</p>
+                <h2 className={cn("text-4xl md:text-6xl font-black italic tracking-tighter leading-none break-words", cajaBalance >= 0 ? "text-white" : "text-[#f87171]")}>{fmt(cajaBalance)}</h2>
+                <p className="text-[9px] md:text-[10px] text-gray-600 font-bold mt-4 uppercase tracking-widest">Dinero disponible para operaciones diarias</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-10 w-full xl:w-auto">
-                <div className="border-l-2 border-[var(--brand-primary)]/30 pl-4 md:pl-6 py-1"><p className="text-[8px] md:text-[9px] font-black uppercase text-gray-500 mb-1 tracking-tighter">Caja General</p><p className="text-xl md:text-2xl font-black text-white">{fmt(cajaBalance)}</p></div>
-                <div className="border-l-2 border-[#4ade80]/30 pl-4 md:pl-6 py-1"><p className="text-[8px] md:text-[9px] font-black uppercase text-[#4ade80] mb-1 tracking-tighter">Ingresos Mes</p><p className="text-xl md:text-2xl font-black text-[#4ade80]">{fmt(monthIncome)}</p></div>
-                <div className="border-l-2 border-[#f87171]/30 pl-4 md:pl-6 py-1"><p className="text-[8px] md:text-[9px] font-black uppercase text-[#f87171] mb-1 tracking-tighter">Gastos Mes</p><p className="text-xl md:text-2xl font-black text-[#f87171]">{fmt(monthExpense)}</p></div>
+                <div className="border-l-2 border-[var(--brand-primary)]/30 pl-4 md:pl-6 py-1">
+                  <p className="text-[8px] md:text-[9px] font-black uppercase text-gray-500 mb-1 tracking-tighter">Total Consolidado</p>
+                  <p className={cn("text-xl md:text-2xl font-black", totalBalance >= 0 ? "text-[#4ade80]" : "text-[#f87171]")}>{fmt(totalBalance)}</p>
+                </div>
+                
+                <Link 
+                  href={`/transactions/month?type=income`}
+                  className="border-l-2 border-[#4ade80]/30 pl-4 md:pl-6 py-1 hover:bg-[#4ade80]/5 rounded-r-lg transition-all"
+                >
+                  <p className="text-[8px] md:text-[9px] font-black uppercase text-[#4ade80] mb-1 tracking-tighter flex items-center gap-1">Ingresos Mes <ChevronRight size={8} /></p>
+                  <p className="text-xl md:text-2xl font-black text-[#4ade80]">{fmt(monthIncome)}</p>
+                </Link>
+
+                <Link 
+                  href={`/transactions/month?type=expense`}
+                  className="border-l-2 border-[#f87171]/30 pl-4 md:pl-6 py-1 hover:bg-[#f87171]/5 rounded-r-lg transition-all"
+                >
+                  <p className="text-[8px] md:text-[9px] font-black uppercase text-[#f87171] mb-1 tracking-tighter flex items-center gap-1">Gastos Mes <ChevronRight size={8} /></p>
+                  <p className="text-xl md:text-2xl font-black text-[#f87171]">{fmt(monthExpense)}</p>
+                </Link>
               </div>
             </div>
           </motion.div>
@@ -554,10 +847,33 @@ export default function DashboardPage() {
             </div>
             <h1 className="text-5xl md:text-7xl font-black text-white uppercase italic tracking-tighter leading-none">Dashboard</h1>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full md:w-auto">
-            <button onClick={() => window.print()} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all">Imprimir Reporte</button>
-            <Link href="/transactions/new" className="w-full">
-              <button className="w-full px-8 py-4 bg-[var(--brand-primary)] text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-2xl shadow-orange-500/40 hover:-translate-y-1 active:scale-95 transition-all">Registrar Movimiento</button>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 w-full md:w-auto items-stretch">
+            <div className="flex gap-2 w-full h-full">
+              <button 
+                onClick={exportToExcelMaster} 
+                disabled={exporting}
+                className="flex-1 px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+              >
+                {exporting ? <Loader2 className="animate-spin h-4 w-4" /> : <Download size={14} className="text-green-500" />}
+                Libro Maestro
+              </button>
+              <button 
+                onClick={() => document.getElementById('master-excel-upload')?.click()}
+                className="flex-1 px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+              >
+                <FileSpreadsheet size={14} className="text-blue-400" />
+                Sincronizar
+              </button>
+              <input type="file" id="master-excel-upload" className="hidden" accept=".xlsx" onChange={(e) => handleMasterImport(e)} />
+            </div>
+            <Link href="/transactions/new" className="w-full h-full">
+              <button 
+                className="w-full h-full px-8 py-4 bg-[var(--brand-primary)] font-black uppercase text-[10px] tracking-widest rounded-2xl border-2 border-transparent shadow-lg hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-2"
+                style={{ color: 'var(--brand-text-on-primary)', boxShadow: '0 4px 15px -2px var(--brand-primary)' }}
+              >
+                <PlusCircle size={16} />
+                Registrar Movimiento
+              </button>
             </Link>
           </div>
         </div>
@@ -607,12 +923,114 @@ export default function DashboardPage() {
                     <div className="space-y-1.5"><label className="block text-[10px] font-black tracking-widest uppercase text-gray-500 ml-2">Fecha</label><input type="date" className="w-full px-4 py-3.5 bg-white/5 border-2 border-white/5 rounded-2xl text-xs font-black text-white outline-none focus:border-[var(--brand-primary)] color-scheme-dark transition-all" value={tfForm.date} onChange={(e) => setTfForm(f => ({ ...f, date: e.target.value }))} /></div>
                   </div>
                   <div className="space-y-1.5"><label className="block text-[10px] font-black tracking-widest uppercase text-gray-500 ml-2">Descripción</label><input type="text" placeholder="EJ: GANANCIA DEL EVENTO A CAJA" className="w-full px-4 py-3.5 bg-white/5 border-2 border-white/5 rounded-2xl text-xs font-black uppercase text-white outline-none focus:border-[var(--brand-primary)] transition-all" value={tfForm.description} onChange={(e) => setTfForm(f => ({ ...f, description: e.target.value }))} /></div>
-                  <button onClick={handleSaveTransfer} disabled={saving || amountNum > originBalance || !tfForm.toEventId} className="w-full py-5 rounded-[1.5rem] bg-white text-black font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-primary)] hover:text-white shadow-2xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 mt-4">{saving ? <Loader2 className="animate-spin" /> : <Save size={16} />} Procesar Movimiento</button>
+                  <button 
+                    onClick={handleSaveTransfer} 
+                    disabled={saving || amountNum > originBalance || !tfForm.toEventId} 
+                    className="w-full py-5 rounded-[1.5rem] bg-white text-black font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-primary)] shadow-2xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 mt-4"
+                    style={{ 
+                      '--hover-text': 'var(--brand-text-on-primary)'
+                    } as any}
+                  >
+                    {saving ? <Loader2 className="animate-spin" /> : <Save size={16} />} Procesar Movimiento
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         )}
+        <AnimatePresence>
+          {showImportAssistant && importSummary && (
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-[#13151f] border-2 border-white/10 rounded-[3rem] p-8 md:p-12 w-full max-w-2xl shadow-2xl relative overflow-hidden text-white"
+              >
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-blue-500" />
+                
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20">
+                    <FileSpreadsheet size={30} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black uppercase italic tracking-tighter">Asistente de <span className="text-blue-400">Sincronización</span></h3>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Validación de Libro Maestro</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5">
+                      <div className="flex items-center gap-3 mb-2">
+                        <CheckCircle2 size={16} className="text-green-500" />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Datos Encontrados</p>
+                      </div>
+                      <p className="text-sm font-bold text-white uppercase tracking-tight">
+                        {importSummary.txCount} Transacciones<br/>
+                        {importSummary.memCount} Miembros
+                      </p>
+                    </div>
+                    <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Info size={16} className="text-blue-400" />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Mapeo de Datos</p>
+                      </div>
+                      <p className="text-[10px] text-gray-400 uppercase font-bold leading-relaxed">
+                        Se ignorarán filas duplicadas automáticamente para proteger tu base de datos.
+                      </p>
+                    </div>
+                  </div>
+
+                  {importSummary.warnings.length > 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-5 rounded-2xl flex gap-4 items-start">
+                      <AlertTriangle size={20} className="text-amber-500 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-black uppercase text-amber-500 mb-1">Avisos del Sistema</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {importSummary.warnings.map((w: string, i: number) => (
+                            <li key={i} className="text-[9px] text-amber-500/70 uppercase font-bold">{w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-white/[0.02] p-6 rounded-[2.5rem] border border-white/5">
+                    <p className="text-[9px] font-black uppercase text-gray-500 mb-3 tracking-widest">Resumen de Operación</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[11px] font-bold uppercase">
+                        <span className="text-white/40 italic">Estado:</span>
+                        <span className="text-green-400">Listo para integrar</span>
+                      </div>
+                      <div className="flex justify-between text-[11px] font-bold uppercase">
+                        <span className="text-white/40 italic">Acción:</span>
+                        <span className="text-white">Actualización incremental</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-10 flex gap-4">
+                  <button 
+                    onClick={() => setShowImportAssistant(false)}
+                    className="flex-1 py-6 rounded-2xl bg-white/5 text-gray-400 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all border border-white/5"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={confirmMasterImport}
+                    disabled={importing}
+                    className="flex-[2] py-6 rounded-2xl bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-blue-500/40 hover:bg-blue-500 transition-all flex items-center justify-center gap-3"
+                  >
+                    {importing ? <Loader2 className="animate-spin" /> : <Save size={18} />}
+                    Sincronizar Libro Maestro
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </AnimatePresence>
     </div>
   );

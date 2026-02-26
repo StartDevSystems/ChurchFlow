@@ -160,7 +160,14 @@ export default function MembersPage() {
             <Download size={16} />
           </button>
           <Link href="/members/scan"><button className="px-6 py-4 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-xl flex items-center gap-2"><QrCode size={16} /> Escanear</button></Link>
-          <Link href="/members/new"><button className="px-8 py-4 bg-[var(--brand-primary)] text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-2xl shadow-orange-500/20 hover:-translate-y-1 transition-all flex items-center gap-2"><PlusCircle size={16} /> Nuevo</button></Link>
+          <Link href="/members/new">
+            <button 
+              className="px-8 py-4 bg-[var(--brand-primary)] font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-lg hover:-translate-y-1 transition-all flex items-center gap-2"
+              style={{ color: 'var(--brand-text-on-primary)', boxShadow: '0 4px 15px -2px var(--brand-primary)' }}
+            >
+              <PlusCircle size={16} /> Nuevo
+            </button>
+          </Link>
         </div>
       </div>
 

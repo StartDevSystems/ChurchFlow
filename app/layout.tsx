@@ -72,7 +72,26 @@ function ConfigProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           const settings = await res.json();
           if (settings.primaryColor) {
-            document.documentElement.style.setProperty('--brand-primary', settings.primaryColor);
+            const hex = settings.primaryColor;
+            document.documentElement.style.setProperty('--brand-primary', hex);
+            
+            // --- Lógica de Contraste Inteligente ---
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            // Solo usar texto negro si el color es MUY claro (cerca del blanco)
+            const contrastText = brightness > 210 ? '#000000' : '#ffffff';
+            document.documentElement.style.setProperty('--brand-text-on-primary', contrastText);
+
+            // --- Lógica de Bi-Color Dinámico (Más sutil) ---
+            // Si es naranja oficial, lo dejamos sólido o casi sólido
+            const isDefaultOrange = hex.toLowerCase() === '#ff6b1a' || hex.toLowerCase() === '#e85d26';
+            const secondaryHex = isDefaultOrange ? hex : (brightness > 155 ? 
+              `#${Math.max(0, r-30).toString(16).padStart(2,'0')}${Math.max(0, g-30).toString(16).padStart(2,'0')}${Math.max(0, b-30).toString(16).padStart(2,'0')}` :
+              `#${Math.min(255, r+30).toString(16).padStart(2,'0')}${Math.min(255, g+30).toString(16).padStart(2,'0')}${Math.min(255, b+30).toString(16).padStart(2,'0')}`);
+            
+            document.documentElement.style.setProperty('--brand-secondary', secondaryHex);
           }
         }
       } catch (error) {
@@ -106,6 +125,7 @@ export default function RootLayout({
 
         {/* ── PWA Manifest ── */}
         <link rel="manifest" href="/manifest.json" />
+        <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet" />
         <meta name="theme-color" content="#e85d26" />
 
         {/* ── Viewport ── */}

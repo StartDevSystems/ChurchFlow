@@ -32,6 +32,7 @@ const C = {
 
 export default function ReportsPage() {
   const [data, setData] = useState<any>(null);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [range, setRange] = useState({
@@ -58,17 +59,17 @@ export default function ReportsPage() {
     doc.setFillColor(...C.orange);
     doc.rect(0, 0, W, 2.5, 'F');
 
-    // Church name — massive
+    // Church name — dynamic
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(24);
     doc.setTextColor(...C.white);
-    doc.text('FINANZAS JÓVENES', M, 22);
+    doc.text(settings?.churchName?.toUpperCase() || 'FINANZAS JÓVENES', M, 22);
 
     // Sub-label in orange
     doc.setFontSize(7);
     doc.setTextColor(...C.orange);
     doc.setCharSpace(3);
-    doc.text('REPORTE FINANCIERO OFICIAL', M, 30);
+    doc.text(settings?.churchSubtitle?.toUpperCase() || 'REPORTE FINANCIERO OFICIAL', M, 30);
     doc.setCharSpace(0);
 
     // Period + date right-aligned
@@ -257,18 +258,39 @@ export default function ReportsPage() {
     doc.text('AUTORIZACIÓN', M, sigY + 7);
     doc.setCharSpace(0);
 
-    // Signature line
-    doc.setDrawColor(...C.black);
-    doc.setLineWidth(0.6);
-    doc.line(M, sigY + 22, M + 65, sigY + 22);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    doc.setTextColor(...C.black);
-    doc.text('Tesorero(a)', M, sigY + 18);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(...C.gray600);
-    doc.text('Sociedad de Jóvenes · Iglesia Central', M, sigY + 27);
+    // Signature Area
+    const drawSignature = () => {
+      // Line
+      doc.setDrawColor(...C.black);
+      doc.setLineWidth(0.6);
+      doc.line(M, sigY + 22, M + 65, sigY + 22);
+
+      if (settings?.signatureUrl) {
+        // Image Signature
+        try {
+          doc.addImage(settings.signatureUrl, 'PNG', M + 5, sigY + 8, 40, 12);
+        } catch (e) {
+          console.error("Error drawing signature image:", e);
+        }
+      } else if (settings?.reportSignatureName) {
+        // Calligraphic-style fallback
+        doc.setFont('times', 'italic');
+        doc.setFontSize(14);
+        doc.setTextColor(...C.gray600);
+        doc.text(settings.reportSignatureName, M + 5, sigY + 18);
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...C.black);
+      doc.text(settings?.reportSignatureName || 'Firma Autorizada', M, sigY + 26);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...C.gray600);
+      doc.text(settings?.churchName || 'Sociedad de Jóvenes', M, sigY + 31);
+    };
+
+    drawSignature();
 
     // Seal
     const sealX = W - M - 55;
@@ -302,7 +324,7 @@ export default function ReportsPage() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6);
       doc.setTextColor(...C.gray600);
-      doc.text('ChurchFlow · Finanzas Jóvenes · Iglesia Central', M, H - 4.5);
+      doc.text(settings?.reportFooterText || `${settings?.churchName} · Reporte Oficial`, M, H - 4.5);
       doc.text(`Pág. ${p} / ${totalPages}`, W - M, H - 4.5, { align: 'right' });
       doc.setFillColor(...C.orange);
       doc.rect(0, H - 1.5, W, 1.5, 'F');
@@ -317,8 +339,12 @@ export default function ReportsPage() {
   const fetchReport = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/transactions/report?from=${range.from}&to=${range.to}`);
-      if (res.ok) setData(await res.json());
+      const [rRes, sRes] = await Promise.all([
+        fetch(`/api/transactions/report?from=${range.from}&to=${range.to}`),
+        fetch('/api/settings')
+      ]);
+      if (rRes.ok) setData(await rRes.json());
+      if (sRes.ok) setSettings(await sRes.json());
     } finally {
       setLoading(false);
     }

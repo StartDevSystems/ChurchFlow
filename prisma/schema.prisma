@@ -56,9 +56,11 @@ model AuditLog {
   id          String   @id @default(uuid())
   userId      String
   userEmail   String
-  action      String   // CREATE, UPDATE, DELETE
-  entity      String   // Transaction, Member, Event
+  action      String   // CREATE, UPDATE, DELETE, SYNC
+  entity      String   // Transaction, Member, Event, Batch
   details     String   
+  batchId     String?  // Nuevo: Para agrupar acciones
+  metadata    Json?    // Nuevo: Para guardar IDs { "txIds": [...], "memIds": [...] }
   createdAt   DateTime @default(now())
 }
 
@@ -124,6 +126,7 @@ model Settings {
   // Detalles para Reportes
   reportSignatureName     String   @default("")
   reportFooterText        String   @default("Dios les bendiga.")
+  signatureUrl            String?  // Nuevo: Imagen de la firma
   
   // Seguridad
   allowPublicRegistration Boolean  @default(true)

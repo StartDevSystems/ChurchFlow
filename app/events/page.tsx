@@ -70,10 +70,13 @@ export default function EventsPage() {
     <div className="max-w-7xl mx-auto pb-20 px-4 md:px-0">
       <div className="mb-12 flex flex-col md:flex-row justify-between md:items-end gap-8">
         <div>
-          <h1 className="text-4xl md:text-7xl font-black text-white uppercase tracking-tighter italic leading-none">
-            Eventos & <span className="text-[var(--brand-primary)]">Proyectos</span>
-          </h1>
-          <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[#8c7f72] mt-4">Planificación y seguimiento de actividades</p>
+          <div className="flex items-center gap-4 mb-2">
+            <Calendar className="text-[var(--brand-primary)] h-8 w-8 md:h-12 md:w-12" />
+            <h1 className="text-4xl md:text-7xl font-black text-white uppercase tracking-tighter italic leading-none">
+              Eventos & <span className="text-[var(--brand-primary)]">Proyectos</span>
+            </h1>
+          </div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[#8c7f72] mt-4 ml-1">Planificación y seguimiento de actividades</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button 
@@ -94,10 +97,23 @@ export default function EventsPage() {
         {activeEvents.map((event) => (
           <Link key={event.id} href={`/events/${event.id}`}>
             <Card className="rounded-[3rem] bg-[#13151f] border-2 border-white/5 overflow-hidden group hover:border-[var(--brand-primary)] transition-all shadow-xl h-full flex flex-col">
-              <div className="bg-gradient-to-r from-[var(--brand-primary)] to-orange-600 p-6 relative overflow-hidden shrink-0">
+              <div 
+                className="p-6 relative overflow-hidden shrink-0"
+                style={{ background: 'linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))' }}
+              >
                 <Calendar className="absolute top-[-10px] right-[-10px] h-24 w-24 opacity-20 -rotate-12" />
-                <p className="text-[8px] font-black uppercase tracking-widest text-white/60 mb-1">Actividad en Curso</p>
-                <CardTitle className="text-2xl font-black uppercase italic text-white truncate">{event.name}</CardTitle>
+                <p 
+                  className="text-[8px] font-black uppercase tracking-widest mb-1 opacity-70"
+                  style={{ color: 'var(--brand-text-on-primary)' }}
+                >
+                  Actividad en Curso
+                </p>
+                <CardTitle 
+                  className="text-2xl font-black uppercase italic truncate"
+                  style={{ color: 'var(--brand-text-on-primary)' }}
+                >
+                  {event.name}
+                </CardTitle>
               </div>
               
               <CardContent className="p-8 flex-1 flex flex-col">

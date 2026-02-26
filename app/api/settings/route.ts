@@ -50,7 +50,8 @@ export async function PATCH(request: Request) {
       churchName, churchSubtitle, currencySymbol, logoUrl, 
       monthlyGoal, primaryColor, themeMode, buttonStyle, reportSignatureName, 
       reportFooterText, allowPublicRegistration, generalFundName, 
-      lowBalanceAlert, webhookUrl, whatsappMessageTemplate, calculatorName
+      lowBalanceAlert, webhookUrl, whatsappMessageTemplate, calculatorName,
+      signatureUrl
     } = body;
 
     const settingsData = {
@@ -64,6 +65,7 @@ export async function PATCH(request: Request) {
       buttonStyle,
       reportSignatureName,
       reportFooterText,
+      signatureUrl,
       allowPublicRegistration: Boolean(allowPublicRegistration),
       generalFundName,
       lowBalanceAlert: parseFloat(lowBalanceAlert) || 0,

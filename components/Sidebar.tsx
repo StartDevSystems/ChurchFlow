@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { format } from 'date-fns';
-import { Home, Users, ArrowRightLeft, FileText, DollarSign, LogOut, BarChart3, Settings, Menu, X, Settings2, Bell, Shield } from 'lucide-react';
+import { Home, Users, ArrowRightLeft, FileText, DollarSign, LogOut, BarChart3, Settings, Menu, X, Settings2, Bell, Shield, Calendar, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut, useSession } from 'next-auth/react';
 import { Button } from './ui/Button';
@@ -18,11 +18,11 @@ const navItems = [
   { href: '/reports', label: 'Reportes', icon: FileText },
   { href: '/stats', label: 'Estadísticas', icon: BarChart3 },
   { href: '/dues', label: 'Cuotas', icon: DollarSign },
-  { href: '/events', label: 'Eventos', icon: Settings },
+  { href: '/events', label: 'Eventos', icon: Calendar },
 ];
 
 const adminNavItems = [
-  { href: '/admin/categories', label: 'Categorías', icon: Settings },
+  { href: '/admin/categories', label: 'Categorías', icon: Tag },
   { href: '/admin/settings', label: 'Ajustes', icon: Settings2 },
 ];
 
@@ -112,12 +112,12 @@ export function Sidebar() {
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <Link href="/" className="group/logo">
-          <div className="mb-8 text-center mt-12 lg:mt-0 relative transition-transform hover:scale-105 active:scale-95 duration-200">
+          <div className="mb-8 text-center mt-12 lg:mt-0 relative active:scale-95 transition-all duration-300 group-hover/logo:scale-105">
             <div className="relative w-20 h-20 mx-auto mb-4">
-              <Image src={churchInfo.logo} alt="Logo" fill className="rounded-full border-2 border-[var(--brand-primary)] p-0.5 object-cover shadow-lg group-hover/logo:shadow-orange-500/20" />
+              <Image src={churchInfo.logo} alt="Logo" fill className="rounded-full border-2 border-[var(--brand-primary)] p-0.5 object-cover transition-all duration-300 group-hover/logo:shadow-[0_0_20px_var(--brand-primary)] group-hover/logo:shadow-[var(--brand-primary)]/30" />
             </div>
-            <h1 className="text-xl font-bold text-white leading-tight group-hover/logo:text-[var(--brand-primary)] transition-colors">{churchInfo.name}</h1>
-            <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{churchInfo.subtitle}</p>
+            <h1 className="text-xl font-bold text-white leading-tight transition-colors duration-300 group-hover/logo:text-[var(--brand-primary)]">{churchInfo.name}</h1>
+            <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest transition-colors duration-300 group-hover/logo:text-white/60">{churchInfo.subtitle}</p>
           </div>
         </Link>
         
@@ -152,8 +152,24 @@ export function Sidebar() {
         
         <nav className="flex-grow flex flex-col space-y-1 overflow-y-auto no-scrollbar">
           {navItems.map((item) => (
-            <Link key={item.label} href={item.href} className={cn("flex items-center p-3 rounded-xl transition-all group", pathname === item.href ? "bg-[var(--brand-primary)] text-white shadow-lg shadow-orange-500/20" : "hover:bg-white/5 text-gray-400")}>
-              <item.icon className={cn("mr-3 h-5 w-5", pathname === item.href ? "text-white" : "text-gray-500 group-hover:text-white")} /> <span className="font-black text-[11px] uppercase tracking-widest">{item.label}</span>
+            <Link 
+              key={item.label} 
+              href={item.href} 
+              className={cn(
+                "flex items-center p-3 rounded-xl transition-all group", 
+                pathname === item.href ? "bg-[var(--brand-primary)] shadow-lg" : "hover:bg-white/5 text-gray-400"
+              )}
+              style={pathname === item.href ? { 
+                color: 'var(--brand-text-on-primary)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
+              } : {}}
+            >
+              <item.icon className={cn("mr-3 h-5 w-5", pathname === item.href ? "" : "text-gray-500 group-hover:text-white")} 
+                style={pathname === item.href ? { color: 'var(--brand-text-on-primary)' } : {}}
+              /> 
+              <span className="font-black text-[11px] uppercase tracking-widest">
+                {item.label}
+              </span>
             </Link>
           ))}
           
