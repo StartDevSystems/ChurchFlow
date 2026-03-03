@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { categorySchema } from '@/lib/validations';
+import { ZodError } from 'zod';
 import { TransactionType } from '@prisma/client';
 
 // GET /api/categories?type=income
@@ -17,14 +19,12 @@ export async function GET(request: Request) {
   try {
     const categories = await prisma.category.findMany({
       where: type ? { type } : {},
-      orderBy: {
-        name: 'asc',
-      },
+      orderBy: { name: 'asc' },
     });
     return NextResponse.json(categories);
   } catch (error) {
-    console.error('Error fetching categories:', error);
-    return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 });
+    console.error('[CATEGORIES_GET_ERROR]:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
@@ -36,30 +36,51 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, type } = await request.json();
+    const body = await request.json();
+    
+    // 1. VALIDACIÓN ESTRICTA (ZOD)
+    const validatedData = categorySchema.parse(body);
 
-    if (!name || !type) {
-      return NextResponse.json({ error: 'Name and type are required' }, { status: 400 });
-    }
+    // 2. TRANSACCIÓN ATÓMICA DE BASE DE DATOS
+    const result = await prisma.$transaction(async (tx) => {
+      // Crear la categoría
+      const newCategory = await tx.category.create({
+        data: {
+          name: validatedData.name,
+          type: validatedData.type,
+        },
+      });
 
-    if (!Object.values(TransactionType).includes(type)) {
-      return NextResponse.json({ error: 'Invalid category type' }, { status: 400 });
-    }
+      // Registrar auditoría obligatoria
+      await tx.auditLog.create({
+        data: {
+          userId: session.user.id,
+          userEmail: session.user.email || 'N/A',
+          action: 'CREATE',
+          entity: 'Category',
+          details: `🏷️ Creó categoría: ${validatedData.name} [Tipo: ${validatedData.type}]`
+        }
+      });
 
-    const newCategory = await prisma.category.create({
-      data: {
-        name,
-        type,
-      },
+      return newCategory;
     });
 
-    return NextResponse.json(newCategory, { status: 201 });
-  } catch (error) {
-    console.error('Error creating category:', error);
-    // Handle potential unique constraint violation
-    if (error instanceof Error && 'code' in error && (error as any).code === 'P2002') {
-         return NextResponse.json({ error: 'A category with this name already exists for the selected type.' }, { status: 409 });
+    return NextResponse.json(result, { status: 201 });
+
+  } catch (error: any) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ 
+        error: 'Validation Error', 
+        details: error.errors.map(e => ({ path: e.path, message: e.message })) 
+      }, { status: 400 });
     }
-    return NextResponse.json({ error: 'Failed to create category' }, { status: 500 });
+
+    // Manejo específico para nombres duplicados
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: 'La categoría ya existe para este tipo.' }, { status: 409 });
+    }
+
+    console.error('[CATEGORY_CREATE_ERROR]:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { eventSchema } from '@/lib/validations';
+import { ZodError } from 'zod';
 
 // GET /api/events
 export async function GET(request: Request) {
@@ -12,14 +14,12 @@ export async function GET(request: Request) {
 
   try {
     const events = await prisma.event.findMany({
-      orderBy: {
-        startDate: 'desc',
-      },
+      orderBy: { startDate: 'desc' },
     });
     return NextResponse.json(events);
   } catch (error) {
-    console.error('Error fetching events:', error);
-    return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 });
+    console.error('[EVENTS_GET_ERROR]:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
@@ -31,28 +31,49 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, description, startDate, endDate } = await request.json();
+    const body = await request.json();
+    
+    // 1. VALIDACIÓN ESTRICTA (ZOD)
+    const validatedData = eventSchema.parse(body);
 
-    if (!name || !startDate) {
-      return NextResponse.json({ error: 'Name and Start Date are required' }, { status: 400 });
-    }
+    // 2. TRANSACCIÓN ATÓMICA DE BASE DE DATOS
+    const result = await prisma.$transaction(async (tx) => {
+      // Crear el evento
+      const newEvent = await tx.event.create({
+        data: {
+          name: validatedData.name,
+          description: validatedData.description,
+          startDate: validatedData.startDate,
+          endDate: validatedData.endDate,
+          status: validatedData.status,
+        },
+      });
 
-    const newEvent = await prisma.event.create({
-      data: {
-        name,
-        description,
-        startDate: new Date(startDate),
-        endDate: endDate ? new Date(endDate) : null,
-      },
+      // Registrar auditoría obligatoria
+      await tx.auditLog.create({
+        data: {
+          userId: session.user.id,
+          userEmail: session.user.email || 'N/A',
+          action: 'CREATE',
+          entity: 'Event',
+          details: `📅 Creó evento: ${validatedData.name} [Inicio: ${validatedData.startDate.toLocaleDateString()}]`
+        }
+      });
+
+      return newEvent;
     });
 
-    return NextResponse.json(newEvent, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
+
   } catch (error) {
-    console.error('Error creating event:', error);
-    // Handle potential unique constraint violation on event name, if one is added later
-    if (error instanceof Error && 'code' in error && (error as any).code === 'P2002') {
-        return NextResponse.json({ error: 'An event with this name already exists.' }, { status: 409 });
+    if (error instanceof ZodError) {
+      return NextResponse.json({ 
+        error: 'Validation Error', 
+        details: error.errors.map(e => ({ path: e.path, message: e.message })) 
+      }, { status: 400 });
     }
-    return NextResponse.json({ error: 'Failed to create event' }, { status: 500 });
+
+    console.error('[EVENT_CREATE_ERROR]:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
