@@ -29,30 +29,17 @@ Este documento registra los cambios, mejoras y correcciones importantes aplicado
 
 ---
 
-## 🚀 [v1.3.4] - The Integrity Update — Master Sync & Audit Pro
-**Fecha:** 26 de febrero de 2026
+## 🛡️ [v1.4.0] - The Government Grade Update: Fortress & Integrity
+**Fecha:** 02 de marzo de 2026
 
-### 📊 Libro Maestro & Sincronización Inteligente
-- **Sincronización Bidireccional:** Implementación de IDs únicos (Cédulas de Sistema) en el Libro Maestro para evitar duplicados en cargas recurrentes.
-- **Asistente de Importación Pro:** Nuevo flujo de validación que detecta fechas mal formadas y resume los cambios antes de tocar la base de datos.
-- **Normalización de Fechas:** Traductor inteligente que entiende múltiples formatos (DD-MM-YY, DD/MM/YYYY, etc) usando la lógica de "Rango de 24h" para evitar duplicados por zona horaria.
+### 🔐 Blindaje de Servidor (Enterprise Security)
+- **Middleware de Control de Tráfico:** Implementación de una capa de seguridad global que detecta y bloquea bots automáticamente (Scrapy, Selenium, etc.) con respuesta **403 Forbidden**.
+- **Seguridad en API (REST Standard):** Rediseño del manejo de sesiones en las rutas de API. Ahora el sistema devuelve errores JSON profesionales (**401 Unauthorized**) en lugar de redirecciones HTML, cumpliendo con los estándares de seguridad para aplicaciones gubernamentales.
 
-### 🛡️ Centro de Auditoría & Máquina del Tiempo
-- **Panel de Reversión:** Nueva sección en **Ajustes > Seguridad** para visualizar el historial detallado de sincronizaciones.
-- **Botón de Pánico:** Capacidad de deshacer cargas completas de Excel con un solo clic, realizando una limpieza quirúrgica de los registros inyectados en ese lote específico.
-- **Rastreo de Operaciones:** Auditoría detallada de quién, qué y cuándo se inyectaron datos al sistema a través de lotes (Batches).
+### 💎 Integridad de Datos (Atomic Transactions)
+- **Cero Corrupción de Datos:** Implementación de `prisma.$transaction` en todos los módulos críticos (Transacciones, Miembros, Eventos, Categorías). Esto asegura que la operación principal y el registro de auditoría ocurran en un solo bloque atómico: o se guardan ambos o no se guarda nada (Rollback).
+- **Validación Estricta con Zod:** Introducción de esquemas de validación de datos en tiempo real. El servidor ahora rechaza de forma proactiva cualquier intento de inyección de datos malformados o incompletos (**400 Bad Request**).
 
-### 🔐 Seguridad Administrativa & Gestión de Equipo
-- **Admin Reset Force:** El Administrador Supremo ahora puede forzar el cambio de contraseña de cualquier usuario del equipo desde el panel de Ajustes.
-- **Visibilidad Inteligente:** Implementación de toggle de "ojo" (`Eye/EyeOff`) en campos de contraseña para garantizar precisión en los resets.
-- **Control de Acceso (Registro Público):** Rediseño del interruptor maestro con indicadores visuales de estado (Puerta Abierta/Cerrada) y tamaño optimizado para control táctil.
-
-### 🖋️ Reportes de Élite & Identidad
-- **Firma Híbrida Digital:** Soporte para subir firmas reales en formato imagen (PNG transparente) directamente en los Ajustes de Reportes.
-- **Signature Style Fallback:** Uso automático de tipografía elegante ("Great Vibes") para firmas manuales cuando no se dispone de una imagen cargada.
-- **Identidad Dinámica en PDF:** Firma responsable y pie de página 100% configurables desde el sistema, eliminando textos genéricos.
-
-### 🎨 UI/UX & Notificaciones
-- **Floating Island Notifications:** Rediseño global de las notificaciones Toast a un estilo "Isla Flotante", con más espacio, mejores márgenes responsivos y mayor seguridad al separar el botón de cerrar de las acciones.
-- **Nivelación de Interfaz:** Ajustes de precisión en el Dashboard para garantizar la alineación milimétrica de los botones de exportación y registro.
-- **Optimización de Fuentes:** Migración a `next/font/google` para mejorar el rendimiento de carga y cumplir con estándares de producción de Vercel.
+### 🛠️ Estabilidad & Despliegue (Hotfix)
+- **Resolución de Incidente Vercel:** Se corrigió una incompatibilidad de tipos en `ZodError` detectada durante el proceso de build en producción (migración de `.errors` a `.issues`).
+- **Worker de Notificaciones Asíncrono:** Se desacopló el envío de alertas del flujo principal de la base de datos para garantizar respuestas de servidor ultra rápidas y evitar bloqueos por latencia de red.
