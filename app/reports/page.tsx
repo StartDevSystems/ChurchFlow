@@ -321,55 +321,59 @@ export default function ReportsPage() {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="flex flex-col md:flex-row flex-wrap items-end gap-4 bg-[#13151f] p-5 rounded-2xl border border-white/5">
-                <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-                  <span className="text-[8px] font-black text-gray-500 uppercase ml-1">Desde</span>
-                  <input
-                    type="date" value={range.from}
-                    onChange={e => { setActivePreset(''); setRange(prev => ({ ...prev, from: e.target.value })); }}
-                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark w-full text-white"
-                  />
-                </div>
-                <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-                  <span className="text-[8px] font-black text-gray-500 uppercase ml-1">Hasta</span>
-                  <input
-                    type="date" value={range.to}
-                    onChange={e => { setActivePreset(''); setRange(prev => ({ ...prev, to: e.target.value })); }}
-                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark w-full text-white"
-                  />
-                </div>
-                <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-                  <span className="text-[8px] font-black text-gray-500 uppercase ml-1">Categoría</span>
-                  <select
-                    value={filterCategory}
-                    onChange={e => setFilterCategory(e.target.value)}
-                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark w-full text-white appearance-none"
-                  >
-                    <option value="">Todas</option>
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-                  <span className="text-[8px] font-black text-gray-500 uppercase ml-1">Tipo</span>
-                  <select
-                    value={filterType}
-                    onChange={e => setFilterType(e.target.value)}
-                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark w-full text-white appearance-none"
-                  >
-                    <option value="">Todos</option>
-                    <option value="income">Ingresos</option>
-                    <option value="expense">Gastos</option>
-                  </select>
+              <div className="bg-[#13151f] p-4 md:p-5 rounded-2xl border border-white/5">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] font-black text-gray-500 uppercase ml-1">Desde</span>
+                    <input
+                      type="date" value={range.from}
+                      onChange={e => { setActivePreset(''); setRange(prev => ({ ...prev, from: e.target.value })); }}
+                      className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark w-full text-white"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] font-black text-gray-500 uppercase ml-1">Hasta</span>
+                    <input
+                      type="date" value={range.to}
+                      onChange={e => { setActivePreset(''); setRange(prev => ({ ...prev, to: e.target.value })); }}
+                      className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark w-full text-white"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] font-black text-gray-500 uppercase ml-1">Categoría</span>
+                    <select
+                      value={filterCategory}
+                      onChange={e => setFilterCategory(e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark w-full text-white appearance-none"
+                    >
+                      <option value="">Todas</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] font-black text-gray-500 uppercase ml-1">Tipo</span>
+                    <select
+                      value={filterType}
+                      onChange={e => setFilterType(e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[var(--brand-primary)] color-scheme-dark w-full text-white appearance-none"
+                    >
+                      <option value="">Todos</option>
+                      <option value="income">Ingresos</option>
+                      <option value="expense">Gastos</option>
+                    </select>
+                  </div>
                 </div>
                 {(filterCategory || filterType) && (
-                  <Button
-                    onClick={() => { setFilterCategory(''); setFilterType(''); }}
-                    className="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/20"
-                  >
-                    <X size={12} className="mr-1" /> Limpiar
-                  </Button>
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      onClick={() => { setFilterCategory(''); setFilterType(''); }}
+                      className="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/20"
+                    >
+                      <X size={12} className="mr-1" /> Limpiar
+                    </Button>
+                  </div>
                 )}
               </div>
             </motion.div>
