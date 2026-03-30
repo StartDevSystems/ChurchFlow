@@ -151,12 +151,14 @@ export default function TransactionsPage() {
 
   const getOriginBalance = () => {
     if (tfForm.fromEventId === 'caja') return cajaBalance;
-    const ev = events.find(e => e.id === tfForm.fromEventId);
+    const ev = events.find((e: any) => e.id === tfForm.fromEventId);
     if (!ev) return 0;
     const relatedTx = movements.filter(m => m.raw?.eventId === ev.id);
     const in_ = relatedTx.filter(m => m.type === 'income').reduce((s, m) => s + m.amount, 0);
     const out_ = relatedTx.filter(m => m.type === 'expense').reduce((s, m) => s + m.amount, 0);
     const netTr = transfers.reduce((acc, tr) => { if (tr.fromEventId === ev.id) return acc - tr.amount; if (tr.toEventId === ev.id) return acc + tr.amount; return acc; }, 0);
+    // Para VENTA: disponible = todo lo cobrado, no solo la ganancia
+    if ((ev as any).type === 'VENTA') return in_ + netTr;
     return (in_ - out_) + netTr;
   };
 

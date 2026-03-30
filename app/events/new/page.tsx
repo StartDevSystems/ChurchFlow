@@ -13,7 +13,7 @@ import {
   endOfMonth as endOfMonthFn, startOfWeek, endOfWeek, 
   addDays, isSameMonth, isSameDay, isToday 
 } from 'date-fns';
-import { CalendarIcon, ArrowLeft, PlusCircle, Save, Loader2, Target, ChevronLeft, ChevronRight, Calendar as CalendarLucide } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, PlusCircle, Save, Loader2, Target, ChevronLeft, ChevronRight, Calendar as CalendarLucide, DollarSign, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { es } from 'date-fns/locale';
@@ -104,6 +104,9 @@ export default function NewEventPage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [eventType, setEventType] = useState('EVENTO');
+  const [investment, setInvestment] = useState('');
+  const [salesGoal, setSalesGoal] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [loading, setLoading] = useState(false);
@@ -131,6 +134,9 @@ export default function NewEventPage() {
         body: JSON.stringify({
           name,
           description,
+          type: eventType,
+          investment: eventType === 'VENTA' && investment ? parseFloat(investment) : null,
+          salesGoal: eventType === 'VENTA' && salesGoal ? parseFloat(salesGoal) : null,
           startDate: startDate.toISOString(),
           endDate: endDate ? endDate.toISOString() : null,
         }),
@@ -214,6 +220,81 @@ export default function NewEventPage() {
                   />
                 </div>
 
+                {/* Tipo */}
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase text-gray-500 ml-2 tracking-[0.2em]">Tipo de Proyecto</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setEventType('EVENTO')}
+                      className={cn(
+                        "p-4 rounded-2xl border-2 transition-all text-left",
+                        eventType === 'EVENTO'
+                          ? "bg-purple-500/10 border-purple-500/30"
+                          : "bg-white/5 border-white/5 hover:bg-white/10"
+                      )}
+                    >
+                      <p className={cn("text-xs font-black uppercase", eventType === 'EVENTO' ? "text-purple-400" : "text-gray-400")}>Evento</p>
+                      <p className="text-[8px] text-gray-500 font-bold uppercase mt-1">Cultos, actividades, campamentos</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEventType('VENTA')}
+                      className={cn(
+                        "p-4 rounded-2xl border-2 transition-all text-left",
+                        eventType === 'VENTA'
+                          ? "bg-emerald-500/10 border-emerald-500/30"
+                          : "bg-white/5 border-white/5 hover:bg-white/10"
+                      )}
+                    >
+                      <p className={cn("text-xs font-black uppercase", eventType === 'VENTA' ? "text-emerald-400" : "text-gray-400")}>Venta</p>
+                      <p className="text-[8px] text-gray-500 font-bold uppercase mt-1">Alcancías, maní, rifas, comida</p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Inversión y Meta (solo VENTA) */}
+                {eventType === 'VENTA' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-emerald-500/5 border-2 border-emerald-500/10 rounded-2xl">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-emerald-400 ml-2 tracking-[0.2em]">Capital a Invertir (RD$)</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600" size={18} />
+                        <Input
+                          type="number"
+                          value={investment}
+                          onChange={(e) => setInvestment(e.target.value)}
+                          placeholder="EJ: 15000"
+                          className="bg-white/5 border-2 border-white/5 p-7 pl-14 rounded-2xl font-black text-lg text-white focus:border-emerald-500 transition-all"
+                        />
+                      </div>
+                      <p className="text-[8px] text-gray-500 font-bold uppercase ml-2">Cuánto van a invertir en total</p>
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-emerald-400 ml-2 tracking-[0.2em]">Meta de Venta (RD$)</Label>
+                      <div className="relative">
+                        <TrendingUp className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600" size={18} />
+                        <Input
+                          type="number"
+                          value={salesGoal}
+                          onChange={(e) => setSalesGoal(e.target.value)}
+                          placeholder="EJ: 30000"
+                          className="bg-white/5 border-2 border-white/5 p-7 pl-14 rounded-2xl font-black text-lg text-white focus:border-emerald-500 transition-all"
+                        />
+                      </div>
+                      <p className="text-[8px] text-gray-500 font-bold uppercase ml-2">Cuánto esperan generar de las ventas</p>
+                    </div>
+                    {investment && salesGoal && (
+                      <div className="md:col-span-2 p-4 bg-white/5 rounded-xl flex items-center justify-between">
+                        <p className="text-[9px] font-black uppercase text-gray-400">Ganancia esperada</p>
+                        <p className="text-lg font-black italic text-emerald-400">
+                          RD${(parseFloat(salesGoal) - parseFloat(investment)).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Fechas */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
@@ -275,8 +356,8 @@ export default function NewEventPage() {
                   <button 
                     type="submit" 
                     disabled={loading}
-                    className="w-full py-6 rounded-2xl bg-[var(--brand-primary)] font-black uppercase text-xs tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                    style={{ color: 'var(--brand-text-on-primary)', boxShadow: '0 20px 40px var(--brand-primary)' }}
+                    className="w-full py-6 rounded-2xl bg-[var(--brand-primary)] font-black uppercase text-xs tracking-[0.2em] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                    style={{ color: 'var(--brand-text-on-primary)' }}
                   >
                     {loading ? <Loader2 className="animate-spin" /> : <Save size={18} />}
                     Confirmar & Lanzar Proyecto

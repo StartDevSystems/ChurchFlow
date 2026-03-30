@@ -4,6 +4,47 @@ Este documento registra los cambios, mejoras y correcciones importantes aplicado
 
 ---
 
+## 📦 [v1.5.0] - Sales Tracking, Reports Overhaul & Dues System
+**Fecha:** 30 de marzo de 2026
+
+### 🛒 Sistema de Control de Entregas y Cobros (Sale Tracking)
+- **Nueva funcionalidad completa** que reemplaza el tracking en Notion. Modelos: `SaleProduct`, `SaleEntry`, `SaleEntryItem` con relaciones a eventos tipo VENTA.
+- **Página de ventas** (`app/events/[id]/sales/page.tsx`): KPIs en tiempo real, configuración de productos, tabla de pedidos con filtros por estado (Pendiente/Parcial/Pagado), modal de agregar/editar.
+- **APIs REST completas**: productos (`/api/events/[id]/sales/products`), pedidos (`/api/events/[id]/sales/entries`), resumen (`/api/events/[id]/sales/summary`).
+- **Seed de 52 clientes** importados desde PDF de Notion (`scripts/seedManiSales.ts`).
+- **Cálculo automático de estado de pago**: PAGADO si pagó >= adeudado, PARCIAL si pagó > 0, PENDIENTE si no ha pagado.
+
+### 📊 Reportes — WhatsApp, PDF, Excel, Presentación
+- **Concordancia total** entre los 4 formatos de exportación: separación clara de Caja General vs Eventos/Ventas.
+- **WhatsApp mejorado**: Mensaje con desglose por categoría (de dónde vino cada ingreso y en qué se gastó cada gasto). Se eliminaron transferencias del mensaje público (uso interno).
+- **Bug fix**: El reporte mostraba "Entró" y "Salió" del período pero el balance era histórico — ahora la matemática cuadra mostrando el desglose completo.
+- **Infografía visual** (para screenshot) actualizada con el mismo desglose de categorías.
+- **Presentación** (`app/presentation/page.tsx`): reescrita para usar datos reales de la API de reportes.
+
+### 💰 Control de Cuotas (Dues System)
+- **Cuota configurable**: Eliminado el monto hardcoded de RD$200. Ahora se configura desde un modal con "Aplicar a Todos".
+- **Filtro por mes**: Navegación con flechas para ver cuotas de meses anteriores/siguientes.
+- **Tabs de filtro**: Todos / Pendientes / Al día.
+- **KPIs**: Recaudado vs meta, progreso %, conteo de miembros al día/pendientes.
+- **WhatsApp reminder**: Usa el monto real de cuota de cada miembro para calcular lo que falta.
+- **`defaultMonthlyDue`** agregado al modelo Settings con workaround `$executeRaw` para compatibilidad.
+
+### 💸 Transferencias VENTA
+- **Fix**: Los eventos tipo VENTA ahora muestran el monto total recaudado (no solo la ganancia) como "Disponible para transferir".
+- Fórmula corregida: `totalIncome + netTransfers` en dashboard y transacciones.
+
+### 🎨 Mejoras Visuales
+- **Dropdowns visibles**: Fix global en `globals.css` para que los `<select>` y `<option>` se vean con fondo oscuro y texto claro (antes eran blanco sobre blanco).
+- **Sombras de botones**: Reducidas las sombras exageradas en botones "Crear Evento", "Confirmar & Lanzar Proyecto" y "Registrar Movimiento".
+- **Card "Caja General"** en reportes: ahora muestra desglose de entradas y salidas por categoría inline.
+
+### 🗄️ Schema (Prisma)
+- Nuevos modelos: `SaleProduct`, `SaleEntry`, `SaleEntryItem` con cascade delete.
+- Campo `defaultMonthlyDue` en `Settings`.
+- Relaciones `saleProducts` y `saleEntries` en modelo `Event`.
+
+---
+
 ## 🚀 [v1.3.3] - UI/UX Pro Update & Layout Refactor
 **Fecha:** 24 de febrero de 2026
 

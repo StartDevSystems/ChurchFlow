@@ -93,11 +93,53 @@ model Event {
   id           String        @id @default(uuid())
   name         String
   description  String?
+  type         String        @default("EVENTO") // EVENTO, VENTA
+  investment   Float?        // Solo VENTA: capital invertido
+  salesGoal    Float?        // Solo VENTA: meta de venta esperada
   startDate    DateTime
   endDate      DateTime?
   status       String        @default("ACTIVO") // ACTIVO, FINALIZADO
   createdAt    DateTime      @default(now())
   transactions Transaction[]
+  saleProducts SaleProduct[]
+  saleEntries  SaleEntry[]
+}
+
+model SaleProduct {
+  id              String          @id @default(uuid())
+  eventId         String
+  name            String
+  price           Float
+  unitDescription String?
+  sortOrder       Int             @default(0)
+  createdAt       DateTime        @default(now())
+  event           Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  items           SaleEntryItem[]
+}
+
+model SaleEntry {
+  id            String          @id @default(uuid())
+  eventId       String
+  clientName    String
+  deliveryDate  DateTime?
+  amountPaid    Float           @default(0)
+  paymentStatus String          @default("PENDIENTE") // PENDIENTE, PARCIAL, PAGADO
+  comment       String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  event         Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  items         SaleEntryItem[]
+}
+
+model SaleEntryItem {
+  id            String      @id @default(uuid())
+  saleEntryId   String
+  saleProductId String
+  quantity      Int         @default(0)
+  saleEntry     SaleEntry   @relation(fields: [saleEntryId], references: [id], onDelete: Cascade)
+  saleProduct   SaleProduct @relation(fields: [saleProductId], references: [id], onDelete: Cascade)
+
+  @@unique([saleEntryId, saleProductId])
 }
 
 model Transfer {
@@ -134,6 +176,7 @@ model Settings {
   // Finanzas Avanzadas
   generalFundName         String   @default("Caja General")
   lowBalanceAlert         Float    @default(1000)
+  defaultMonthlyDue       Float    @default(200)
   
   // Notificaciones
   webhookUrl              String   @default("")

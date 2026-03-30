@@ -78,4 +78,17 @@
   body {
     @apply bg-[#0a0c14] text-foreground;
   }
+
+  /* Fix: dropdown options visibles en tema oscuro */
+  select {
+    color-scheme: dark;
+  }
+  select option {
+    background-color: #1a1d2e;
+    color: #e2e8f0;
+  }
+  select option:checked {
+    background-color: var(--brand-primary);
+    color: #ffffff;
+  }
 }

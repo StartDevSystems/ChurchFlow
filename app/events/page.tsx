@@ -86,7 +86,7 @@ export default function EventsPage() {
             <Calculator size={16} /> {calcName}
           </button>
           <Link href="/events/new" className="w-full sm:w-auto">
-            <button className="w-full px-8 py-4 bg-[var(--brand-primary)] text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-2xl shadow-orange-500/20 hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
+            <button className="w-full px-8 py-4 bg-[var(--brand-primary)] text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-lg hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
               <PlusCircle size={16} /> Crear Evento
             </button>
           </Link>

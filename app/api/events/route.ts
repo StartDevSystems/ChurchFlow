@@ -43,6 +43,9 @@ export async function POST(request: Request) {
         data: {
           name: validatedData.name,
           description: validatedData.description,
+          type: validatedData.type,
+          investment: validatedData.investment ?? null,
+          salesGoal: validatedData.salesGoal ?? null,
           startDate: validatedData.startDate,
           endDate: validatedData.endDate,
           status: validatedData.status,

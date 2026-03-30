@@ -20,6 +20,11 @@ export async function middleware(req: NextRequest) {
   // 2. VERIFICACIÓN DE SESIÓN
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
+  // Las rutas de NextAuth deben ser públicas para permitir login
+  if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
   // Si no hay sesión y la ruta está protegida
   const protectedPaths = ["/admin", "/members", "/events", "/transactions", "/reports", "/api"];
   const isProtected = protectedPaths.some(path => pathname.startsWith(path));

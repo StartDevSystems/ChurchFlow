@@ -37,12 +37,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   try {
     const { id } = params;
     const body = await request.json();
-    const { name, description, startDate, endDate, status } = body;
+    const { name, description, type, startDate, endDate, status } = body;
 
     // Si viene el status solo o con otras cosas, lo procesamos de forma flexible
     const dataToUpdate: any = {};
     if (status) dataToUpdate.status = status;
     if (name) dataToUpdate.name = name;
+    if (type) dataToUpdate.type = type;
     if (description !== undefined) dataToUpdate.description = description;
     if (startDate) dataToUpdate.startDate = new Date(startDate);
     if (endDate !== undefined) dataToUpdate.endDate = endDate ? new Date(endDate) : null;
@@ -66,6 +67,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       data: {
         name,
         description,
+        type: type || undefined,
         startDate: new Date(startDate),
         endDate: endDate ? new Date(endDate) : null,
         status: status || undefined,
@@ -94,15 +96,27 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     // 🌪️ Borrado en Cascada: Limpiamos todo lo relacionado con el evento
     // para evitar errores de integridad referencial.
     await prisma.$transaction([
-      // 1. Borrar transacciones vinculadas
+      // 1. Borrar items de entradas de venta
+      prisma.saleEntryItem.deleteMany({
+        where: { saleEntry: { eventId: id } },
+      }),
+      // 2. Borrar entradas de venta
+      prisma.saleEntry.deleteMany({
+        where: { eventId: id },
+      }),
+      // 3. Borrar productos de venta
+      prisma.saleProduct.deleteMany({
+        where: { eventId: id },
+      }),
+      // 4. Borrar transacciones vinculadas
       prisma.transaction.deleteMany({
         where: { eventId: id },
       }),
-      // 2. Borrar asistencias vinculadas
+      // 5. Borrar asistencias vinculadas
       prisma.attendance.deleteMany({
         where: { eventId: id },
       }),
-      // 3. Borrar transferencias donde el evento sea origen o destino
+      // 6. Borrar transferencias donde el evento sea origen o destino
       prisma.transfer.deleteMany({
         where: {
           OR: [
@@ -111,7 +125,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
           ]
         }
       }),
-      // 4. Finalmente borrar el evento
+      // 7. Finalmente borrar el evento
       prisma.event.delete({
         where: { id },
       }),

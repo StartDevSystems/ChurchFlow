@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/AlertDialog";
 
-interface Event { id: string; name: string; description?: string | null; startDate: string; endDate?: string | null; status: string; }
+interface Event { id: string; name: string; description?: string | null; type?: string; startDate: string; endDate?: string | null; status: string; }
 interface Transaction { id: string; type: 'income' | 'expense'; category: { name: string }; amount: number; date: string; description: string; member?: { id: string; name: string } | null; }
 interface MemberContribution { memberId: string; memberName: string; totalContributed: number; txCount: number; }
 
@@ -35,6 +35,7 @@ export default function EventDetailPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [status, setStatus] = useState('ACTIVO');
+  const [eventType, setEventType] = useState('EVENTO');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -52,6 +53,7 @@ export default function EventDetailPage() {
       setStartDate(eventData.startDate.split('T')[0]);
       setEndDate(eventData.endDate ? eventData.endDate.split('T')[0] : '');
       setStatus(eventData.status);
+      setEventType(eventData.type || 'EVENTO');
 
       const transData: Transaction[] = await transRes.json();
       setTransactions(transData);
@@ -186,6 +188,23 @@ export default function EventDetailPage() {
             </Card>
           ))}
         </div>
+
+        {/* Link a Control de Ventas (solo para VENTA) */}
+        {eventType === 'VENTA' && (
+          <button onClick={() => router.push(`/events/${id}/sales`)}
+            className="w-full mb-8 flex items-center justify-between p-6 rounded-[2.5rem] bg-emerald-500/10 border-2 border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/15 transition-all group">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                <DollarSign size={20} className="text-emerald-400" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg font-black uppercase italic text-emerald-400 tracking-tight">Control de Entregas y Cobros</h3>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-400/50 mt-0.5">Gestionar clientes, pagos y entregas de esta venta</p>
+              </div>
+            </div>
+            <ArrowUp size={16} className="text-emerald-400/40 group-hover:text-emerald-400 transition-all rotate-90" />
+          </button>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-7 space-y-10">

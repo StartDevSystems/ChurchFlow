@@ -312,7 +312,18 @@ export default function DashboardPage() {
   const getOriginBalance = () => {
     if (tfForm.fromEventId === 'caja' || !tfForm.fromEventId) return cajaBalance;
     const ev = eventsWithStats.find(e => e.id === tfForm.fromEventId);
-    return ev ? ev.balance : 0;
+    if (!ev) return 0;
+    // Para VENTA: disponible = todo lo cobrado (no solo ganancia)
+    // porque el dinero fisico en mano es lo que entro, no el neto
+    if (ev.type === 'VENTA') {
+      const netTr = transfers.reduce((acc, tr) => {
+        if (tr.fromEventId === ev.id) return acc - tr.amount;
+        if (tr.toEventId === ev.id) return acc + tr.amount;
+        return acc;
+      }, 0);
+      return ev.totalIncome + netTr;
+    }
+    return ev.balance;
   };
 
   const originBalance = getOriginBalance();
@@ -868,8 +879,8 @@ export default function DashboardPage() {
             </div>
             <Link href="/transactions/new" className="w-full h-full">
               <button 
-                className="w-full h-full px-8 py-4 bg-[var(--brand-primary)] font-black uppercase text-[10px] tracking-widest rounded-2xl border-2 border-transparent shadow-lg hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-2"
-                style={{ color: 'var(--brand-text-on-primary)', boxShadow: '0 4px 15px -2px var(--brand-primary)' }}
+                className="w-full h-full px-8 py-4 bg-[var(--brand-primary)] font-black uppercase text-[10px] tracking-widest rounded-2xl border-2 border-transparent shadow-md hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-2"
+                style={{ color: 'var(--brand-text-on-primary)' }}
               >
                 <PlusCircle size={16} />
                 Registrar Movimiento
@@ -906,11 +917,40 @@ export default function DashboardPage() {
                   <TransferVisual fromName={fundName(tfForm.fromEventId)} toName={fundName(tfForm.toEventId)} amount={tfForm.amount} />
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 10, marginTop: '10px' }}>
-                  <div><p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '3px', fontWeight: 800 }}>Saldo en Origen</p><p style={{ fontSize: '20px', fontWeight: 900, color: originBalance >= 0 ? '#4ade80' : '#f87171', letterSpacing: '-0.03em' }}>{fmt(originBalance)}</p></div>
+                  <div><p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '3px', fontWeight: 800 }}>Disponible para transferir</p><p style={{ fontSize: '20px', fontWeight: 900, color: originBalance >= 0 ? '#4ade80' : '#f87171', letterSpacing: '-0.03em' }}>{fmt(originBalance)}</p></div>
                   {amountNum > 0 && (
-                    <div style={{ textAlign: 'right' }}><p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '3px', fontWeight: 800 }}>Resultado</p><p style={{ fontSize: '20px', fontWeight: 900, color: afterTransfer >= 0 ? '#94a3b8' : '#f87171', letterSpacing: '-0.03em' }}>{fmt(afterTransfer)}</p></div>
+                    <div style={{ textAlign: 'right' }}><p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '3px', fontWeight: 800 }}>Queda después</p><p style={{ fontSize: '20px', fontWeight: 900, color: afterTransfer >= 0 ? '#94a3b8' : '#f87171', letterSpacing: '-0.03em' }}>{fmt(afterTransfer)}</p></div>
                   )}
                 </div>
+                {/* Desglose para Ventas */}
+                {(() => {
+                  const selectedEv = eventsWithStats.find(e => e.id === tfForm.fromEventId);
+                  if (!selectedEv || selectedEv.type !== 'VENTA') return null;
+                  return (
+                    <div style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: '12px', padding: '12px 16px', position: 'relative', zIndex: 10, marginTop: '8px' }}>
+                      <p style={{ fontSize: '8px', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase', color: 'rgba(16,185,129,0.6)', marginBottom: '8px' }}>Desglose de la Venta</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        {selectedEv.investment != null && (
+                          <div><p style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase' }}>Capital invertido</p><p style={{ fontSize: '13px', fontWeight: 900, color: '#fb923c' }}>{fmt(selectedEv.investment)}</p></div>
+                        )}
+                        <div><p style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase' }}>Vendido</p><p style={{ fontSize: '13px', fontWeight: 900, color: '#4ade80' }}>{fmt(selectedEv.totalIncome)}</p></div>
+                        <div><p style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase' }}>Gastado</p><p style={{ fontSize: '13px', fontWeight: 900, color: '#f87171' }}>{fmt(selectedEv.totalExpense)}</p></div>
+                        <div><p style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase' }}>Ganancia neta</p><p style={{ fontSize: '13px', fontWeight: 900, color: selectedEv.balance >= 0 ? '#4ade80' : '#f87171' }}>{fmt(selectedEv.balance)}</p></div>
+                      </div>
+                      {selectedEv.salesGoal != null && selectedEv.salesGoal > 0 && (
+                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <p style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase' }}>Progreso</p>
+                            <p style={{ fontSize: '8px', color: '#10b981', fontWeight: 900 }}>{Math.min(100, (selectedEv.totalIncome / selectedEv.salesGoal) * 100).toFixed(0)}%</p>
+                          </div>
+                          <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '999px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', borderRadius: '999px', background: 'linear-gradient(to right, #10b981, #4ade80)', width: `${Math.min(100, (selectedEv.totalIncome / selectedEv.salesGoal) * 100)}%`, transition: 'width 0.5s' }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div style={{ background: '#13151f', padding: '28px' }}>
                 <div className="space-y-5">

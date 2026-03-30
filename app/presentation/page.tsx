@@ -26,19 +26,22 @@ interface Candle {
 }
 interface EventDetail {
   id: string; name: string;
+  type: string;
   income: number; expense: number; balance: number;
   status: string;
+  investment?: number | null;
+  salesGoal?: number | null;
   goalAmount?: number;
 }
 interface PageData {
   totalIncome: number; totalExpense: number; balance: number;
+  cajaIncome: number; cajaExpense: number; cajaBalance: number;
   activeEvents: number;
   recentTx: any[];
   allTx: any[];
   eventDetails: EventDetail[];
   prevMonthIncome: number;
-  prevWeekIncome: number;
-  prevWeekExpense: number;
+  prevMonthExpense: number;
 }
 
 const MONTHLY_GOAL = 80000;
@@ -822,36 +825,47 @@ export default function PresentationPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [txRes, evRes] = await Promise.all([fetch('/api/transactions'), fetch('/api/events')]);
-      const tx: any[] = await txRes.json();
+      // Current month range
+      const now = new Date();
+      const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+      const [reportRes, evRes] = await Promise.all([
+        fetch(`/api/transactions/report?from=${from}&to=${to}`),
+        fetch('/api/events'),
+      ]);
+      const report = await reportRes.json();
       const ev: any[] = await evRes.json();
 
-      const totalIncome  = tx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-      const totalExpense = tx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-      const balance      = totalIncome - totalExpense;
-      
-      // Ahora procesamos TODOS los eventos para la vista de historial
-      const allEvents = ev;
-
-      // Simulated prev month/week (replace with real API call)
-      const prevMonthIncome  = totalIncome * 0.78;
-      const prevWeekIncome   = totalIncome * 0.22;
-      const prevWeekExpense  = totalExpense * 0.23;
+      const { summary, caja, activities, previousSummary, transactions: tx } = report;
 
       setData({
-        totalIncome, totalExpense, balance,
-        activeEvents: ev.filter(e => e.status !== 'FINALIZADO').length,
-        recentTx: tx.slice(0, 8),
-        allTx: tx,
-        prevMonthIncome, prevWeekIncome, prevWeekExpense,
-        eventDetails: allEvents.map(e => {
-          const rel = tx.filter(t => t.eventId === e.id);
-          const inc = rel.filter(t => t.type === 'income') .reduce((s, t) => s + t.amount, 0);
-          const exp = rel.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-          return { id: e.id, name: e.name, status: e.status, income: inc, expense: exp, balance: inc - exp, goalAmount: e.goalAmount };
-        }),
+        totalIncome: summary.totalIncome,
+        totalExpense: summary.totalExpense,
+        balance: caja?.balance ?? (summary.totalIncome - summary.totalExpense),
+        cajaIncome: caja?.income ?? 0,
+        cajaExpense: caja?.expense ?? 0,
+        cajaBalance: caja?.balance ?? 0,
+        activeEvents: ev.filter((e: any) => e.status !== 'FINALIZADO').length,
+        recentTx: (tx ?? []).slice(0, 8),
+        allTx: tx ?? [],
+        prevMonthIncome: previousSummary?.totalIncome ?? 0,
+        prevMonthExpense: previousSummary?.totalExpense ?? 0,
+        eventDetails: (activities ?? []).map((a: any) => ({
+          id: a.id,
+          name: a.name,
+          type: a.type ?? 'EVENTO',
+          income: a.income,
+          expense: a.expense,
+          balance: a.profit,
+          status: a.status,
+          investment: a.investment,
+          salesGoal: a.salesGoal,
+          goalAmount: a.salesGoal,
+        })),
       });
-      setCandles(buildCandles(tx));
+      setCandles(buildCandles(tx ?? []));
     } finally { setLoading(false); }
   }, []);
 
@@ -892,9 +906,9 @@ export default function PresentationPage() {
     ? (data.balance / data.totalExpense).toFixed(1)
     : '0';
 
-  // Week-over-week trend
-  const incWeekPct = data?.prevWeekIncome ? Math.round(((data.totalIncome * 0.22 - data.prevWeekIncome) / data.prevWeekIncome) * 100) : 0;
-  const expWeekPct = data?.prevWeekExpense ? Math.round(((data.totalExpense * 0.23 - data.prevWeekExpense) / data.prevWeekExpense) * 100) : 0;
+  // Month-over-month trend (real data from report API)
+  const incWeekPct = data?.prevMonthIncome ? Math.round(((data.totalIncome - data.prevMonthIncome) / data.prevMonthIncome) * 100) : 0;
+  const expWeekPct = data?.prevMonthExpense ? Math.round(((data.totalExpense - data.prevMonthExpense) / data.prevMonthExpense) * 100) : 0;
 
   if (loading) return (
     <div className="fixed inset-0 bg-[#0a0c14] flex flex-col items-center justify-center gap-5">
@@ -1085,7 +1099,7 @@ export default function PresentationPage() {
                 <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
                   className="flex items-center gap-2.5">
                   <span className={cn('w-5 h-px', isPositive ? 'bg-[var(--brand-primary)]' : 'bg-red-400')} />
-                  <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/25">Patrimonio Actual</span>
+                  <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/25">En Caja General</span>
                 </motion.div>
 
                 {/* Big balance */}
@@ -1160,7 +1174,7 @@ export default function PresentationPage() {
                       {/* Trend vs last week — NEW */}
                       <div className={cn('flex items-center gap-1 mt-1.5 text-[7px] font-bold',
                         card.trendUp ? 'text-green-400/60' : 'text-red-400/60')}>
-                        {card.trendUp ? '▲' : '▼'} {Math.abs(card.trend)}% vs semana anterior
+                        {card.trendUp ? '▲' : '▼'} {Math.abs(card.trend)}% vs mes anterior
                       </div>
                     </motion.div>
                   ))}
