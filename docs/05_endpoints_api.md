@@ -174,8 +174,20 @@ Estos endpoints son gestionados automáticamente por **NextAuth.js**.
 - **Descripción:** Elimina una transacción de forma permanente.
 - **Respuesta `204 No Content`**: Si se elimina con éxito.
 
-### `POST /api/transactions/report`
+### `GET /api/transactions/report`
 - **Descripción:** Genera los datos para un reporte financiero en un rango de fechas.
+- **Query Params:** `?from=2026-01-01&to=2026-01-31&categoryId=uuid&type=income`
+- **Respuesta `200 OK`**: Devuelve un objeto con:
+  - `transactions`: Lista de transacciones con `category`, `event.name` y `eventId`.
+  - `categories`: Desglose por categoría con totales.
+  - `trend`: Datos agrupados por mes para gráficas.
+  - `activities`: Resumen por evento (ingresos, gastos, ganancia, tipo, estado).
+  - `caja`: Resumen de Caja General con `income`, `expense`, `transfers`, `transferDetails[]` (con nombres de eventos resueltos: `from`, `to`, `amount`, `description`), `balance` (saldo real histórico) y `categories` (desglose solo de caja).
+  - `summary`: Totales globales (`totalIncome`, `totalExpense`, `netBalance`).
+  - `previousSummary`: Totales del período anterior para comparación.
+
+### `POST /api/transactions/report`
+- **Descripción:** Igual que GET pero recibe las fechas en el body.
 - **Request Body:**
   ```json
   {
@@ -183,7 +195,7 @@ Estos endpoints son gestionados automáticamente por **NextAuth.js**.
     "endDate": "2026-01-31T23:59:59.999Z"
   }
   ```
-- **Respuesta `200 OK`**: Devuelve un objeto con la lista de transacciones en ese rango y los totales calculados (`totalIncome`, `totalExpenses`, `balance`).
+- **Respuesta `200 OK`**: Misma estructura que GET.
 
 ---
 

@@ -4,6 +4,39 @@ Este documento registra los cambios, mejoras y correcciones importantes aplicado
 
 ---
 
+## 📦 [v1.5.1] - Report Intelligence, Financial Corrections & Image Export
+**Fecha:** 1 de abril de 2026
+
+### 📊 Reportes — WhatsApp y PDF Mejorados
+- **Transferencias visibles en reportes**: Nueva sección "Movimientos internos" en WhatsApp y PDF que muestra transferencias con origen → destino y descripción clara (ej: "Se destinó RD$2,000 de Caja General >> Culto de jóvenes 31 de marzo").
+- **Eventos muestran gasto total**: WhatsApp y la vista previa ahora muestran "Gastado RD$5,377" en lugar del profit neto (-RD$2,350) para eventos tipo EVENTO. Ventas (VENTA) siguen mostrando ganancia y % de meta.
+- **PDF — Desglose completo por evento**: Cada evento ahora muestra fuentes de ingreso (aportes agrupados por categoría), transferencias recibidas de caja, y lista detallada de cada gasto con su monto.
+- **PDF — Columna "Evento"**: La tabla de movimientos ahora distingue entre transacciones de "CAJA" y las de cada evento específico.
+- **PDF — Fila de totales**: Al final de la tabla se muestran Ingresos, Gastos y Neto con estilo destacado.
+- **Fix PDF — Caracteres espaciados**: Corregido bug donde `setCharSpace(3)` del título se propagaba al texto de transferencias, causando texto como "C a j a G e n e r a l". Se agregó reset explícito de `setCharSpace(0)`.
+- **Fix PDF — Flecha Unicode**: Reemplazado carácter `→` (no soportado por fuente helvetica de jsPDF) por `>>`.
+- **API de reportes enriquecida**: El endpoint `/api/transactions/report` ahora incluye `transferDetails` con nombres de eventos resueltos y `event.name` en cada transacción.
+
+### 📱 Exportar Reporte como Imagen
+- **Nuevo botón "Descargar Imagen"**: Reemplaza la nota de "toma un capture". Usa la librería `html-to-image` para capturar la tarjeta del reporte como PNG en alta resolución (3x pixel ratio).
+- **Nueva dependencia**: `html-to-image` agregada al proyecto.
+
+### 🏷️ Limpieza de Categorías y Descripciones
+- **Categorías renombradas (7)**: Se unificaron "Ganancia" e "Ingreso" en "Venta". Se corrigieron acentos y se mejoraron nombres: Aportes→"Aporte de miembros", Prestamo→"Préstamo", Ofrenda predicadores→"Ofrenda a predicador", Inversion→"Inversión", "Ofrenda para un joven miembro"→"Donación", "Materiales de Actividad"→"Materiales", Bebida→"Refrigerio".
+- **30 descripciones corregidas**: Typos (Ganacia, Grabierl, pagarón), textos vagos ("Aporte" → "Aporte mensual de Sherry Campos"), textos informales profesionalizados, acentos corregidos.
+
+### 💰 Correcciones Financieras
+- **RD$2,000 reclasificado**: Gasto incorrecto de caja convertido a transferencia Caja General → Culto de jóvenes 31 de marzo.
+- **RD$3,800 corregido**: Ingreso duplicado en caja (ya contabilizado en evento "Venta de alcancía") eliminado y reemplazado por transferencia de ganancia neta de RD$2,000 desde el evento.
+- **Transferencia inválida eliminada**: Transfer de RD$1,800 Caja→Caja (ambos IDs null) que no tenía efecto fue borrada.
+- **RD$124.90 → RD$125**: Monto de transferencia corregido.
+- **Balance de Caja verificado**: RD$125 (confirmado con el tesorero).
+
+### 🔧 Fix Técnico
+- **Build fix**: Error preexistente de TypeScript en `defaultMonthlyDue` resuelto con cast `as any` en `app/api/dues/route.ts`.
+
+---
+
 ## 📦 [v1.5.0] - Sales Tracking, Reports Overhaul & Dues System
 **Fecha:** 30 de marzo de 2026
 

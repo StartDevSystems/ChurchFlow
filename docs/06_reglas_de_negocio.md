@@ -30,6 +30,13 @@ Estas reglas se aplican a nivel de la base de datos y la API para prevenir la cr
 - **Transferencias entre Fondos (v2):** El sistema permite mover montos entre el Fondo General y los Fondos por Evento (o entre dos eventos distintos).
     - Una transferencia **disminuye** virtualmente el balance disponible en el origen y lo **aumenta** en el destino.
     - Las transferencias no son transacciones de "ingreso" o "gasto" per se, sino movimientos internos que deben ser considerados al calcular el balance final de un fondo específico.
+    - **Importante:** Cuando se destina dinero de Caja a un evento, se debe usar una **Transferencia** (no un gasto). Registrarlo como gasto infla los gastos reales y el dinero nunca llega al balance del evento.
+    - Las transferencias se muestran en los reportes (WhatsApp y PDF) bajo la sección "Movimientos internos" con origen, destino y descripción clara.
+
+- **Categorías Estándar (v1.5.1):**
+    - **Ingresos:** "Venta" (ingresos por ventas), "Aporte de miembros" (contribuciones directas), "Préstamo" (préstamos recibidos), "Cuota" (cuotas mensuales).
+    - **Gastos:** "Comida", "Ofrenda a predicador", "Inversión", "Donación" (ayuda social), "Compras", "Materiales", "Decoración", "Refrigerio".
+    - Las categorías deben tener nombres claros y profesionales. Evitar nombres demasiado específicos como categoría (ej: usar "Donación" en vez de "Ofrenda para un joven miembro").
 
 - **Definición de "Cuota":** Para el módulo de seguimiento de cuotas, una contribución se cuenta si y solo si es una transacción de tipo `income` y pertenece a la categoría cuyo nombre es exactamente `"Cuota"`. Cualquier otra variación en el nombre no será considerada.
 

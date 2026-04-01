@@ -1,4 +1,4 @@
-# 🗄️ Modelo de Datos - Versión 1.3 Pro
+# 🗄️ Modelo de Datos - Versión 1.5.1
 
 El sistema utiliza una arquitectura de datos relacional optimizada para auditoría y análisis de rendimiento.
 
@@ -29,9 +29,51 @@ Registro automático de todas las acciones sensibles.
 Vinculado a `Member` y `Event`.
 - Utilizado para calcular el **Score de Fidelidad** en el Perfil Pro.
 
+### 💸 Transfer (Transferencia)
+Movimiento interno de fondos entre Caja General y Eventos.
+- `amount`: (Float) Monto transferido.
+- `description`: (String) Descripción clara del movimiento (ej: "Se destinaron RD$2,000 de caja para completar la ofrenda del predicador").
+- `date`: (DateTime) Fecha del movimiento.
+- `fromEventId`: (String?) ID del evento origen. `null` = Caja General.
+- `toEventId`: (String?) ID del evento destino. `null` = Caja General.
+
+**Regla:** No debe existir una transferencia donde ambos campos sean `null` (Caja→Caja no tiene sentido).
+
+### 🛒 SaleProduct (Producto de Venta)
+Catálogo de productos para eventos tipo VENTA.
+- `eventId`: (String) Evento al que pertenece.
+- `name`: (String) Nombre del producto.
+- `price`: (Float) Precio unitario.
+- `unitDescription`: (String?) Descripción de la unidad (ej: "por paquete").
+
+### 🧾 SaleEntry (Registro de Venta)
+Venta individual a un cliente en un evento tipo VENTA.
+- `eventId`: (String) Evento de la venta.
+- `clientName`: (String) Nombre del cliente.
+- `amountPaid`: (Float) Monto pagado.
+- `paymentStatus`: (String) `PENDIENTE`, `PARCIAL`, `PAGADO`.
+- `items`: Relación a `SaleEntryItem[]` (productos y cantidades).
+
 ---
 
 ## Relaciones Clave
 1. **Member -> Transactions**: Un miembro puede tener múltiples aportes (Ingresos) o gastos asociados.
 2. **Event -> Transactions**: Permite la conciliación de fondos por actividad específica.
-3. **User -> AuditLog**: Rastrea qué administrador realizó cada cambio en el sistema.
+3. **Event -> Transfers**: Un evento puede recibir fondos de Caja (toEventId) o enviar fondos a Caja (fromEventId).
+4. **Event -> SaleProducts -> SaleEntries**: Eventos tipo VENTA tienen catálogo de productos y registros de ventas.
+5. **User -> AuditLog**: Rastrea qué administrador realizó cada cambio en el sistema.
+
+## Flujo Financiero
+```
+Caja General (eventId = null)
+├── Ingresos: Aportes, Cuotas, Ventas externas
+├── Gastos: Operativos, Donaciones, Materiales
+└── Transferencias ←→ Eventos
+    ├── Caja → Evento: Asignar presupuesto
+    └── Evento → Caja: Trasladar ganancia
+
+Evento (eventId = UUID)
+├── Ingresos directos: Aportes específicos para el evento
+├── Gastos: Inversiones, compras del evento
+└── Transferencias: Recibe de Caja o devuelve a Caja
+```
