@@ -25,7 +25,7 @@ async function buildReport(
 
   const transactions = await prisma.transaction.findMany({
     where,
-    include: { category: true },
+    include: { category: true, event: { select: { name: true } } },
     orderBy: { date: 'asc' },
   });
 
@@ -88,6 +88,22 @@ async function buildReport(
     return acc;
   }, 0);
 
+  // Detalles de transferencias con nombres de eventos (para WhatsApp)
+  const transferEventIds = Array.from(new Set(
+    periodTransfers.flatMap(tr => [tr.fromEventId, tr.toEventId]).filter(Boolean) as string[]
+  ));
+  const transferEvents = transferEventIds.length > 0
+    ? await prisma.event.findMany({ where: { id: { in: transferEventIds } }, select: { id: true, name: true } })
+    : [];
+  const transferEventMap = Object.fromEntries(transferEvents.map(e => [e.id, e.name]));
+  const transferDetails = periodTransfers.map(tr => ({
+    amount: tr.amount,
+    description: tr.description,
+    date: tr.date,
+    from: tr.fromEventId ? transferEventMap[tr.fromEventId] ?? 'Evento' : 'Caja General',
+    to: tr.toEventId ? transferEventMap[tr.toEventId] ?? 'Evento' : 'Caja General',
+  }));
+
   // Saldo REAL de caja (histórico: todas las transacciones + transferencias)
   const allCajaTx = await prisma.transaction.findMany({ where: { eventId: null } });
   const allCajaIncome = allCajaTx.filter(t => t.type === TransactionType.income).reduce((a, t) => a + t.amount, 0);
@@ -131,7 +147,7 @@ async function buildReport(
     categories,
     trend,
     activities,
-    caja: { income: cajaIncome, expense: cajaExpense, transfers: periodCajaTransfers, balance: cajaRealBalance, categories: cajaCategories },
+    caja: { income: cajaIncome, expense: cajaExpense, transfers: periodCajaTransfers, transferDetails, balance: cajaRealBalance, categories: cajaCategories },
     summary: { totalIncome, totalExpense, netBalance },
   };
 }

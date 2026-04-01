@@ -32,7 +32,9 @@ export interface ReportTransaction {
   description: string;
   amount: number;
   type: string;
+  eventId?: string | null;
   category?: { name: string } | null;
+  event?: { name: string } | null;
 }
 
 export interface ReportSummary {
@@ -54,10 +56,19 @@ export interface ReportActivity {
   txCount: number;
 }
 
+export interface TransferDetail {
+  amount: number;
+  description: string;
+  date: string;
+  from: string;
+  to: string;
+}
+
 export interface CajaSummary {
   income: number;
   expense: number;
   balance: number;
+  transferDetails?: TransferDetail[];
 }
 
 export interface ReportData {
@@ -185,24 +196,65 @@ export async function generateReportPDF({ data, settings, range, caja, activitie
     y += boxH + 10;
   }
 
+  /* ── MOVIMIENTOS INTERNOS (TRANSFERENCIAS) ── */
+  const transferDetails: TransferDetail[] = (caja as any)?.transferDetails ?? [];
+  if (transferDetails.length > 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...C.gray600);
+    doc.setCharSpace(3);
+    doc.text('MOVIMIENTOS INTERNOS', M, y);
+    doc.setCharSpace(0);
+    y += 5;
+
+    transferDetails.forEach((tr) => {
+      if (y > H - 40) { doc.addPage(); y = 20; }
+      const hasDesc = !!tr.description;
+      const rowH = hasDesc ? 11 : 7;
+      doc.setFillColor(...[219, 234, 254] as [number, number, number]);
+      doc.roundedRect(M, y, W - M * 2, rowH, 2, 2, 'F');
+
+      doc.setCharSpace(0);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(...C.gray900);
+      doc.text(`${tr.from}  >>  ${tr.to}`, M + 3, y + 4);
+      if (hasDesc) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(5.5);
+        doc.setTextColor(...C.gray600);
+        doc.text(tr.description, M + 3, y + 8, { maxWidth: W - M * 2 - 45 });
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...[37, 99, 235] as [number, number, number]);
+      doc.text(formatCurrency(tr.amount), W - M - 3, y + 4, { align: 'right' });
+
+      y += rowH + 2;
+    });
+    y += 4;
+  }
+
   /* ── ACTIVIDADES Y VENTAS ── */
   if (activities && activities.length > 0) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(...C.gray600);
     doc.setCharSpace(3);
-    doc.text('ACTIVIDADES Y VENTAS (APARTE DE CAJA)', M, y);
+    doc.text('ACTIVIDADES Y VENTAS', M, y);
     doc.setCharSpace(0);
     y += 5;
 
     activities.forEach((a) => {
       if (y > H - 40) { doc.addPage(); y = 20; }
 
-      const rowH = 10;
-      // Type badge
       const isVenta = a.type === 'VENTA';
+
+      // Header row
+      const headerH = 10;
       doc.setFillColor(...(isVenta ? C.greenLight : [237, 233, 254] as [number, number, number]));
-      doc.roundedRect(M, y, W - M * 2, rowH, 2, 2, 'F');
+      doc.roundedRect(M, y, W - M * 2, headerH, 2, 2, 'F');
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(5.5);
@@ -213,22 +265,16 @@ export async function generateReportPDF({ data, settings, range, caja, activitie
       doc.setTextColor(...C.black);
       doc.text(a.name.toUpperCase(), M + 20, y + 4);
 
-      // Status
       doc.setFontSize(5);
       doc.setTextColor(...C.gray600);
       doc.text(a.status === 'FINALIZADO' ? 'Terminado' : 'En curso', M + 20, y + 8);
 
-      // Amount on the right
+      // Total on the right
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
-      const profitColor = a.profit >= 0 ? C.green : C.red;
-      doc.setTextColor(...profitColor);
-      const profitText = isVenta
-        ? `${a.profit >= 0 ? '+' : ''}${formatCurrency(a.profit)}`
-        : `-${formatCurrency(a.expense)}`;
-      doc.text(profitText, W - M - 2, y + 5.5, { align: 'right' });
+      doc.setTextColor(...C.red);
+      doc.text(`Gastado: ${formatCurrency(a.expense)}`, W - M - 2, y + 5.5, { align: 'right' });
 
-      // Progress for ventas with goal
       if (isVenta && a.salesGoal && a.salesGoal > 0) {
         doc.setFontSize(5);
         doc.setTextColor(...C.gray600);
@@ -236,10 +282,79 @@ export async function generateReportPDF({ data, settings, range, caja, activitie
         doc.text(`${pct.toFixed(0)}% de meta`, W - M - 2, y + 9, { align: 'right' });
       }
 
-      y += rowH + 2;
+      y += headerH + 1;
+
+      // Expense breakdown for this event
+      const eventTx = data.transactions.filter(t => t.eventId === a.id);
+      const eventExpenses = eventTx.filter(t => t.type === 'expense');
+      const eventIncome = eventTx.filter(t => t.type === 'income');
+
+      // Show income sources
+      if (eventIncome.length > 0) {
+        if (y > H - 30) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(5.5);
+        doc.setTextColor(...C.green);
+        doc.text('Recibido:', M + 5, y + 3);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.setTextColor(...C.gray900);
+
+        // Group by category
+        const incomeByCategory: Record<string, number> = {};
+        eventIncome.forEach(t => {
+          const cat = t.category?.name ?? 'Otro';
+          incomeByCategory[cat] = (incomeByCategory[cat] || 0) + t.amount;
+        });
+        const incomeEntries = Object.entries(incomeByCategory);
+        const incomeText = incomeEntries.map(([cat, total]) => `${cat}: ${formatCurrency(total)}`).join('  •  ');
+        doc.text(incomeText, M + 22, y + 3);
+
+        // Check for transfers into this event
+        const eventTransfers = transferDetails.filter(tr => tr.to === a.name);
+        if (eventTransfers.length > 0) {
+          y += 4;
+          if (y > H - 30) { doc.addPage(); y = 20; }
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(5.5);
+          doc.setTextColor(...[37, 99, 235] as [number, number, number]);
+          doc.text('De Caja:', M + 5, y + 3);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(6);
+          doc.setTextColor(...C.gray900);
+          const trText = eventTransfers.map(tr => formatCurrency(tr.amount)).join('  +  ');
+          doc.text(trText, M + 22, y + 3);
+        }
+
+        y += 5;
+      }
+
+      // Show expense details
+      if (eventExpenses.length > 0) {
+        if (y > H - 30) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(5.5);
+        doc.setTextColor(...C.red);
+        doc.text('Gastos:', M + 5, y + 3);
+        y += 1;
+
+        eventExpenses.forEach(t => {
+          if (y > H - 20) { doc.addPage(); y = 20; }
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(6);
+          doc.setTextColor(...C.gray900);
+          doc.text(`• ${t.description}`, M + 10, y + 4);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...C.red);
+          doc.text(formatCurrency(t.amount), W - M - 2, y + 4, { align: 'right' });
+          y += 4.5;
+        });
+      }
+
+      y += 4;
     });
 
-    y += 4;
+    y += 2;
   }
 
   /* ── CATEGORIES SECTION ── */
@@ -292,19 +407,29 @@ export async function generateReportPDF({ data, settings, range, caja, activitie
     format(new Date(t.date), 'dd/MM/yy'),
     t.description.toUpperCase(),
     t.category?.name?.toUpperCase() ?? '—',
+    t.event?.name?.toUpperCase() ?? 'CAJA',
     t.type === 'income' ? 'Ingreso' : 'Gasto',
     formatCurrency(t.amount),
   ]);
 
+  // Totals row
+  const totalIncome = data.transactions.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+  const totalExpense = data.transactions.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+  tableRows.push(['', 'TOTAL', '', '', 'Ingresos', formatCurrency(totalIncome)]);
+  tableRows.push(['', '', '', '', 'Gastos', formatCurrency(totalExpense)]);
+  tableRows.push(['', '', '', '', 'Neto', formatCurrency(totalIncome - totalExpense)]);
+
+  const totalRowStart = data.transactions.length;
+
   autoTable(doc, {
     startY: y,
-    head: [['Fecha', 'Descripción', 'Categoría', 'Tipo', 'Monto']],
+    head: [['Fecha', 'Descripción', 'Categoría', 'Evento', 'Tipo', 'Monto']],
     body: tableRows,
     margin: { left: M, right: M },
     styles: {
       font: 'helvetica',
-      fontSize: 7.5,
-      cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
+      fontSize: 7,
+      cellPadding: { top: 3.5, bottom: 3.5, left: 3, right: 3 },
       textColor: C.gray900,
       lineColor: C.gray100,
       lineWidth: 0.2,
@@ -314,21 +439,36 @@ export async function generateReportPDF({ data, settings, range, caja, activitie
       textColor: C.white,
       fontStyle: 'bold',
       fontSize: 6.5,
-      cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
+      cellPadding: { top: 5, bottom: 5, left: 3, right: 3 },
     },
     columnStyles: {
-      0: { cellWidth: 20, textColor: C.gray600 },
+      0: { cellWidth: 18, textColor: C.gray600 },
       1: { cellWidth: 'auto' },
-      2: { cellWidth: 28, textColor: C.gray600 },
-      3: { cellWidth: 20, fontStyle: 'bold' },
-      4: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
+      2: { cellWidth: 24, textColor: C.gray600 },
+      3: { cellWidth: 28, textColor: C.gray600, fontSize: 6 },
+      4: { cellWidth: 18, fontStyle: 'bold' },
+      5: { cellWidth: 26, halign: 'right', fontStyle: 'bold' },
     },
     alternateRowStyles: { fillColor: C.gray100 },
     didParseCell(d) {
-      const row = data.transactions[d.row.index];
-      if (!row) return;
-      if (d.column.index === 3 || d.column.index === 4) {
-        d.cell.styles.textColor = row.type === 'income' ? C.green : C.red;
+      // Color income/expense for data rows
+      if (d.row.index < totalRowStart) {
+        const row = data.transactions[d.row.index];
+        if (!row) return;
+        if (d.column.index === 4 || d.column.index === 5) {
+          d.cell.styles.textColor = row.type === 'income' ? C.green : C.red;
+        }
+      }
+      // Style total rows
+      if (d.row.index >= totalRowStart) {
+        d.cell.styles.fillColor = C.orangeLight;
+        d.cell.styles.fontStyle = 'bold';
+        d.cell.styles.fontSize = 7.5;
+        if (d.column.index === 5) {
+          if (d.row.index === totalRowStart) d.cell.styles.textColor = C.green;
+          else if (d.row.index === totalRowStart + 1) d.cell.styles.textColor = C.red;
+          else d.cell.styles.textColor = C.orange;
+        }
       }
     },
   });

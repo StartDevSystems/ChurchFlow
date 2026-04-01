@@ -504,12 +504,24 @@ export default function ReportsPage() {
                             msg += `   _Sin gastos este período_\n`;
                           }
 
+                          // Movimientos internos (transferencias)
+                          const transferDetails = (caja as any)?.transferDetails ?? [];
+                          if (transferDetails.length > 0) {
+                            msg += `\n🔄 *Movimientos internos:*\n`;
+                            msg += transferDetails.map((tr: any) =>
+                              `   • Se destinó ${formatCurrency(tr.amount)} de ${tr.from} → ${tr.to}${tr.description ? ` (${tr.description})` : ''}`
+                            ).join('\n') + '\n';
+                          }
+
                           // Actividades y Ventas
                           if (activities.length > 0) {
                             msg += `\n📋 *Actividades y Ventas (aparte):*\n`;
-                            msg += activities.map(a =>
-                              `   ${a.type === 'VENTA' ? '🛒' : '📅'} ${a.name}: ${a.profit >= 0 ? '+' : ''}${formatCurrency(a.profit)}${a.type === 'VENTA' && a.salesGoal ? ` (${Math.min(100, (a.income / a.salesGoal) * 100).toFixed(0)}% de meta)` : ''}`
-                            ).join('\n') + '\n';
+                            msg += activities.map(a => {
+                              if (a.type === 'VENTA') {
+                                return `   🛒 ${a.name}: ${a.profit >= 0 ? '+' : ''}${formatCurrency(a.profit)}${a.salesGoal ? ` (${Math.min(100, (a.income / a.salesGoal) * 100).toFixed(0)}% de meta)` : ''}`;
+                              }
+                              return `   📅 ${a.name}: Gastado ${formatCurrency(a.expense)}`;
+                            }).join('\n') + '\n';
                           }
 
                           // Comparación vs anterior
