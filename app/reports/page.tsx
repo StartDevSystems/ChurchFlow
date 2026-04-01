@@ -459,8 +459,10 @@ export default function ReportsPage() {
                                   </span>
                                   <p className="text-[9px] font-bold text-gray-600 text-left">{a.name}</p>
                                 </div>
-                                <p className={cn('text-[10px] font-black', a.profit >= 0 ? 'text-green-600' : 'text-red-600')}>
-                                  {a.profit >= 0 ? '+' : ''}{formatCurrency(a.profit)}
+                                <p className={cn('text-[10px] font-black', a.type === 'VENTA' && a.profit >= 0 ? 'text-green-600' : 'text-red-600')}>
+                                  {a.type === 'VENTA'
+                                    ? `${a.profit >= 0 ? '+' : ''}${formatCurrency(a.profit)}`
+                                    : `Gastado ${formatCurrency(a.expense)}`}
                                 </p>
                               </div>
                             ))}
