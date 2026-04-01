@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
     // Get default due from settings
     const settings = await prisma.settings.findFirst();
-    const defaultDue = settings?.defaultMonthlyDue ?? 200;
+    const defaultDue = (settings as any)?.defaultMonthlyDue ?? 200;
 
     const members = await prisma.member.findMany({
       where: { status: 'ACTIVO' },

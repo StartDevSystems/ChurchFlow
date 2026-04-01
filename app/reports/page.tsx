@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { generateReportPDF } from '@/lib/generateReportPDF';
 import { generateReportExcel } from '@/lib/generateReportExcel';
+import { toPng } from 'html-to-image';
 import type { ReportData, ReportSettings } from '@/lib/generateReportPDF';
 
 /* ══════════════════════════════════════════════════════════
@@ -541,9 +542,24 @@ export default function ReportsPage() {
                     >
                       <MessageCircle size={18} /> Enviar Mensaje de Texto
                     </a>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-center gap-2">
-                      <ImageIcon size={12} /> O toma un Capture para enviar la imagen
-                    </p>
+                    <button
+                      onClick={async () => {
+                        const node = document.getElementById('whatsapp-infographic');
+                        if (!node) return;
+                        try {
+                          const dataUrl = await toPng(node, { backgroundColor: '#ffffff', pixelRatio: 3 });
+                          const link = document.createElement('a');
+                          link.download = `Reporte_${format(new Date(range.from), 'dd-MM')}_a_${format(new Date(range.to), 'dd-MM-yyyy')}.png`;
+                          link.href = dataUrl;
+                          link.click();
+                        } catch (e) {
+                          console.error('Error generando imagen:', e);
+                        }
+                      }}
+                      className="w-full bg-[#0a0c14] hover:bg-[#1a1c24] text-white font-black uppercase text-[10px] tracking-widest py-6 rounded-2xl shadow-xl flex items-center justify-center gap-2"
+                    >
+                      <Download size={18} /> Descargar Imagen
+                    </button>
                   </div>
                 </motion.div>
               </div>
