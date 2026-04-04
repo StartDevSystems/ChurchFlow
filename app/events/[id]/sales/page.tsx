@@ -93,6 +93,10 @@ export default function SalesPage() {
   const [newProdName, setNewProdName] = useState('');
   const [newProdPrice, setNewProdPrice] = useState('');
   const [newProdUnit, setNewProdUnit] = useState('');
+  const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [editProdName, setEditProdName] = useState('');
+  const [editProdPrice, setEditProdPrice] = useState('');
+  const [editProdUnit, setEditProdUnit] = useState('');
 
   const fetchAll = useCallback(async () => {
     try {
@@ -128,9 +132,30 @@ export default function SalesPage() {
   };
 
   const deleteProduct = async (id: string) => {
-    await fetch(`/api/events/${eventId}/sales/products`, {
-      method: 'POST', // We'll handle via a simple refetch - products don't have DELETE route yet
+    await fetch(`/api/events/${eventId}/sales/products/${id}`, { method: 'DELETE' });
+    fetchAll();
+  };
+
+  const startEditProduct = (p: SaleProduct) => {
+    setEditingProduct(p.id);
+    setEditProdName(p.name);
+    setEditProdPrice(String(p.price));
+    setEditProdUnit(p.unitDescription ?? '');
+  };
+
+  const saveEditProduct = async (id: string) => {
+    if (!editProdName || !editProdPrice) return;
+    await fetch(`/api/events/${eventId}/sales/products/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: editProdName,
+        price: parseFloat(editProdPrice),
+        unitDescription: editProdUnit || null,
+        sortOrder: products.find(p => p.id === id)?.sortOrder ?? 0,
+      }),
     });
+    setEditingProduct(null);
     fetchAll();
   };
 
@@ -230,12 +255,53 @@ export default function SalesPage() {
                 className="border-t border-white/5 overflow-hidden">
                 <div className="p-4 space-y-3">
                   {products.map(p => (
-                    <div key={p.id} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-3 py-2">
-                      <div>
-                        <span className="text-sm font-bold">{p.name}</span>
-                        {p.unitDescription && <span className="text-[9px] text-white/30 ml-2">({p.unitDescription})</span>}
-                      </div>
-                      <span className="text-sm font-black text-emerald-400">{formatCurrency(p.price)}</span>
+                    <div key={p.id} className="bg-white/[0.03] rounded-xl px-3 py-2">
+                      {editingProduct === p.id ? (
+                        <div className="flex flex-wrap gap-2 items-end">
+                          <div className="flex-1 min-w-[100px]">
+                            <input value={editProdName} onChange={e => setEditProdName(e.target.value)}
+                              className="w-full bg-white/5 border border-emerald-500/30 rounded-lg px-2 py-1.5 text-sm focus:border-emerald-500/50 focus:outline-none transition-all" />
+                          </div>
+                          <div className="w-24">
+                            <input value={editProdPrice} onChange={e => setEditProdPrice(e.target.value)}
+                              type="number"
+                              className="w-full bg-white/5 border border-emerald-500/30 rounded-lg px-2 py-1.5 text-sm focus:border-emerald-500/50 focus:outline-none transition-all" />
+                          </div>
+                          <div className="flex-1 min-w-[80px]">
+                            <input value={editProdUnit} onChange={e => setEditProdUnit(e.target.value)}
+                              placeholder="Descripción"
+                              className="w-full bg-white/5 border border-emerald-500/30 rounded-lg px-2 py-1.5 text-sm focus:border-emerald-500/50 focus:outline-none transition-all" />
+                          </div>
+                          <div className="flex gap-1">
+                            <button onClick={() => saveEditProduct(p.id)}
+                              className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition-all">
+                              <Check size={14} />
+                            </button>
+                            <button onClick={() => setEditingProduct(null)}
+                              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 transition-all">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm font-bold">{p.name}</span>
+                            {p.unitDescription && <span className="text-[9px] text-white/30 ml-2">({p.unitDescription})</span>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-emerald-400">{formatCurrency(p.price)}</span>
+                            <button onClick={() => startEditProduct(p)}
+                              className="p-1.5 rounded-lg hover:bg-white/10 text-white/20 hover:text-white transition-all">
+                              <Pencil size={12} />
+                            </button>
+                            <button onClick={() => deleteProduct(p.id)}
+                              className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/20 hover:text-red-400 transition-all">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
 
