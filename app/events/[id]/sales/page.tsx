@@ -98,6 +98,11 @@ export default function SalesPage() {
   const [editProdPrice, setEditProdPrice] = useState('');
   const [editProdUnit, setEditProdUnit] = useState('');
 
+  // Inline payment state
+  const [activePaymentEntryId, setActivePaymentEntryId] = useState<string | null>(null);
+  const [newPaymentAmount, setNewPaymentAmount] = useState('');
+  const [addingPayment, setAddingPayment] = useState(false);
+
   const fetchAll = useCallback(async () => {
     try {
       const [evRes, prodRes, entRes, sumRes] = await Promise.all([
@@ -114,6 +119,27 @@ export default function SalesPage() {
   }, [eventId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const addPayment = async (entryId: string) => {
+    const amount = parseFloat(newPaymentAmount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    setAddingPayment(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}/sales/entries/${entryId}/payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount }),
+      });
+      if (res.ok) {
+        setActivePaymentEntryId(null);
+        setNewPaymentAmount('');
+        fetchAll();
+      }
+    } finally {
+      setAddingPayment(false);
+    }
+  };
 
   const addProduct = async () => {
     if (!newProdName || !newProdPrice) return;
@@ -404,7 +430,46 @@ export default function SalesPage() {
                         );
                       })}
                       <td className="px-3 py-2.5 text-sm font-bold text-white/80 whitespace-nowrap">{formatCurrency(entry.totalOwed)}</td>
-                      <td className="px-3 py-2.5 text-sm font-bold text-green-400 whitespace-nowrap">{formatCurrency(entry.amountPaid)}</td>
+                      <td className="px-3 py-2.5 text-sm font-bold text-green-400 whitespace-nowrap">
+                        {activePaymentEntryId === entry.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              autoFocus
+                              type="number"
+                              value={newPaymentAmount}
+                              onChange={(e) => setNewPaymentAmount(e.target.value)}
+                              className="w-16 bg-white/10 border border-emerald-500/50 rounded px-1 py-0.5 text-[10px] text-white focus:outline-none"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') addPayment(entry.id);
+                                if (e.key === 'Escape') setActivePaymentEntryId(null);
+                              }}
+                            />
+                            <button
+                              onClick={() => addPayment(entry.id)}
+                              disabled={addingPayment}
+                              className="p-1 rounded bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 transition-all"
+                            >
+                              <Check size={12} />
+                            </button>
+                            <button
+                              onClick={() => setActivePaymentEntryId(null)}
+                              className="p-1 rounded hover:bg-white/10 text-white/30 transition-all"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setActivePaymentEntryId(entry.id);
+                              setNewPaymentAmount('');
+                            }}
+                            className="hover:underline decoration-emerald-500/30 underline-offset-4"
+                          >
+                            {formatCurrency(entry.amountPaid)}
+                          </button>
+                        )}
+                      </td>
                       <td className="px-3 py-2.5 text-sm font-bold text-orange-400 whitespace-nowrap">
                         {entry.totalPending > 0 ? formatCurrency(entry.totalPending) : '-'}
                       </td>

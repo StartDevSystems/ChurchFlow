@@ -129,6 +129,16 @@ model SaleEntry {
   updatedAt     DateTime        @updatedAt
   event         Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
   items         SaleEntryItem[]
+  payments      Payment[]
+}
+
+model Payment {
+  id          String    @id @default(uuid())
+  saleEntryId String
+  amount      Float
+  note        String?
+  createdAt   DateTime  @default(now())
+  saleEntry   SaleEntry @relation(fields: [saleEntryId], references: [id], onDelete: Cascade)
 }
 
 model SaleEntryItem {

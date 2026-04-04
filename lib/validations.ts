@@ -63,3 +63,9 @@ export const saleEntrySchema = z.object({
   comment: z.string().max(500).optional().nullable(),
   items: z.array(saleEntryItemSchema).min(1, "Debe incluir al menos un producto"),
 });
+
+// --- ESQUEMA DE PAGOS ---
+export const paymentSchema = z.object({
+  amount: z.number().positive("El monto debe ser mayor a cero"),
+  note: z.string().max(200).optional().nullable(),
+});
