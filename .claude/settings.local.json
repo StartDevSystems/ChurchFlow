@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'E:\\\\Recto fitness\\\\Web-Iglesia/app/api' -name *report* -o -name *transaction*)",
+      "Bash(find 'E:\\\\Recto fitness\\\\Web-Iglesia' -path */node_modules -prune -o -name *.tsx -print)",
+      "Bash(npx next:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e \":*)",
+      "Bash(npx prisma:*)",
+      "Bash(mkdir -p \"E:/Recto fitness/Web-Iglesia/app/api/events/[id]/sales/products\")",
+      "Bash(mkdir -p \"E:/Recto fitness/Web-Iglesia/app/api/events/[id]/sales/entries/[entryId]\")",
+      "Bash(mkdir -p \"E:/Recto fitness/Web-Iglesia/app/api/events/[id]/sales/summary\")",
+      "Bash(npx ts-node:*)",
+      "Bash(find:*)",
+      "Bash(sqlite3 \"E:/Recto fitness/Web-Iglesia/prisma/dev.db\" \"SELECT name FROM sqlite_master WHERE type='table';\")",
+      "Bash(xargs grep:*)",
+      "Bash(npx tsx -e ':*)",
+      "Bash(node -e ':*)",
+      "Bash(node scripts/fix-data.js)",
+      "Bash(npm install:*)",
+      "Bash(npm ls:*)"
+    ]
+  }
+}
