@@ -228,19 +228,25 @@ export default function SalesPage() {
   const exportImage = async () => {
     const node = reportRef.current;
     if (!node) return;
+    node.style.display = 'block';
+    node.style.position = 'fixed';
+    node.style.left = '0';
+    node.style.top = '0';
+    node.style.zIndex = '9999';
+    node.style.pointerEvents = 'none';
+    await new Promise(r => setTimeout(r, 200));
     try {
-      const dataUrl = await toPng(node, {
-        pixelRatio: 2,
-        backgroundColor: '#0a0c14',
-        width: 600,
-        height: node.scrollHeight,
-      });
+      const dataUrl = await toPng(node, { pixelRatio: 2, cacheBust: true, backgroundColor: '#0a0c14' });
       const link = document.createElement('a');
       link.download = `ventas-${event?.name ?? 'reporte'}-${format(new Date(), 'yyyy-MM-dd')}.png`;
       link.href = dataUrl;
       link.click();
-    } catch (err) {
-      console.error('Error exporting image:', err);
+    } finally {
+      node.style.display = 'none';
+      node.style.position = 'absolute';
+      node.style.left = '-9999px';
+      node.style.zIndex = '';
+      node.style.pointerEvents = '';
     }
   };
 
@@ -719,7 +725,7 @@ export default function SalesPage() {
       </AnimatePresence>
 
       {/* ── HIDDEN REPORT FOR EXPORT ── */}
-      <div ref={reportRef} style={{ visibility: 'hidden', position: 'absolute', left: '-9999px' }}>
+      <div ref={reportRef} style={{ display: 'none', position: 'absolute', left: '-9999px' }}>
         <div style={{ background: '#0a0c14', color: 'white', padding: '32px', width: '600px', fontFamily: 'system-ui' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', marginBottom: '4px' }}>{event?.name}</h2>
           <p style={{ fontSize: '10px', color: '#34d399', fontWeight: 900, letterSpacing: '3px', textTransform: 'uppercase' }}>Control de Entregas y Cobros</p>
