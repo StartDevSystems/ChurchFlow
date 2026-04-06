@@ -228,16 +228,16 @@ export default function SalesPage() {
   const exportImage = async () => {
     const node = reportRef.current;
     if (!node) return;
+    // Move on-screen but off-view (behind scroll) so html-to-image can render it
     node.style.display = 'block';
     node.style.position = 'fixed';
     node.style.left = '0';
     node.style.top = '0';
-    node.style.zIndex = '-1';
-    node.style.opacity = '0';
-    // Allow browser to render before capturing
-    await new Promise(r => setTimeout(r, 100));
+    node.style.zIndex = '9999';
+    node.style.pointerEvents = 'none';
+    await new Promise(r => setTimeout(r, 200));
     try {
-      const dataUrl = await toPng(node, { pixelRatio: 2, cacheBust: true });
+      const dataUrl = await toPng(node, { pixelRatio: 2, cacheBust: true, backgroundColor: '#0a0c14' });
       const link = document.createElement('a');
       link.download = `ventas-${event?.name ?? 'reporte'}-${format(new Date(), 'yyyy-MM-dd')}.png`;
       link.href = dataUrl;
@@ -246,7 +246,8 @@ export default function SalesPage() {
       node.style.display = 'none';
       node.style.position = 'absolute';
       node.style.left = '-9999px';
-      node.style.opacity = '1';
+      node.style.zIndex = '';
+      node.style.pointerEvents = '';
     }
   };
 
