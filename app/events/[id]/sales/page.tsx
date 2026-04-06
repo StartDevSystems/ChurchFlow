@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Plus, Package, DollarSign, Users, TrendingUp,
   Check, Clock, AlertCircle, Trash2, Pencil, X, ChevronDown, ChevronUp,
+  Search, ArrowUpDown, ArrowUp, ArrowDown, Target, Wallet,
+  Download, MessageCircle,
 } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -42,6 +45,12 @@ interface SaleEntry {
   createdAt: string;
 }
 
+interface ProductStat {
+  productId: string;
+  productName: string;
+  totalSold: number;
+}
+
 interface Summary {
   totalOwed: number;
   totalPaid: number;
@@ -49,6 +58,14 @@ interface Summary {
   totalClients: number;
   countByStatus: Record<string, number>;
   progressPercent: number;
+  productStats: ProductStat[];
+}
+
+interface EventData {
+  name: string;
+  investment?: number;
+  salesGoal?: number;
+  type: string;
 }
 
 type StatusFilter = 'ALL' | 'PENDIENTE' | 'PARCIAL' | 'PAGADO';
@@ -79,7 +96,7 @@ export default function SalesPage() {
   const router = useRouter();
   const eventId = params.id as string;
 
-  const [eventName, setEventName] = useState('');
+  const [event, setEvent] = useState<EventData | null>(null);
   const [products, setProducts] = useState<SaleProduct[]>([]);
   const [entries, setEntries] = useState<SaleEntry[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -88,6 +105,11 @@ export default function SalesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editEntry, setEditEntry] = useState<SaleEntry | null>(null);
   const [showProducts, setShowProducts] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<string>('clientName');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'product' | 'entry'; id: string; name: string } | null>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   // Product form
   const [newProdName, setNewProdName] = useState('');
@@ -111,7 +133,7 @@ export default function SalesPage() {
         fetch(`/api/events/${eventId}/sales/entries`),
         fetch(`/api/events/${eventId}/sales/summary`),
       ]);
-      if (evRes.ok) { const ev = await evRes.json(); setEventName(ev.name); }
+      if (evRes.ok) { const ev = await evRes.json(); setEvent(ev); }
       if (prodRes.ok) setProducts(await prodRes.json());
       if (entRes.ok) setEntries(await entRes.json());
       if (sumRes.ok) setSummary(await sumRes.json());
@@ -159,6 +181,7 @@ export default function SalesPage() {
 
   const deleteProduct = async (id: string) => {
     await fetch(`/api/events/${eventId}/sales/products/${id}`, { method: 'DELETE' });
+    setDeleteTarget(null);
     fetchAll();
   };
 
@@ -187,10 +210,77 @@ export default function SalesPage() {
 
   const deleteEntry = async (entryId: string) => {
     await fetch(`/api/events/${eventId}/sales/entries/${entryId}`, { method: 'DELETE' });
+    setDeleteTarget(null);
     fetchAll();
   };
 
-  const filtered = filter === 'ALL' ? entries : entries.filter(e => e.paymentStatus === filter);
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === 'product') deleteProduct(deleteTarget.id);
+    else deleteEntry(deleteTarget.id);
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDirection('asc'); }
+  };
+
+  const exportImage = async () => {
+    const node = reportRef.current;
+    if (!node) return;
+    node.style.display = 'block';
+    try {
+      const dataUrl = await toPng(node, { pixelRatio: 2 });
+      const link = document.createElement('a');
+      link.download = `ventas-${event?.name ?? 'reporte'}-${format(new Date(), 'yyyy-MM-dd')}.png`;
+      link.href = dataUrl;
+      link.click();
+    } finally { node.style.display = 'none'; }
+  };
+
+  const shareWhatsApp = () => {
+    if (!summary) return;
+    const pending = entries.filter(e => e.paymentStatus !== 'PAGADO');
+    let text = `📊 *VENTAS - ${(event?.name ?? '').toUpperCase()}*\n`;
+    text += `📅 ${format(new Date(), "dd/MM/yyyy", { locale: es })}\n\n`;
+    text += `💰 *Resumen:*\n`;
+    text += `• Total a Cobrar: ${formatCurrency(summary.totalOwed)}\n`;
+    text += `• Cobrado: ${formatCurrency(summary.totalPaid)}\n`;
+    text += `• Pendiente: ${formatCurrency(summary.totalPending)}\n\n`;
+    if (pending.length > 0) {
+      text += `⏳ *Clientes Pendientes de Cobro:*\n`;
+      pending.forEach((e, i) => {
+        text += `${i + 1}. *${e.clientName}* - Debe: ${formatCurrency(e.totalPending)} (Pagó: ${formatCurrency(e.amountPaid)})\n`;
+      });
+      text += `\n`;
+    }
+    text += `✅ Pagados: ${summary.countByStatus.PAGADO ?? 0}\n`;
+    text += `⏳ Parciales: ${summary.countByStatus.PARCIAL ?? 0}\n`;
+    text += `❌ Pendientes: ${summary.countByStatus.PENDIENTE ?? 0}`;
+    window.open('https://wa.me/?text=' + encodeURIComponent(text));
+  };
+
+  const filtered = entries.filter(e => {
+    const matchStatus = filter === 'ALL' || e.paymentStatus === filter;
+    const matchSearch = !searchQuery || e.clientName.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchStatus && matchSearch;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    let aVal: any, bVal: any;
+    switch (sortField) {
+      case 'clientName': aVal = a.clientName.toLowerCase(); bVal = b.clientName.toLowerCase(); break;
+      case 'totalOwed': aVal = a.totalOwed; bVal = b.totalOwed; break;
+      case 'amountPaid': aVal = a.amountPaid; bVal = b.amountPaid; break;
+      case 'totalPending': aVal = a.totalPending; bVal = b.totalPending; break;
+      case 'paymentStatus': aVal = a.paymentStatus; bVal = b.paymentStatus; break;
+      case 'deliveryDate': aVal = a.deliveryDate ?? ''; bVal = b.deliveryDate ?? ''; break;
+      default: return 0;
+    }
+    if (aVal === bVal) return 0;
+    const result = aVal < bVal ? -1 : 1;
+    return sortDirection === 'asc' ? result : -result;
+  });
 
   if (loading) return (
     <div className="min-h-screen bg-[#0a0c14] flex items-center justify-center">
@@ -204,11 +294,23 @@ export default function SalesPage() {
       {/* ── HEADER ── */}
       <div className="bg-gradient-to-b from-emerald-900/20 to-transparent border-b border-white/5">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          <button onClick={() => router.push(`/events/${eventId}`)}
-            className="flex items-center gap-2 text-white/40 hover:text-white text-xs font-bold uppercase tracking-widest mb-4 transition-all">
-            <ArrowLeft size={14} /> Volver al evento
-          </button>
-          <h1 className="text-2xl md:text-3xl font-black italic uppercase tracking-tight">{eventName}</h1>
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={() => router.push(`/events/${eventId}`)}
+              className="flex items-center gap-2 text-white/40 hover:text-white text-xs font-bold uppercase tracking-widest transition-all">
+              <ArrowLeft size={14} /> Volver al evento
+            </button>
+            <div className="flex gap-2">
+              <button onClick={exportImage}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 text-white/40 hover:text-white hover:bg-white/5 text-[9px] font-black uppercase tracking-widest transition-all">
+                <Download size={12} /> Exportar
+              </button>
+              <button onClick={shareWhatsApp}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 text-[9px] font-black uppercase tracking-widest transition-all">
+                <MessageCircle size={12} /> WhatsApp
+              </button>
+            </div>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-black italic uppercase tracking-tight">{event?.name}</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400 mt-1">
             Control de Entregas y Cobros
           </p>
@@ -238,6 +340,36 @@ export default function SalesPage() {
                 </p>
               </div>
             ))}
+
+            {event?.salesGoal && event.salesGoal > 0 && (
+              <div className="bg-[#13151f] rounded-2xl border border-white/5 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-yellow-500/15">
+                    <Target size={13} className="text-yellow-400" />
+                  </div>
+                  <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/30">Meta de Venta</span>
+                </div>
+                <p className="text-lg md:text-xl font-black italic text-yellow-400">{formatCurrency(event.salesGoal)}</p>
+                <p className="text-[9px] text-white/30 font-bold mt-1">
+                  Alcanzado: {Math.round((summary.totalOwed / event.salesGoal) * 100)}%
+                </p>
+              </div>
+            )}
+
+            {event?.investment && event.investment > 0 && (
+              <div className="bg-[#13151f] rounded-2xl border border-white/5 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-purple-500/15">
+                    <Wallet size={13} className="text-purple-400" />
+                  </div>
+                  <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/30">Inversión</span>
+                </div>
+                <p className="text-lg md:text-xl font-black italic text-purple-400">{formatCurrency(event.investment)}</p>
+                <p className={cn('text-[9px] font-bold mt-1', summary.totalPaid - event.investment >= 0 ? 'text-green-400/60' : 'text-red-400/60')}>
+                  Ganancia: {formatCurrency(summary.totalPaid - event.investment)}
+                </p>
+              </div>
+            )}
 
             {/* Progress bar full width */}
             <div className="col-span-2 md:col-span-4 bg-[#13151f] rounded-2xl border border-white/5 p-4">
@@ -317,11 +449,17 @@ export default function SalesPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-black text-emerald-400">{formatCurrency(p.price)}</span>
+                            {summary?.productStats && (() => {
+                              const stat = summary.productStats.find(s => s.productId === p.id);
+                              return stat && stat.totalSold > 0 ? (
+                                <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-400 text-[8px] font-black">{stat.totalSold} vendidos</span>
+                              ) : null;
+                            })()}
                             <button onClick={() => startEditProduct(p)}
                               className="p-1.5 rounded-lg hover:bg-white/10 text-white/20 hover:text-white transition-all">
                               <Pencil size={12} />
                             </button>
-                            <button onClick={() => deleteProduct(p.id)}
+                            <button onClick={() => setDeleteTarget({ type: 'product', id: p.id, name: p.name })}
                               className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/20 hover:text-red-400 transition-all">
                               <Trash2 size={12} />
                             </button>
@@ -362,9 +500,10 @@ export default function SalesPage() {
           </AnimatePresence>
         </div>
 
-        {/* ── FILTER + ADD BUTTON ── */}
+        {/* ── FILTER + SEARCH + ADD BUTTON ── */}
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex gap-1.5">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex gap-1.5">
             {(['ALL', 'PENDIENTE', 'PARCIAL', 'PAGADO'] as StatusFilter[]).map(f => (
               <button key={f} onClick={() => setFilter(f)}
                 className={cn(
@@ -379,6 +518,13 @@ export default function SalesPage() {
                  `Pendientes (${summary?.countByStatus.PENDIENTE ?? 0})`}
               </button>
             ))}
+            </div>
+            <div className="relative">
+              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20" />
+              <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Buscar cliente..."
+                className="pl-8 pr-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[10px] text-white placeholder-white/20 focus:border-emerald-500/50 focus:outline-none transition-all w-40" />
+            </div>
           </div>
 
           <button onClick={() => { setEditEntry(null); setShowAddModal(true); }}
@@ -409,15 +555,35 @@ export default function SalesPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/5">
-                    {['Cliente', ...products.map(p => p.name), 'Total', 'Pagado', 'Pendiente', 'Estado', 'Fecha', ''].map((h, i) => (
-                      <th key={i} className="text-[7px] font-black uppercase tracking-[0.15em] text-white/20 px-3 py-3 text-left whitespace-nowrap">
-                        {h}
+                    {[
+                      { label: 'Cliente', field: 'clientName' },
+                      ...products.map(p => ({ label: p.name, field: '' })),
+                      { label: 'Total', field: 'totalOwed' },
+                      { label: 'Pagado', field: 'amountPaid' },
+                      { label: 'Pendiente', field: 'totalPending' },
+                      { label: 'Estado', field: 'paymentStatus' },
+                      { label: 'Fecha', field: 'deliveryDate' },
+                      { label: '', field: '' },
+                    ].map((h, i) => (
+                      <th key={i}
+                        onClick={() => h.field && handleSort(h.field)}
+                        className={cn(
+                          'text-[7px] font-black uppercase tracking-[0.15em] text-white/20 px-3 py-3 text-left whitespace-nowrap',
+                          h.field && 'cursor-pointer hover:text-white/40 select-none'
+                        )}>
+                        <span className="inline-flex items-center gap-1">
+                          {h.label}
+                          {h.field && (sortField === h.field
+                            ? (sortDirection === 'asc' ? <ArrowUp size={9} className="text-emerald-400" /> : <ArrowDown size={9} className="text-emerald-400" />)
+                            : h.label && <ArrowUpDown size={9} className="opacity-30" />
+                          )}
+                        </span>
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((entry, i) => (
+                  {sorted.map((entry, i) => (
                     <tr key={entry.id}
                       className={cn('border-b border-white/[0.03] hover:bg-white/[0.02] transition-all', i % 2 === 1 && 'bg-white/[0.01]')}>
                       <td className="px-3 py-2.5 text-sm font-bold whitespace-nowrap">{entry.clientName}</td>
@@ -483,7 +649,7 @@ export default function SalesPage() {
                             className="p-1.5 rounded-lg hover:bg-white/10 text-white/20 hover:text-white transition-all">
                             <Pencil size={12} />
                           </button>
-                          <button onClick={() => deleteEntry(entry.id)}
+                          <button onClick={() => setDeleteTarget({ type: 'entry', id: entry.id, name: entry.clientName })}
                             className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/20 hover:text-red-400 transition-all">
                             <Trash2 size={12} />
                           </button>
@@ -495,7 +661,7 @@ export default function SalesPage() {
               </table>
             </div>
 
-            {filtered.length === 0 && (
+            {sorted.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-[10px] font-black uppercase tracking-widest text-white/15">Sin registros</p>
               </div>
@@ -503,6 +669,35 @@ export default function SalesPage() {
           </div>
         )}
       </div>
+
+      {/* ── CONFIRM DELETE MODAL ── */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => setDeleteTarget(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-[#13151f] border border-white/10 rounded-3xl w-full max-w-sm p-6">
+              <h3 className="text-sm font-black uppercase tracking-widest mb-2">Confirmar Eliminación</h3>
+              <p className="text-sm text-white/50 mb-6">
+                ¿Estás seguro de eliminar {deleteTarget.type === 'product' ? 'el producto' : 'el cliente'} <span className="text-white font-bold">{deleteTarget.name}</span>?
+                {deleteTarget.type === 'product' && <span className="block text-[10px] text-red-400/60 mt-1">Se eliminarán los items asociados en las ventas.</span>}
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setDeleteTarget(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-white/40 text-[9px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">
+                  Cancelar
+                </button>
+                <button onClick={confirmDelete}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-[9px] font-black uppercase tracking-widest transition-all">
+                  Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── ADD/EDIT MODAL ── */}
       <AnimatePresence>
@@ -516,6 +711,52 @@ export default function SalesPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* ── HIDDEN REPORT FOR EXPORT ── */}
+      <div ref={reportRef} style={{ display: 'none', position: 'absolute', left: '-9999px' }}>
+        <div style={{ background: '#0a0c14', color: 'white', padding: '32px', width: '600px', fontFamily: 'system-ui' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', marginBottom: '4px' }}>{event?.name}</h2>
+          <p style={{ fontSize: '10px', color: '#34d399', fontWeight: 900, letterSpacing: '3px', textTransform: 'uppercase' }}>Control de Entregas y Cobros</p>
+          <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>{format(new Date(), "dd 'de' MMMM yyyy", { locale: es })}</p>
+
+          {summary && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', margin: '16px 0' }}>
+              {[
+                { label: 'Total a Cobrar', value: formatCurrency(summary.totalOwed), color: 'white' },
+                { label: 'Cobrado', value: formatCurrency(summary.totalPaid), color: '#4ade80' },
+                { label: 'Pendiente', value: formatCurrency(summary.totalPending), color: '#fb923c' },
+                { label: 'Clientes', value: String(summary.totalClients), color: '#60a5fa' },
+              ].map(c => (
+                <div key={c.label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '12px' }}>
+                  <p style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>{c.label}</p>
+                  <p style={{ fontSize: '16px', fontWeight: 900, fontStyle: 'italic', color: c.color, marginTop: '4px' }}>{c.value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                {['Cliente', 'Total', 'Pagado', 'Pendiente', 'Estado'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 6px', fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(255,255,255,0.3)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map(e => (
+                <tr key={e.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                  <td style={{ padding: '6px', fontWeight: 700 }}>{e.clientName}</td>
+                  <td style={{ padding: '6px', color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(e.totalOwed)}</td>
+                  <td style={{ padding: '6px', color: '#4ade80' }}>{formatCurrency(e.amountPaid)}</td>
+                  <td style={{ padding: '6px', color: '#fb923c' }}>{e.totalPending > 0 ? formatCurrency(e.totalPending) : '-'}</td>
+                  <td style={{ padding: '6px', color: e.paymentStatus === 'PAGADO' ? '#4ade80' : e.paymentStatus === 'PARCIAL' ? '#facc15' : '#f87171', fontWeight: 700, fontSize: '9px' }}>{e.paymentStatus}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

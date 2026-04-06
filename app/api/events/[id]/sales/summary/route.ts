@@ -16,13 +16,26 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     let totalOwed = 0;
     let totalPaid = 0;
     const countByStatus: Record<string, number> = { PENDIENTE: 0, PARCIAL: 0, PAGADO: 0 };
+    const productSoldMap = new Map<string, { name: string; total: number }>();
 
     for (const entry of entries) {
       const entryOwed = entry.items.reduce((sum, item) => sum + item.quantity * item.saleProduct.price, 0);
       totalOwed += entryOwed;
       totalPaid += entry.amountPaid;
       countByStatus[entry.paymentStatus] = (countByStatus[entry.paymentStatus] ?? 0) + 1;
+
+      for (const item of entry.items) {
+        const existing = productSoldMap.get(item.saleProductId);
+        if (existing) existing.total += item.quantity;
+        else productSoldMap.set(item.saleProductId, { name: item.saleProduct.name, total: item.quantity });
+      }
     }
+
+    const productStats = Array.from(productSoldMap.entries()).map(([id, data]) => ({
+      productId: id,
+      productName: data.name,
+      totalSold: data.total,
+    }));
 
     return NextResponse.json({
       totalOwed,
@@ -31,6 +44,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       totalClients: entries.length,
       countByStatus,
       progressPercent: totalOwed > 0 ? Math.round((totalPaid / totalOwed) * 100) : 0,
+      productStats,
     });
   } catch (error) {
     console.error('[GET /api/events/[id]/sales/summary]', error);
