@@ -10,7 +10,7 @@ import {
   FileSpreadsheet, ChevronDown, BarChart3, ShoppingBag, CalendarCheck,
   CheckCircle2, Clock, Wallet, Store,
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subQuarters, startOfQuarter } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subQuarters, startOfQuarter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -408,7 +408,7 @@ export default function ReportsPage() {
                     </div>
                     <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-1">Cierre de Mes</h3>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-6">
-                      {format(new Date(range.from), 'dd MMM', { locale: es })} — {format(new Date(range.to), 'dd MMM yyyy', { locale: es })}
+                      {format(parseISO(range.from), 'dd MMM', { locale: es })} — {format(parseISO(range.to), 'dd MMM yyyy', { locale: es })}
                     </p>
 
                     <div className="space-y-4">
@@ -487,7 +487,7 @@ export default function ReportsPage() {
                           const incomeCategories = caja?.categories?.filter(c => c.type === 'income') ?? [];
                           const expenseCategories = caja?.categories?.filter(c => c.type === 'expense') ?? [];
 
-                          let msg = `📊 *REPORTE FINANCIERO — ${format(new Date(range.from), 'dd MMM', { locale: es }).toUpperCase()} a ${format(new Date(range.to), 'dd MMM yyyy', { locale: es }).toUpperCase()}*\n\n`;
+                          let msg = `📊 *REPORTE FINANCIERO — ${format(parseISO(range.from), 'dd MMM', { locale: es }).toUpperCase()} a ${format(parseISO(range.to), 'dd MMM yyyy', { locale: es }).toUpperCase()}*\n\n`;
 
                           msg += `🏦 *En Caja General:* ${formatCurrency(caja?.balance ?? 0)}\n\n`;
 
@@ -549,7 +549,7 @@ export default function ReportsPage() {
                         try {
                           const dataUrl = await toPng(node, { backgroundColor: '#ffffff', pixelRatio: 3 });
                           const link = document.createElement('a');
-                          link.download = `Reporte_${format(new Date(range.from), 'dd-MM')}_a_${format(new Date(range.to), 'dd-MM-yyyy')}.png`;
+                          link.download = `Reporte_${format(parseISO(range.from), 'dd-MM')}_a_${format(parseISO(range.to), 'dd-MM-yyyy')}.png`;
                           link.href = dataUrl;
                           link.click();
                         } catch (e) {

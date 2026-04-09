@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
 
@@ -123,7 +123,7 @@ export async function generateReportPDF({ data, settings, range, caja, activitie
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(...C.gray300);
-  const periodLabel = `${format(new Date(range.from), 'dd MMM', { locale: es })} — ${format(new Date(range.to), 'dd MMM yyyy', { locale: es })}`;
+  const periodLabel = `${format(parseISO(range.from), 'dd MMM', { locale: es })} — ${format(parseISO(range.to), 'dd MMM yyyy', { locale: es })}`;
   doc.text(periodLabel, W - M, 22, { align: 'right' });
   doc.text(`Generado: ${format(new Date(), "dd 'de' MMMM yyyy", { locale: es })}`, W - M, 30, { align: 'right' });
 

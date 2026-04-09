@@ -104,11 +104,12 @@ async function buildReport(
     to: tr.toEventId ? transferEventMap[tr.toEventId] ?? 'Evento' : 'Caja General',
   }));
 
-  // Saldo REAL de caja (histórico: todas las transacciones + transferencias)
-  const allCajaTx = await prisma.transaction.findMany({ where: { eventId: null } });
+  // Saldo de caja hasta la fecha final del período
+  const endDateObj = new Date(endDate);
+  const allCajaTx = await prisma.transaction.findMany({ where: { eventId: null, date: { lte: endDateObj } } });
   const allCajaIncome = allCajaTx.filter(t => t.type === TransactionType.income).reduce((a, t) => a + t.amount, 0);
   const allCajaExpense = allCajaTx.filter(t => t.type === TransactionType.expense).reduce((a, t) => a + t.amount, 0);
-  const allTransfers = await prisma.transfer.findMany();
+  const allTransfers = await prisma.transfer.findMany({ where: { date: { lte: endDateObj } } });
   const netCajaTransfers = allTransfers.reduce((acc, tr) => {
     if (!tr.fromEventId) return acc - tr.amount; // sale de caja
     if (!tr.toEventId) return acc + tr.amount;   // entra a caja

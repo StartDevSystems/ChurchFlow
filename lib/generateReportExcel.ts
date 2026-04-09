@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { ReportData, ReportSettings, ReportActivity, CajaSummary } from './generateReportPDF';
 
@@ -19,7 +19,7 @@ export async function generateReportExcel({ data, settings, range, caja, activit
   wb.created = new Date();
 
   const churchName = settings?.churchName || 'Finanzas Jóvenes';
-  const periodLabel = `${format(new Date(range.from), 'dd MMM', { locale: es })} — ${format(new Date(range.to), 'dd MMM yyyy', { locale: es })}`;
+  const periodLabel = `${format(parseISO(range.from), 'dd MMM', { locale: es })} — ${format(parseISO(range.to), 'dd MMM yyyy', { locale: es })}`;
 
   /* ── RESUMEN SHEET ── */
   const ws = wb.addWorksheet('Resumen', {
