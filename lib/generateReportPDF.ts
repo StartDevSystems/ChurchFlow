@@ -527,15 +527,15 @@ export async function generateReportPDF({ data, settings, range, caja, activitie
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(...C.white);
-  doc.text('CF', sealX + 8, sigY + 16, { align: 'center' });
+  doc.text('FJ', sealX + 8, sigY + 16, { align: 'center' });
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(...C.black);
-  doc.text('SELLO DIGITAL', sealX + 16, sigY + 13);
+  doc.text('FINANZAS', sealX + 16, sigY + 13);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.setTextColor(...C.gray600);
-  doc.text('ChurchFlow Pro', sealX + 16, sigY + 18);
+  doc.text('IMAC Juvenil', sealX + 16, sigY + 18);
   doc.text(periodLabel, sealX + 16, sigY + 23);
 
   /* ── PAGE FOOTER (all pages) ── */
@@ -553,5 +553,5 @@ export async function generateReportPDF({ data, settings, range, caja, activitie
     doc.rect(0, H - 1.5, W, 1.5, 'F');
   }
 
-  doc.save(`ChurchFlow_${range.from}_${range.to}.pdf`);
+  doc.save(`Finanzas_IMAC_Juvenil_${range.from}_${range.to}.pdf`);
 }
