@@ -395,92 +395,92 @@ export default function ReportsPage() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="bg-white rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-8 w-full max-w-[95vw] md:max-w-sm shadow-2xl text-[#0a0c14] overflow-hidden relative"
+                  className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-6 w-full max-w-[95vw] md:max-w-md shadow-2xl text-[#0a0c14] overflow-hidden relative flex flex-col max-h-[95vh]"
                   onClick={e => e.stopPropagation()}
                 >
-                  <button onClick={() => setShowWhatsAppModal(false)} className="absolute top-6 right-6 text-black/20 hover:text-black transition-all">
-                    <X size={24} />
+                  <button onClick={() => setShowWhatsAppModal(false)} className="absolute top-4 right-4 text-black/20 hover:text-black transition-all z-10">
+                    <X size={20} />
                   </button>
 
-                  <div id="whatsapp-infographic" className="text-center">
-                    <div className="w-16 h-16 bg-orange-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-                      <TrendingUp className="text-orange-600 h-8 w-8" strokeWidth={3} />
+                  <div id="whatsapp-infographic" className="text-center flex-1 min-h-0">
+                    <div className="flex items-center justify-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
+                        <TrendingUp className="text-orange-600 h-5 w-5" strokeWidth={3} />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="text-lg font-black uppercase italic tracking-tighter leading-none">Cierre de Mes</h3>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">
+                          {format(parseISO(range.from), 'dd MMM', { locale: es })} — {format(parseISO(range.to), 'dd MMM yyyy', { locale: es })}
+                        </p>
+                      </div>
                     </div>
-                    <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-1">Cierre de Mes</h3>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-6">
-                      {format(parseISO(range.from), 'dd MMM', { locale: es })} — {format(parseISO(range.to), 'dd MMM yyyy', { locale: es })}
-                    </p>
 
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
                       {/* Caja General */}
                       {caja && (
-                        <div className="bg-[#0a0c14] p-6 rounded-[2rem]">
-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">En Caja General</p>
-                          <h4 className={cn('text-3xl font-black italic', caja.balance >= 0 ? 'text-white' : 'text-red-400')}>{formatCurrency(caja.balance)}</h4>
+                        <div className="bg-[#0a0c14] p-4 rounded-2xl">
+                          <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40 mb-0.5">En Caja General</p>
+                          <h4 className={cn('text-2xl font-black italic', caja.balance >= 0 ? 'text-white' : 'text-red-400')}>{formatCurrency(caja.balance)}</h4>
 
-                          {/* Desglose entradas */}
                           {caja.categories?.filter(c => c.type === 'income').length > 0 && (
-                            <div className="mt-3 text-left">
-                              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-green-500/50 mb-1">Entradas ({formatCurrency(caja.income)})</p>
-                              {caja.categories.filter(c => c.type === 'income').map(c => (
-                                <div key={c.name} className="flex justify-between px-2">
-                                  <p className="text-[8px] text-white/40">{c.name}</p>
-                                  <p className="text-[8px] font-bold text-green-400/70">{formatCurrency(c.total)}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Desglose salidas */}
-                          {caja.categories?.filter(c => c.type === 'expense').length > 0 && (
                             <div className="mt-2 text-left">
-                              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-red-500/50 mb-1">Salidas ({formatCurrency(caja.expense)})</p>
-                              {caja.categories.filter(c => c.type === 'expense').map(c => (
-                                <div key={c.name} className="flex justify-between px-2">
-                                  <p className="text-[8px] text-white/40">{c.name}</p>
-                                  <p className="text-[8px] font-bold text-red-400/70">{formatCurrency(c.total)}</p>
+                              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-green-500/50 mb-0.5">Entradas ({formatCurrency(caja.income)})</p>
+                              {caja.categories.filter(c => c.type === 'income').map(c => (
+                                <div key={c.name} className="flex justify-between px-1">
+                                  <p className="text-[7px] text-white/40">{c.name}</p>
+                                  <p className="text-[7px] font-bold text-green-400/70">{formatCurrency(c.total)}</p>
                                 </div>
                               ))}
                             </div>
                           )}
 
+                          {caja.categories?.filter(c => c.type === 'expense').length > 0 && (
+                            <div className="mt-1.5 text-left">
+                              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-red-500/50 mb-0.5">Salidas ({formatCurrency(caja.expense)})</p>
+                              {caja.categories.filter(c => c.type === 'expense').map(c => (
+                                <div key={c.name} className="flex justify-between px-1">
+                                  <p className="text-[7px] text-white/40">{c.name}</p>
+                                  <p className="text-[7px] font-bold text-red-400/70">{formatCurrency(c.total)}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
 
                       {/* Actividades/Ventas resumen */}
                       {activities.length > 0 && (
-                        <div className="bg-gray-50 p-5 rounded-[2rem]">
-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 mb-3">Actividades y Ventas</p>
-                          <div className="space-y-2">
+                        <div className="bg-gray-50 p-4 rounded-2xl">
+                          <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Actividades y Ventas</p>
+                          <div className="space-y-1.5">
                             {activities.map(a => (
-                              <div key={a.id} className="flex justify-between items-center px-2">
-                                <div className="flex items-center gap-2">
-                                  <span className={cn('text-[7px] font-black uppercase px-1.5 py-0.5 rounded', a.type === 'VENTA' ? 'bg-emerald-100 text-emerald-600' : 'bg-purple-100 text-purple-600')}>
+                              <div key={a.id} className="flex justify-between items-center gap-1">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className={cn('text-[6px] font-black uppercase px-1 py-0.5 rounded shrink-0', a.type === 'VENTA' ? 'bg-emerald-100 text-emerald-600' : 'bg-purple-100 text-purple-600')}>
                                     {a.type === 'VENTA' ? 'V' : 'E'}
                                   </span>
-                                  <p className="text-[9px] font-bold text-gray-600 text-left">{a.name}</p>
+                                  <p className="text-[8px] font-bold text-gray-600 text-left truncate">{a.name}</p>
                                 </div>
-                                <p className={cn('text-[10px] font-black', a.type === 'VENTA' && a.profit >= 0 ? 'text-green-600' : 'text-red-600')}>
+                                <p className={cn('text-[8px] font-black shrink-0', a.type === 'VENTA' && a.profit >= 0 ? 'text-green-600' : 'text-red-600')}>
                                   {a.type === 'VENTA'
                                     ? `${a.profit >= 0 ? '+' : ''}${formatCurrency(a.profit)}`
-                                    : `Gastado ${formatCurrency(a.expense)}`}
+                                    : formatCurrency(a.expense)}
                                 </p>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
-
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-dashed border-gray-200">
-                      <p className="text-[8px] font-black uppercase tracking-[0.3em] text-gray-400 italic">
+                    <div className="mt-3 pt-2 border-t border-dashed border-gray-200">
+                      <p className="text-[7px] font-black uppercase tracking-[0.3em] text-gray-400 italic">
                         &quot;Fieles en lo poco, sobre mucho te pondré&quot;
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-6 text-center space-y-4">
+                  <div className="mt-3 text-center flex gap-2 shrink-0">
                     <a
                       href={`https://wa.me/?text=${encodeURIComponent(
                         (() => {
@@ -491,7 +491,6 @@ export default function ReportsPage() {
 
                           msg += `🏦 *En Caja General:* ${formatCurrency(caja?.balance ?? 0)}\n\n`;
 
-                          // Desglose de entradas
                           msg += `💰 *Entradas (${formatCurrency(caja?.income ?? 0)}):*\n`;
                           if (incomeCategories.length > 0) {
                             msg += incomeCategories.map(c => `   • ${c.name}: ${formatCurrency(c.total)}`).join('\n') + '\n';
@@ -499,7 +498,6 @@ export default function ReportsPage() {
                             msg += `   _Sin ingresos este período_\n`;
                           }
 
-                          // Desglose de salidas
                           msg += `\n💸 *Salidas (${formatCurrency(caja?.expense ?? 0)}):*\n`;
                           if (expenseCategories.length > 0) {
                             msg += expenseCategories.map(c => `   • ${c.name}: ${formatCurrency(c.total)}`).join('\n') + '\n';
@@ -507,7 +505,6 @@ export default function ReportsPage() {
                             msg += `   _Sin gastos este período_\n`;
                           }
 
-                          // Movimientos internos (transferencias)
                           const transferDetails = (caja as any)?.transferDetails ?? [];
                           if (transferDetails.length > 0) {
                             msg += `\n🔄 *Movimientos internos:*\n`;
@@ -516,7 +513,6 @@ export default function ReportsPage() {
                             ).join('\n') + '\n';
                           }
 
-                          // Actividades y Ventas
                           if (activities.length > 0) {
                             msg += `\n📋 *Actividades y Ventas (aparte):*\n`;
                             msg += activities.map(a => {
@@ -527,7 +523,6 @@ export default function ReportsPage() {
                             }).join('\n') + '\n';
                           }
 
-                          // Comparación vs anterior
                           if (previousSummary && incomeChange !== null) {
                             msg += `\n📈 *vs anterior:* Ingresos ${incomeChange >= 0 ? '+' : ''}${incomeChange.toFixed(1)}%\n`;
                           }
@@ -538,9 +533,9 @@ export default function ReportsPage() {
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] tracking-widest py-6 rounded-2xl shadow-xl flex items-center justify-center gap-2 no-underline"
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[9px] tracking-widest py-4 rounded-2xl shadow-xl flex items-center justify-center gap-1.5 no-underline"
                     >
-                      <MessageCircle size={18} /> Enviar Mensaje de Texto
+                      <MessageCircle size={16} /> WhatsApp
                     </a>
                     <button
                       onClick={async () => {
@@ -556,9 +551,9 @@ export default function ReportsPage() {
                           console.error('Error generando imagen:', e);
                         }
                       }}
-                      className="w-full bg-[#0a0c14] hover:bg-[#1a1c24] text-white font-black uppercase text-[10px] tracking-widest py-6 rounded-2xl shadow-xl flex items-center justify-center gap-2"
+                      className="flex-1 bg-[#0a0c14] hover:bg-[#1a1c24] text-white font-black uppercase text-[9px] tracking-widest py-4 rounded-2xl shadow-xl flex items-center justify-center gap-1.5"
                     >
-                      <Download size={18} /> Descargar Imagen
+                      <Download size={16} /> Imagen
                     </button>
                   </div>
                 </motion.div>
