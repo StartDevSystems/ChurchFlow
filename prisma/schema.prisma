@@ -29,6 +29,7 @@ model Member {
   position     String?       @default("Miembro") // Nuevo: Músico, Ujier, etc.
   status       String        @default("ACTIVO")  // Nuevo: ACTIVO, INACTIVO, OBSERVACION
   monthlyDue   Float         @default(0) 
+  annualSedeDue Float        @default(120)
   birthDate    DateTime?     
   createdAt    DateTime      @default(now())
   transactions Transaction[]
@@ -187,7 +188,7 @@ model Settings {
   generalFundName         String   @default("Caja General")
   lowBalanceAlert         Float    @default(1000)
   defaultMonthlyDue       Float    @default(200)
-  
+  defaultAnnualSedeDue    Float    @default(120)  
   // Notificaciones
   webhookUrl              String   @default("")
   whatsappMessageTemplate String   @default("Hola {nombre}! 👋 Te escribo de la Iglesia para recordarte que para el mes de {mes} faltan {monto} de tu cuota. ¡Dios te bendiga!")

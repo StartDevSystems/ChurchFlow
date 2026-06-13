@@ -18,7 +18,9 @@
       "Bash(node -e ':*)",
       "Bash(node scripts/fix-data.js)",
       "Bash(npm install:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(node -e \"const { parseISO, format } = require\\('date-fns'\\); console.log\\('new Date:', new Date\\('2026-03-01'\\).toString\\(\\)\\); console.log\\('parseISO:', parseISO\\('2026-03-01'\\).toString\\(\\)\\);\")",
+      "Bash(tasklist)"
     ]
   }
 }
