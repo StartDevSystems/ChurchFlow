@@ -219,7 +219,7 @@ export default function ReportsPage() {
   /* ── Export handlers ── */
   const handlePDF = () => {
     if (!data) return;
-    generateReportPDF({ data, settings, range, caja, activities });
+    generateReportPDF({ data, settings, range, caja, activities, trend });
   };
 
   const handleExcel = async () => {
